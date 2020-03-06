@@ -29,7 +29,7 @@ namespace Roslynator.CSharp.Analysis
             context.RegisterSyntaxNodeAction(AnalyzeEnumDeclaration, SyntaxKind.EnumDeclaration);
         }
 
-        public static void AnalyzeEnumDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeEnumDeclaration(SyntaxNodeAnalysisContext context)
         {
             var enumDeclaration = (EnumDeclarationSyntax)context.Node;
 
@@ -44,7 +44,7 @@ namespace Roslynator.CSharp.Analysis
         private static bool IsListUnsorted(
             SeparatedSyntaxList<EnumMemberDeclarationSyntax> members,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             int count = members.Count;
 

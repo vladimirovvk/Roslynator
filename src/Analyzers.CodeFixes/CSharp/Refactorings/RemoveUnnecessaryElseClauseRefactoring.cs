@@ -16,11 +16,11 @@ namespace Roslynator.CSharp.Refactorings
         public static Task<Document> RefactorAsync(
             Document document,
             ElseClauseSyntax elseClause,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             var ifStatement = (IfStatementSyntax)elseClause.Parent;
 
-            List<StatementSyntax> newStatements = null;
+            List<StatementSyntax> newStatements;
 
             if (elseClause.Statement is BlockSyntax block)
             {

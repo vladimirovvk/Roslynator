@@ -35,7 +35,6 @@ namespace Roslynator
         /// <param name="baseName"></param>
         /// <param name="reservedNames"></param>
         /// <param name="isCaseSensitive"></param>
-        /// <returns></returns>
         public abstract string EnsureUniqueName(string baseName, IEnumerable<string> reservedNames, bool isCaseSensitive = true);
 
         /// <summary>
@@ -44,7 +43,6 @@ namespace Roslynator
         /// <param name="baseName"></param>
         /// <param name="symbols"></param>
         /// <param name="isCaseSensitive"></param>
-        /// <returns></returns>
         public abstract string EnsureUniqueName(string baseName, ImmutableArray<ISymbol> symbols, bool isCaseSensitive = true);
 
         /// <summary>
@@ -54,7 +52,6 @@ namespace Roslynator
         /// <param name="semanticModel"></param>
         /// <param name="position"></param>
         /// <param name="isCaseSensitive"></param>
-        /// <returns></returns>
         public string EnsureUniqueName(
             string baseName,
             SemanticModel semanticModel,
@@ -73,7 +70,6 @@ namespace Roslynator
         /// <param name="baseName"></param>
         /// <param name="enumType"></param>
         /// <param name="isCaseSensitive"></param>
-        /// <returns></returns>
         public string EnsureUniqueEnumMemberName(
             string baseName,
             INamedTypeSymbol enumType,
@@ -96,13 +92,12 @@ namespace Roslynator
         /// <param name="position"></param>
         /// <param name="isCaseSensitive"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public string EnsureUniqueLocalName(
             string baseName,
             SemanticModel semanticModel,
             int position,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (semanticModel == null)
                 throw new ArgumentNullException(nameof(semanticModel));
@@ -119,7 +114,7 @@ namespace Roslynator
             ISymbol containingSymbol,
             SemanticModel semanticModel,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (containingSymbol == null)
                 throw new ArgumentNullException(nameof(containingSymbol));
@@ -149,7 +144,6 @@ namespace Roslynator
         /// <param name="name"></param>
         /// <param name="symbols"></param>
         /// <param name="isCaseSensitive"></param>
-        /// <returns></returns>
         public static bool IsUniqueName(string name, ImmutableArray<ISymbol> symbols, bool isCaseSensitive = true)
         {
             StringComparison comparison = GetStringComparison(isCaseSensitive);
@@ -169,7 +163,6 @@ namespace Roslynator
         /// <param name="name"></param>
         /// <param name="reservedNames"></param>
         /// <param name="isCaseSensitive"></param>
-        /// <returns></returns>
         public static bool IsUniqueName(string name, IEnumerable<string> reservedNames, bool isCaseSensitive = true)
         {
             StringComparison comparison = GetStringComparison(isCaseSensitive);
@@ -188,7 +181,6 @@ namespace Roslynator
         /// </summary>
         /// <param name="typeSymbol"></param>
         /// <param name="firstCharToLower"></param>
-        /// <returns></returns>
         public static string CreateName(ITypeSymbol typeSymbol, bool firstCharToLower = false)
         {
             string name = CreateNameFromTypeSymbolHelper.CreateName(typeSymbol);
@@ -207,7 +199,7 @@ namespace Roslynator
             SemanticModel semanticModel,
             int position,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (typeSymbol != null)
             {
@@ -226,7 +218,7 @@ namespace Roslynator
             SemanticModel semanticModel,
             int position,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             string newName = CreateName(typeSymbol, firstCharToLower: true);
 
@@ -247,7 +239,7 @@ namespace Roslynator
             IParameterSymbol parameterSymbol,
             SemanticModel semanticModel,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             string newName = CreateName(parameterSymbol.Type, firstCharToLower: true);
 
@@ -271,7 +263,7 @@ namespace Roslynator
                 && uniqueName.Length > newName.Length
                 && AreDigits(uniqueName, newName.Length, uniqueName.Length - newName.Length);
 
-            bool AreDigits(string value, int start, int count)
+            static bool AreDigits(string value, int start, int count)
             {
                 int max = start + count;
 

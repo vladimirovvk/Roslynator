@@ -58,7 +58,7 @@ namespace Roslynator.CSharp.Analysis
                 if (!content.Any())
                     continue;
 
-                (TextSpan span1, TextSpan span2, IList<TextSpan> spans) = FindFixableSpan(content, stopOnFirstMatch: true, context.CancellationToken);
+                (TextSpan span1, TextSpan span2, IList<TextSpan> _) = FindFixableSpan(content, stopOnFirstMatch: true, context.CancellationToken);
 
                 if (span2.End > 0)
                 {
@@ -73,7 +73,7 @@ namespace Roslynator.CSharp.Analysis
         internal static (TextSpan span1, TextSpan span2, List<TextSpan> spans) FindFixableSpan(
             SyntaxList<XmlNodeSyntax> nodes,
             bool stopOnFirstMatch = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             int index = -1;
             int endIndex = -1;
@@ -277,7 +277,6 @@ namespace Roslynator.CSharp.Analysis
                                                                 spans.Add(TextSpan.FromBounds(index2, endIndex2));
                                                                 index = index2;
                                                                 index2 = -1;
-                                                                endIndex2 = -1;
                                                             }
                                                             else
                                                             {

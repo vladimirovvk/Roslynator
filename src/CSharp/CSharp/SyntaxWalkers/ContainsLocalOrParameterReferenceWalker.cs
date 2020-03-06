@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -121,16 +122,21 @@ namespace Roslynator.CSharp.SyntaxWalkers
         public static ContainsLocalOrParameterReferenceWalker GetInstance(
             ISymbol symbol,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ContainsLocalOrParameterReferenceWalker walker = _cachedInstance;
 
             if (walker != null)
             {
+                Debug.Assert(walker.Symbol == null);
+                Debug.Assert(walker.SemanticModel == null);
+                Debug.Assert(walker.CancellationToken == default);
+
                 _cachedInstance = null;
                 walker.Symbol = symbol;
                 walker.SemanticModel = semanticModel;
                 walker.CancellationToken = cancellationToken;
+
                 return walker;
             }
 
@@ -140,9 +146,10 @@ namespace Roslynator.CSharp.SyntaxWalkers
         public static void Free(ContainsLocalOrParameterReferenceWalker walker)
         {
             walker.Result = false;
-            walker.Symbol = default;
-            walker.SemanticModel = default;
+            walker.Symbol = null;
+            walker.SemanticModel = null;
             walker.CancellationToken = default;
+
             _cachedInstance = walker;
         }
 

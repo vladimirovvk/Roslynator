@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Roslynator.CSharp.Analysis
 {
@@ -69,7 +70,7 @@ namespace Roslynator.CSharp.Analysis
                     }
                     else
                     {
-                        emptyLines = default(TextSpan);
+                        emptyLines = default;
                     }
                 }
                 else
@@ -81,7 +82,7 @@ namespace Roslynator.CSharp.Analysis
                             Location.Create(context.Tree, emptyLines));
                     }
 
-                    emptyLines = default(TextSpan);
+                    emptyLines = default;
 
                     int end = textLine.End - 1;
 
@@ -94,7 +95,8 @@ namespace Roslynator.CSharp.Analysis
 
                         TextSpan whitespace = TextSpan.FromBounds(start, end + 1);
 
-                        if (root.FindTrivia(start).IsWhitespaceTrivia())
+                        if (root.FindTrivia(start).IsWhitespaceTrivia()
+                            || root.FindToken(start, findInsideTrivia: true).IsKind(SyntaxKind.XmlTextLiteralToken))
                         {
                             if (previousLineIsEmpty && start == textLine.Start)
                             {

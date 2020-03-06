@@ -27,7 +27,7 @@ namespace Roslynator.CSharp.Analysis
             context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
         }
 
-        public static void AnalyzeNamedType(SymbolAnalysisContext context)
+        private static void AnalyzeNamedType(SymbolAnalysisContext context)
         {
             var symbol = (INamedTypeSymbol)context.Symbol;
 
@@ -40,7 +40,7 @@ namespace Roslynator.CSharp.Analysis
 
                 SyntaxToken identifier = GetDeclarationIdentifier(symbol, node);
 
-                if (identifier != default(SyntaxToken))
+                if (identifier != default)
                 {
                     DiagnosticHelpers.ReportDiagnostic(context,
                         DiagnosticDescriptors.DeclareTypeInsideNamespace,
@@ -67,7 +67,7 @@ namespace Roslynator.CSharp.Analysis
                 default:
                     {
                         Debug.Fail(symbol.TypeKind.ToString());
-                        return default(SyntaxToken);
+                        return default;
                     }
             }
         }

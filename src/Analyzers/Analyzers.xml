@@ -365,10 +365,10 @@ foreach (var item in items) // [|Id|]
       </Sample>
     </Samples>
   </Analyzer>
-  <Analyzer Identifier="AddDefaultAccessModifier">
+  <Analyzer Identifier="AddAccessibilityModifiers">
     <Id>RCS1018</Id>
-    <Title>Add default access modifier.</Title>
-    <MessageFormat>Add default access modifier.</MessageFormat>
+    <Title>Add accessibility modifiers.</Title>
+    <MessageFormat>Add accessibility modifiers.</MessageFormat>
     <Category>Readability</Category>
     <DefaultSeverity>Info</DefaultSeverity>
     <IsEnabledByDefault>true</IsEnabledByDefault>
@@ -1188,7 +1188,7 @@ public class Foo
     <MessageFormat>Add empty line between declarations.</MessageFormat>
     <Category>Formatting</Category>
     <DefaultSeverity>Info</DefaultSeverity>
-    <IsEnabledByDefault>true</IsEnabledByDefault>
+    <IsEnabledByDefault>false</IsEnabledByDefault>
     <SupportsFadeOut>false</SupportsFadeOut>
     <SupportsFadeOutAnalyzer>false</SupportsFadeOutAnalyzer>
     <Samples>
@@ -1781,6 +1781,14 @@ object x = items.Peek();]]></After>
         <Before><![CDATA[enumerable.Any() ? enumerable.First() : default // [|Id|]]]></Before>
         <After><![CDATA[enumerable.FirstOrDefault()]]></After>
       </Sample>
+      <Sample>
+        <Before><![CDATA[enumerable.OrderBy(f => f).Reverse() // [|Id|]]]></Before>
+        <After><![CDATA[enumerable.OrderByDescending()]]></After>
+      </Sample>
+      <Sample>
+        <Before><![CDATA[enumerable.SelectMany(f => f.Items).Count() // [|Id|]]]></Before>
+        <After><![CDATA[enumerable.Sum(f => f.Items.Count)]]></After>
+      </Sample>
     </Samples>
   </Analyzer>
   <Analyzer Identifier="UseEmptyStringLiteralInsteadOfStringEmpty">
@@ -1962,7 +1970,7 @@ public string Foo // [|Id|]
     <SupportsFadeOut>false</SupportsFadeOut>
     <SupportsFadeOutAnalyzer>false</SupportsFadeOutAnalyzer>
   </Analyzer>
-  <Analyzer Identifier="UsePostfixUnaryOperatorInsteadOfAssignment">
+  <Analyzer Identifier="UseUnaryOperatorInsteadOfAssignment">
     <Id>RCS1089</Id>
     <Title>Use --/++ operator instead of assignment.</Title>
     <MessageFormat>Use {0} operator instead of assignment.</MessageFormat>
@@ -1975,6 +1983,10 @@ public string Foo // [|Id|]
       <Sample>
         <Before><![CDATA[i = i + 1; // [|Id|]]]></Before>
         <After><![CDATA[i++;]]></After>
+      </Sample>
+      <Sample>
+        <Before><![CDATA[M(i + 1); // [|Id|]]]></Before>
+        <After><![CDATA[M(++i);]]></After>
       </Sample>
     </Samples>
   </Analyzer>
@@ -2299,6 +2311,10 @@ else
         <After><![CDATA[bool x = y;]]></After>
       </Sample>
       <Sample>
+        <Before><![CDATA[bool x = y ? false : true; // [|Id|]]]></Before>
+        <After><![CDATA[bool x = !y;]]></After>
+      </Sample>
+      <Sample>
         <Before><![CDATA[bool x = y ? z : false; // [|Id|]]]></Before>
         <After><![CDATA[bool x = y && z;]]></After>
       </Sample>
@@ -2496,7 +2512,21 @@ public static partial class Foo
 {
 }]]></After>
       </Sample>
+      <Sample>
+        <Before><![CDATA[if (s == "") // [|Id|]
+{
+}]]></Before>
+        <After><![CDATA[if (string.IsNullOrEmpty(s))
+{
+}]]></After>
+      </Sample>
     </Samples>
+    <Links>
+      <Link>
+        <Url>https://docs.microsoft.com/en-us/visualstudio/code-quality/ca1820</Url>
+        <Text>CA1820: Test for empty strings using string length</Text>
+      </Link>
+    </Links>
   </Analyzer>
   <Analyzer Identifier="RemoveRedundantDelegateCreation">
     <Id>RCS1114</Id>
@@ -3299,7 +3329,7 @@ Foo();]]></After>
       </Sample>
     </Samples>
   </Analyzer>
-  <Analyzer Identifier="UseStringLengthInsteadOfComparisonWithEmptyString">
+  <Analyzer Identifier="UseStringLengthInsteadOfComparisonWithEmptyString" IsObsolete="true">
     <Id>RCS1156</Id>
     <Title>Use string.Length instead of comparison with empty string.</Title>
     <MessageFormat>Use string.Length instead of comparison with empty string.</MessageFormat>
@@ -4662,6 +4692,10 @@ if (items.Count < 0) // [|Id|]
 {
 }]]></Before>
       </Sample>
+      <Sample>
+        <Before><![CDATA[x == double.NaN]]></Before>
+        <After><![CDATA[double.IsNaN(x)]]></After>
+      </Sample>
     </Samples>
   </Analyzer>
   <Analyzer Identifier="UnnecessaryUnsafeContext">
@@ -5608,6 +5642,117 @@ public abstract class EqualityComparer : IEqualityComparer<C>, IEqualityComparer
         return obj.GetHashCode();
     }
 }]]></After>
+      </Sample>
+    </Samples>
+  </Analyzer>
+  <Analyzer Identifier="DoNotPassNonReadOnlyStructByReadOnlyReference">
+    <Id>RCS1242</Id>
+    <Title>Do not pass non-read-only struct by read-only reference.</Title>
+    <MessageFormat>Do not pass non-read-only struct by read-only reference.</MessageFormat>
+    <Category>Performance</Category>
+    <DefaultSeverity>Warning</DefaultSeverity>
+    <IsEnabledByDefault>true</IsEnabledByDefault>
+    <SupportsFadeOut>false</SupportsFadeOut>
+    <SupportsFadeOutAnalyzer>false</SupportsFadeOutAnalyzer>
+    <MinLanguageVersion>7.2</MinLanguageVersion>
+    <Samples>
+      <Sample>
+        <Before>
+          <![CDATA[struct C
+{
+    void M(in C c) // [|Id|]
+    {
+    }
+}]]>
+        </Before>
+        <After>
+          <![CDATA[struct C
+{
+    void M(C c)
+    {
+    }
+}]]>
+        </After>
+      </Sample>
+    </Samples>
+    <Links>
+      <Link>
+        <Url>https://docs.microsoft.com/dotnet/csharp/language-reference/keywords/in-parameter-modifier</Url>
+        <Text>in parameter modifier (C# Reference)</Text>
+      </Link>
+      <Link>
+        <Url>https://devblogs.microsoft.com/premier-developer/the-in-modifier-and-the-readonly-structs-in-c/</Url>
+        <Text>The 'in'-modifier and the readonly structs in C#</Text>
+      </Link>
+    </Links>
+  </Analyzer>
+  <Analyzer Identifier="DuplicateWordInComment">
+    <Id>RCS1243</Id>
+    <Title>Duplicate word in a comment.</Title>
+    <MessageFormat>Duplicate word in a comment.</MessageFormat>
+    <Category>General</Category>
+    <DefaultSeverity>Info</DefaultSeverity>
+    <IsEnabledByDefault>true</IsEnabledByDefault>
+    <SupportsFadeOut>true</SupportsFadeOut>
+    <SupportsFadeOutAnalyzer>false</SupportsFadeOutAnalyzer>
+    <Samples>
+      <Sample>
+        <Before><![CDATA[/// <summary>
+/// This is the the comment.
+/// </summary>
+public class C
+{
+}]]></Before>
+        <After><![CDATA[/// <summary>
+/// This is the comment.
+/// </summary>
+public class C
+{
+}]]></After>
+      </Sample>
+    </Samples>
+  </Analyzer>
+  <Analyzer Identifier="SimplifyDefaultExpression">
+    <Id>RCS1244</Id>
+    <Title>Simplify 'default' expression.</Title>
+    <MessageFormat>Simplify 'default' expression.</MessageFormat>
+    <Category>Simplification</Category>
+    <DefaultSeverity>Hidden</DefaultSeverity>
+    <IsEnabledByDefault>true</IsEnabledByDefault>
+    <SupportsFadeOut>true</SupportsFadeOut>
+    <SupportsFadeOutAnalyzer>false</SupportsFadeOutAnalyzer>
+    <MinLanguageVersion>7.1</MinLanguageVersion>
+    <Summary>This analyzer is similar to [IDE0034](https://docs.microsoft.com/visualstudio/ide/common-quick-actions#remove-type-from-default-value-expression) but there are some differences. For example this analyzer does not simplify 'default' expression passed as an argument expression.</Summary>
+    <Samples>
+      <Sample>
+        <Before><![CDATA[Foo M(Foo foo = default(Foo)) [|Id|]
+{
+    return default(Foo); [|Id|]
+}]]></Before>
+        <After><![CDATA[Foo M(Foo foo = default)
+{
+    return default;
+}]]></After>
+      </Sample>
+    </Samples>
+  </Analyzer>
+  <Analyzer Identifier="SimplifyConditionalExpression2">
+    <Id>RCS1245</Id>
+    <Title>Simplify conditional expression.</Title>
+    <MessageFormat>Simplify conditional expression.</MessageFormat>
+    <Category>Simplification</Category>
+    <DefaultSeverity>Hidden</DefaultSeverity>
+    <IsEnabledByDefault>true</IsEnabledByDefault>
+    <SupportsFadeOut>false</SupportsFadeOut>
+    <SupportsFadeOutAnalyzer>false</SupportsFadeOutAnalyzer>
+    <Samples>
+      <Sample>
+        <Before><![CDATA[bool x = y ? false : z; // [|Id|]]]></Before>
+        <After><![CDATA[bool x = !y && z;]]></After>
+      </Sample>
+      <Sample>
+        <Before><![CDATA[bool x = y ? z : true; // [|Id|]]]></Before>
+        <After><![CDATA[bool x = !y || z;]]></After>
       </Sample>
     </Samples>
   </Analyzer>

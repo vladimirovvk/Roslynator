@@ -21,10 +21,9 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="expression"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static ExpressionSyntax LogicallyInvert(
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return LogicallyInvert(expression, semanticModel: null, cancellationToken);
         }
@@ -35,11 +34,10 @@ namespace Roslynator.CSharp
         /// <param name="expression"></param>
         /// <param name="semanticModel"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static ExpressionSyntax LogicallyInvert(
             ExpressionSyntax expression,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (expression == null)
                 throw new ArgumentNullException(nameof(expression));
@@ -281,7 +279,7 @@ namespace Roslynator.CSharp
             return null;
         }
 
-        private static BinaryExpressionSyntax InvertBinaryExpression(BinaryExpressionSyntax binaryExpression)
+        internal static BinaryExpressionSyntax InvertBinaryExpression(BinaryExpressionSyntax binaryExpression)
         {
             SyntaxToken operatorToken = InvertBinaryOperatorToken(binaryExpression.OperatorToken);
 
@@ -295,7 +293,7 @@ namespace Roslynator.CSharp
                 InvertBinaryOperator(operatorToken.Kind()),
                 operatorToken.TrailingTrivia);
 
-            SyntaxKind InvertBinaryOperator(SyntaxKind kind)
+            static SyntaxKind InvertBinaryOperator(SyntaxKind kind)
             {
                 switch (kind)
                 {

@@ -15,7 +15,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             MemberDeclarationSyntax memberDeclaration,
             bool copyCommentFromBaseIfAvailable,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             MemberDeclarationSyntax newNode = null;
 
@@ -34,7 +34,7 @@ namespace Roslynator.CSharp.Refactorings
                 }
             }
 
-            newNode = newNode ?? memberDeclaration.WithNewSingleLineDocumentationComment();
+            newNode ??= memberDeclaration.WithNewSingleLineDocumentationComment();
 
             return await document.ReplaceNodeAsync(memberDeclaration, newNode, cancellationToken).ConfigureAwait(false);
         }

@@ -15,7 +15,7 @@ namespace Roslynator.CSharp.Refactorings
         public static Task<Document> RefactorAsync(
             Document document,
             LambdaExpressionSyntax lambda,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             var block = (BlockSyntax)lambda.Body;
 
@@ -27,7 +27,7 @@ namespace Roslynator.CSharp.Refactorings
 
             return document.ReplaceNodeAsync(lambda, newLambda, cancellationToken);
 
-            ExpressionSyntax GetExpression(StatementSyntax statement)
+            static ExpressionSyntax GetExpression(StatementSyntax statement)
             {
                 switch (statement.Kind())
                 {

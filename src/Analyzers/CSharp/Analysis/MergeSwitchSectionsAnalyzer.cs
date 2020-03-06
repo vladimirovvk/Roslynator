@@ -28,7 +28,7 @@ namespace Roslynator.CSharp.Analysis
             context.RegisterSyntaxNodeAction(AnalyzeSwitchStatement, SyntaxKind.SwitchStatement);
         }
 
-        public static void AnalyzeSwitchStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeSwitchStatement(SyntaxNodeAnalysisContext context)
         {
             var switchStatement = (SwitchStatementSyntax)context.Node;
 
@@ -102,7 +102,7 @@ namespace Roslynator.CSharp.Analysis
         {
             switch (statement1)
             {
-                case BreakStatementSyntax breakStatement:
+                case BreakStatementSyntax _:
                     {
                         return statement2.Kind() == SyntaxKind.BreakStatement;
                     }
@@ -128,7 +128,7 @@ namespace Roslynator.CSharp.Analysis
             foreach (SwitchLabelSyntax label in section.Labels)
             {
                 if (!label.Kind().Is(SyntaxKind.CaseSwitchLabel, SyntaxKind.DefaultSwitchLabel))
-                    return default(SyntaxList<StatementSyntax>);
+                    return default;
             }
 
             SyntaxList<StatementSyntax> statements = section.Statements;

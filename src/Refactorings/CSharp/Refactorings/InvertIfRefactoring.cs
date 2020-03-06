@@ -74,7 +74,7 @@ namespace Roslynator.CSharp.Refactorings
         private static async Task<Document> InvertIfElseAsync(
             Document document,
             IfStatementSyntax ifStatement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -101,7 +101,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             IfStatementSyntax ifStatement,
             bool recursive = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -133,7 +133,7 @@ namespace Roslynator.CSharp.Refactorings
             }
             else
             {
-                IfStatementSyntax lastIfStatement = ifStatement;
+                IfStatementSyntax lastIfStatement;
 
                 InvertIfAnalysis a = analysis.AnalyzeNextStatement();
 
@@ -337,7 +337,7 @@ namespace Roslynator.CSharp.Refactorings
                         i++;
                     }
 
-                    lastStatement = lastStatement ?? next;
+                    lastStatement ??= next;
                 }
             }
 
