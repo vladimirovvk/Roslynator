@@ -2679,8 +2679,8 @@ namespace Roslynator.CSharp
             helpLinkUri:        DiagnosticIdentifiers.SimplifyConditionalExpression2, 
             customTags:         Array.Empty<string>());
 
-        /// <summary>RCS1245</summary>
-        public static readonly DiagnosticDescriptor RemoveUnnecessaryNewLine = new DiagnosticDescriptor(
+        /// <summary>RCS1246</summary>
+        public static readonly DiagnosticDescriptor RemoveUnnecessaryNewLine = Factory.Create(
             id:                 DiagnosticIdentifiers.RemoveUnnecessaryNewLine, 
             title:              "Remove unnecessary new line.", 
             messageFormat:      "Remove unnecessary new line.", 
@@ -2688,7 +2688,7 @@ namespace Roslynator.CSharp
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: true, 
             description:        null, 
-            helpLinkUri:        $"{HelpLinkUriRoot}{DiagnosticIdentifiers.RemoveUnnecessaryNewLine}", 
+            helpLinkUri:        DiagnosticIdentifiers.RemoveUnnecessaryNewLine, 
             customTags:         Array.Empty<string>());
 
     }

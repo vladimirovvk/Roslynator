@@ -226,6 +226,6 @@ namespace Roslynator.CSharp
         public const string DuplicateWordInComment = "RCS1243";
         public const string SimplifyDefaultExpression = "RCS1244";
         public const string SimplifyConditionalExpression2 = "RCS1245";
-        public const string RemoveUnnecessaryNewLine = "RCS1245";
+        public const string RemoveUnnecessaryNewLine = "RCS1246";
     }
 }
