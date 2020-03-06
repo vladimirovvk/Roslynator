@@ -594,16 +594,6 @@ namespace Roslynator.CSharp.Analysis
             }
         }
 
-        private static void AnalyzeElseClause(SyntaxNodeAnalysisContext context)
-        {
-            var elseClause = (ElseClauseSyntax)context.Node;
-
-            StatementSyntax statement = elseClause.Statement;
-
-            if (statement.IsKind(SyntaxKind.IfStatement))
-                AnalyzeUnnecessaryNewLine(context, elseClause.ElseKeyword, ((IfStatementSyntax)statement).IfKeyword);
-        }
-
         private static void AnalyzeParameter(SyntaxNodeAnalysisContext context)
         {
             var parameter = (ParameterSyntax)context.Node;
