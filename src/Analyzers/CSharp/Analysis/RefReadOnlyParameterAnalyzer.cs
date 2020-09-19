@@ -28,11 +28,7 @@ namespace Roslynator.CSharp.Analysis
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
             context.RegisterCompilationStartAction(startContext =>
             {
@@ -40,11 +36,11 @@ namespace Roslynator.CSharp.Analysis
                     return;
 
                 //TODO: AnalyzeIndexerDeclaration
-                startContext.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
-                startContext.RegisterSyntaxNodeAction(AnalyzeConstructorDeclaration, SyntaxKind.ConstructorDeclaration);
-                startContext.RegisterSyntaxNodeAction(AnalyzeOperatorDeclaration, SyntaxKind.OperatorDeclaration);
-                startContext.RegisterSyntaxNodeAction(AnalyzeConversionOperatorDeclaration, SyntaxKind.ConversionOperatorDeclaration);
-                startContext.RegisterSyntaxNodeAction(AnalyzeLocalFunction, SyntaxKind.LocalFunctionStatement);
+                startContext.RegisterSyntaxNodeAction(f => AnalyzeMethodDeclaration(f), SyntaxKind.MethodDeclaration);
+                startContext.RegisterSyntaxNodeAction(f => AnalyzeConstructorDeclaration(f), SyntaxKind.ConstructorDeclaration);
+                startContext.RegisterSyntaxNodeAction(f => AnalyzeOperatorDeclaration(f), SyntaxKind.OperatorDeclaration);
+                startContext.RegisterSyntaxNodeAction(f => AnalyzeConversionOperatorDeclaration(f), SyntaxKind.ConversionOperatorDeclaration);
+                startContext.RegisterSyntaxNodeAction(f => AnalyzeLocalFunction(f), SyntaxKind.LocalFunctionStatement);
             });
         }
 
@@ -123,10 +119,10 @@ namespace Roslynator.CSharp.Analysis
                 if (CSharpFacts.IsSimpleType(type.SpecialType))
                     continue;
 
-                //TODO: ITypeSymbol.IsReadOnly, https://github.com/dotnet/roslyn/issues/23792
                 if (!type.IsReadOnlyStruct())
                 {
-                    if (parameter.RefKind == RefKind.In)
+                    if (parameter.RefKind == RefKind.In
+                        && type.TypeKind == TypeKind.Struct)
                     {
                         var parameterSyntax = (ParameterSyntax)parameter.GetSyntax(cancellationToken);
 
@@ -238,7 +234,7 @@ namespace Roslynator.CSharp.Analysis
                 string name = node.Identifier.ValueText;
 
                 if (Parameters.TryGetValue(name, out IParameterSymbol parameterSymbol)
-                    && parameterSymbol.Equals(SemanticModel.GetSymbol(node, CancellationToken)))
+                    && SymbolEqualityComparer.Default.Equals(parameterSymbol, SemanticModel.GetSymbol(node, CancellationToken)))
                 {
                     if (_isInAssignedExpression
                         || _localFunctionDepth > 0

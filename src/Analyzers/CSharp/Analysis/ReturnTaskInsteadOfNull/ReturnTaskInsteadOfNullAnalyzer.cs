@@ -19,11 +19,7 @@ namespace Roslynator.CSharp.Analysis.ReturnTaskInsteadOfNull
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
             context.RegisterCompilationStartAction(startContext =>
             {
@@ -87,11 +83,12 @@ namespace Roslynator.CSharp.Analysis.ReturnTaskInsteadOfNull
 
             bool IsReturnTypeConstructedFromTaskOfT()
             {
-                return context.SemanticModel
-                    .GetDeclaredSymbol(methodDeclaration, context.CancellationToken)?
-                    .ReturnType
-                    .OriginalDefinition
-                    .Equals(taskOfTSymbol) == true;
+                return SymbolEqualityComparer.Default.Equals(
+                    context.SemanticModel
+                        .GetDeclaredSymbol(methodDeclaration, context.CancellationToken)?
+                        .ReturnType
+                        .OriginalDefinition,
+                    taskOfTSymbol);
             }
         }
 
@@ -140,11 +137,12 @@ namespace Roslynator.CSharp.Analysis.ReturnTaskInsteadOfNull
 
             bool IsReturnTypeConstructedFromTaskOfT()
             {
-                return context.SemanticModel
-                    .GetDeclaredSymbol(localFunction, context.CancellationToken)?
-                    .ReturnType
-                    .OriginalDefinition
-                    .Equals(taskOfTSymbol) == true;
+                return SymbolEqualityComparer.Default.Equals(
+                    context.SemanticModel
+                        .GetDeclaredSymbol(localFunction, context.CancellationToken)?
+                        .ReturnType
+                        .OriginalDefinition,
+                    taskOfTSymbol);
             }
         }
 
@@ -190,11 +188,12 @@ namespace Roslynator.CSharp.Analysis.ReturnTaskInsteadOfNull
 
             bool IsReturnTypeConstructedFromTaskOfT()
             {
-                return context.SemanticModel
-                    .GetDeclaredSymbol(propertyDeclaration, context.CancellationToken)?
-                    .Type
-                    .OriginalDefinition
-                    .Equals(taskOfTSymbol) == true;
+                return SymbolEqualityComparer.Default.Equals(
+                    context.SemanticModel
+                        .GetDeclaredSymbol(propertyDeclaration, context.CancellationToken)?
+                        .Type
+                        .OriginalDefinition,
+                    taskOfTSymbol);
             }
         }
 
@@ -240,11 +239,12 @@ namespace Roslynator.CSharp.Analysis.ReturnTaskInsteadOfNull
 
             bool IsReturnTypeConstructedFromTaskOfT()
             {
-                return context.SemanticModel
-                    .GetDeclaredSymbol(indexerDeclaration, context.CancellationToken)?
-                    .Type
-                    .OriginalDefinition
-                    .Equals(taskOfTSymbol) == true;
+                return SymbolEqualityComparer.Default.Equals(
+                    context.SemanticModel
+                        .GetDeclaredSymbol(indexerDeclaration, context.CancellationToken)?
+                        .Type
+                        .OriginalDefinition,
+                    taskOfTSymbol);
             }
         }
 
@@ -285,11 +285,12 @@ namespace Roslynator.CSharp.Analysis.ReturnTaskInsteadOfNull
 
             bool IsReturnTypeConstructedFromTaskOfT()
             {
-                return context.SemanticModel
-                    .GetMethodSymbol(lambda, context.CancellationToken)?
-                    .ReturnType
-                    .OriginalDefinition
-                    .Equals(taskOfTSymbol) == true;
+                return SymbolEqualityComparer.Default.Equals(
+                    context.SemanticModel
+                        .GetMethodSymbol(lambda, context.CancellationToken)?
+                        .ReturnType
+                        .OriginalDefinition,
+                    taskOfTSymbol);
             }
         }
 
@@ -307,11 +308,12 @@ namespace Roslynator.CSharp.Analysis.ReturnTaskInsteadOfNull
 
             bool IsReturnTypeConstructedFromTaskOfT()
             {
-                return context.SemanticModel
-                    .GetMethodSymbol(anonymousMethod, context.CancellationToken)?
-                    .ReturnType
-                    .OriginalDefinition
-                    .Equals(taskOfTSymbol) == true;
+                return SymbolEqualityComparer.Default.Equals(
+                    context.SemanticModel
+                        .GetMethodSymbol(anonymousMethod, context.CancellationToken)?
+                        .ReturnType
+                        .OriginalDefinition,
+                    taskOfTSymbol);
             }
         }
 

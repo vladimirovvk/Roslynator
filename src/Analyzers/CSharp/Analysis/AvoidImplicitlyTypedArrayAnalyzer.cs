@@ -20,12 +20,9 @@ namespace Roslynator.CSharp.Analysis
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeImplicitArrayCreationExpression, SyntaxKind.ImplicitArrayCreationExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeImplicitArrayCreationExpression(f), SyntaxKind.ImplicitArrayCreationExpression);
         }
 
         private static void AnalyzeImplicitArrayCreationExpression(SyntaxNodeAnalysisContext context)

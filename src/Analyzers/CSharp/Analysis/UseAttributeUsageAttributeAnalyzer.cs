@@ -18,9 +18,6 @@ namespace Roslynator.CSharp.Analysis
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
             context.RegisterCompilationStartAction(startContext =>
@@ -61,7 +58,7 @@ namespace Roslynator.CSharp.Analysis
 
             while (baseType?.SpecialType == SpecialType.None)
             {
-                if (baseType.Equals(attributeSymbol))
+                if (SymbolEqualityComparer.Default.Equals(baseType, attributeSymbol))
                 {
                     var classDeclaration = (ClassDeclarationSyntax)typeSymbol.GetSyntax(context.CancellationToken);
 
