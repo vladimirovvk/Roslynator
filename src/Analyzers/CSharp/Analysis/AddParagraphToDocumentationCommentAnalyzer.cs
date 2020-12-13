@@ -59,14 +59,15 @@ namespace Roslynator.CSharp.Analysis
 
                 if (span2.End > 0)
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context,
+                    DiagnosticHelpers.ReportDiagnostic(
+                        context,
                         DiagnosticDescriptors.AddParagraphToDocumentationComment,
                         Location.Create(documentationComment.SyntaxTree, TextSpan.FromBounds(span1.Start, span2.End)));
                 }
             }
         }
 
-        [SuppressMessage("Simplification", "RCS1180:Inline lazy initialization.", Justification = "<Pending>")]
+        [SuppressMessage("Simplification", "RCS1180:Inline lazy initialization.")]
         internal static (TextSpan span1, TextSpan span2, List<TextSpan> spans) FindFixableSpan(
             SyntaxList<XmlNodeSyntax> nodes,
             bool stopOnFirstMatch = false,

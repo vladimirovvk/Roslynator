@@ -60,7 +60,7 @@ namespace Roslynator.CSharp.Testing
 
                 parseOptions = parseOptions
                     .WithLanguageVersion(LanguageVersion.CSharp8)
-                    .WithPreprocessorSymbols(parseOptions.PreprocessorSymbolNames.Concat(new string[] { "DEBUG" }));
+                    .WithPreprocessorSymbols(parseOptions.PreprocessorSymbolNames.Concat(new[] { "DEBUG" }));
             }
 
             return new CSharpCodeVerificationOptions(
@@ -169,6 +169,19 @@ namespace Roslynator.CSharp.Testing
         public CSharpCodeVerificationOptions WithEnabled(DiagnosticDescriptor descriptor)
         {
             var compilationOptions = (CSharpCompilationOptions)CompilationOptions.EnsureEnabled(descriptor);
+
+            return WithCompilationOptions(compilationOptions);
+        }
+
+        public CSharpCodeVerificationOptions WithEnabled(DiagnosticDescriptor descriptor1, DiagnosticDescriptor descriptor2)
+        {
+            ImmutableDictionary<string, ReportDiagnostic> diagnosticOptions = CompilationOptions.SpecificDiagnosticOptions;
+
+            diagnosticOptions = diagnosticOptions
+                .SetItem(descriptor1.Id, descriptor1.DefaultSeverity.ToReportDiagnostic())
+                .SetItem(descriptor2.Id, descriptor2.DefaultSeverity.ToReportDiagnostic());
+
+            CSharpCompilationOptions compilationOptions = CompilationOptions.WithSpecificDiagnosticOptions(diagnosticOptions);
 
             return WithCompilationOptions(compilationOptions);
         }

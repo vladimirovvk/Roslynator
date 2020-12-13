@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -9,9 +10,7 @@ namespace Roslynator.CSharp
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     internal readonly struct IndentationAnalysis
     {
-        public static IndentationAnalysis Empty { get; } = new IndentationAnalysis(CSharpFactory.EmptyWhitespace(), 0);
-
-        internal IndentationAnalysis(SyntaxTrivia indentation, int indentSize)
+        private IndentationAnalysis(SyntaxTrivia indentation, int indentSize)
         {
             Indentation = indentation;
             IndentSize = indentSize;
@@ -21,21 +20,31 @@ namespace Roslynator.CSharp
 
         public int IndentSize { get; }
 
-        public bool IsEmpty => Indentation.Span.Length == 0;
+        public int IndentationLength => Indentation.Span.Length;
+
+        public int IncreasedIndentationLength => IndentationLength + IndentSize;
+
+        public bool IsDefault => Indentation == default;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string DebuggerDisplay => $"\"{Indentation}\" Length = {Indentation.Span.Length} {nameof(IndentSize)} = {IndentSize}";
 
+        public static IndentationAnalysis Create(SyntaxNode node, CancellationToken cancellationToken = default)
+        {
+            SyntaxTrivia indentation = SyntaxTriviaAnalysis.DetermineIndentation(node, cancellationToken);
+
+            int size = SyntaxTriviaAnalysis.DetermineIndentationSize(node, cancellationToken);
+
+            return new IndentationAnalysis(indentation, size);
+        }
+
         public string GetIncreasedIndentation()
         {
-            int length1 = Indentation.Span.Length;
+            string indentation = Indentation.ToString();
 
-            if (length1 == 0)
-                return "";
+            string singleIndentation = GetSingleIndentation(indentation);
 
-            string s = Indentation.ToString();
-
-            return s + new string(s[0], IndentSize);
+            return indentation + singleIndentation;
         }
 
         public SyntaxTrivia GetIncreasedIndentationTrivia()
@@ -46,6 +55,22 @@ namespace Roslynator.CSharp
         public SyntaxTriviaList GetIncreasedIndentationTriviaList()
         {
             return SyntaxFactory.TriviaList(GetIncreasedIndentationTrivia());
+        }
+
+        public string GetSingleIndentation()
+        {
+            return GetSingleIndentation(Indentation.ToString());
+        }
+
+        private string GetSingleIndentation(string indentation)
+        {
+            if (indentation.Length == 0)
+                return "";
+
+            if (indentation[indentation.Length - 1] == '\t')
+                return "\t";
+
+            return new string(indentation[0], IndentSize);
         }
     }
 }

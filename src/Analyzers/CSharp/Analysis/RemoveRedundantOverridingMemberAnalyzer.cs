@@ -87,7 +87,8 @@ namespace Roslynator.CSharp.Analysis
             if (!CheckDefaultValues(methodSymbol.Parameters, overriddenMethod.Parameters))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
                 DiagnosticDescriptors.RemoveRedundantOverridingMember,
                 methodDeclaration,
                 CSharpFacts.GetTitle(methodDeclaration));
@@ -95,7 +96,7 @@ namespace Roslynator.CSharp.Analysis
 
         private static bool CheckModifiers(SyntaxTokenList modifiers)
         {
-            bool isOverride = false;
+            var isOverride = false;
 
             foreach (SyntaxToken modifier in modifiers)
             {
@@ -266,7 +267,8 @@ namespace Roslynator.CSharp.Analysis
                     return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
                 DiagnosticDescriptors.RemoveRedundantOverridingMember,
                 propertyDeclaration,
                 CSharpFacts.GetTitle(propertyDeclaration));
@@ -397,7 +399,8 @@ namespace Roslynator.CSharp.Analysis
                     return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
                 DiagnosticDescriptors.RemoveRedundantOverridingMember,
                 indexerDeclaration,
                 CSharpFacts.GetTitle(indexerDeclaration));

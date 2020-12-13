@@ -162,15 +162,15 @@ namespace Roslynator.CSharp
             customTags:         WellKnownDiagnosticTags.Unnecessary);
 
         /// <summary>RCS1014</summary>
-        public static readonly DiagnosticDescriptor AvoidImplicitlyTypedArray = DiagnosticDescriptorFactory.Default.Create(
-            id:                 DiagnosticIdentifiers.AvoidImplicitlyTypedArray, 
-            title:              "Avoid implicitly-typed array.", 
-            messageFormat:      "Declare explicit type when creating an array.", 
+        public static readonly DiagnosticDescriptor UseExplicitlyTypedArrayOrViceVersa = DiagnosticDescriptorFactory.Default.Create(
+            id:                 DiagnosticIdentifiers.UseExplicitlyTypedArrayOrViceVersa, 
+            title:              "Use explicitly typed array (or vice versa).", 
+            messageFormat:      "Use explicitly typed array.", 
             category:           DiagnosticCategories.Readability, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: false, 
             description:        null, 
-            helpLinkUri:        DiagnosticIdentifiers.AvoidImplicitlyTypedArray, 
+            helpLinkUri:        DiagnosticIdentifiers.UseExplicitlyTypedArrayOrViceVersa, 
             customTags:         Array.Empty<string>());
 
         /// <summary>RCS1015</summary>
@@ -188,24 +188,24 @@ namespace Roslynator.CSharp
         public static readonly DiagnosticDescriptor UseNameOfOperatorFadeOut = DiagnosticDescriptorFactory.CreateFadeOut(UseNameOfOperator);
 
         /// <summary>RCS1016</summary>
-        public static readonly DiagnosticDescriptor UseExpressionBodiedMember = DiagnosticDescriptorFactory.Default.Create(
-            id:                 DiagnosticIdentifiers.UseExpressionBodiedMember, 
-            title:              "Use expression-bodied member.", 
-            messageFormat:      "Use expression bodied member.", 
+        public static readonly DiagnosticDescriptor ConvertBlockBodyToExpressionBodyOrViceVersa = DiagnosticDescriptorFactory.Default.Create(
+            id:                 DiagnosticIdentifiers.ConvertBlockBodyToExpressionBodyOrViceVersa, 
+            title:              "Convert block body to expression-body (or vice versa).", 
+            messageFormat:      "Use expression-bodied member.", 
             category:           DiagnosticCategories.Usage, 
             defaultSeverity:    DiagnosticSeverity.Hidden, 
             isEnabledByDefault: false, 
             description:        null, 
-            helpLinkUri:        DiagnosticIdentifiers.UseExpressionBodiedMember, 
+            helpLinkUri:        DiagnosticIdentifiers.ConvertBlockBodyToExpressionBodyOrViceVersa, 
             customTags:         Array.Empty<string>());
 
-        public static readonly DiagnosticDescriptor UseExpressionBodiedMemberFadeOut = DiagnosticDescriptorFactory.CreateFadeOut(UseExpressionBodiedMember);
+        public static readonly DiagnosticDescriptor ConvertBlockBodyToExpressionBodyOrViceVersaFadeOut = DiagnosticDescriptorFactory.CreateFadeOut(ConvertBlockBodyToExpressionBodyOrViceVersa);
 
         /// <summary>RCS1017</summary>
         public static readonly DiagnosticDescriptor AvoidMultilineExpressionBody = DiagnosticDescriptorFactory.Default.Create(
             id:                 DiagnosticIdentifiers.AvoidMultilineExpressionBody, 
-            title:              "Avoid multiline expression body.", 
-            messageFormat:      "Expand expression body with multiline expression.", 
+            title:              "[deprecated] Avoid multiline expression body.", 
+            messageFormat:      "[deprecated] Use analyzer RCS1016a instead.", 
             category:           DiagnosticCategories.Style, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: false, 
@@ -250,18 +250,18 @@ namespace Roslynator.CSharp
             customTags:         WellKnownDiagnosticTags.Unnecessary);
 
         /// <summary>RCS1021</summary>
-        public static readonly DiagnosticDescriptor SimplifyLambdaExpression = DiagnosticDescriptorFactory.Default.Create(
-            id:                 DiagnosticIdentifiers.SimplifyLambdaExpression, 
-            title:              "Simplify lambda expression.", 
-            messageFormat:      "Simplify lambda expression.", 
+        public static readonly DiagnosticDescriptor ConvertLambdaExpressionBodyToExpressionBody = DiagnosticDescriptorFactory.Default.Create(
+            id:                 DiagnosticIdentifiers.ConvertLambdaExpressionBodyToExpressionBody, 
+            title:              "Convert lambda expression body to expression-body.", 
+            messageFormat:      "Use expression-bodied lambda.", 
             category:           DiagnosticCategories.Simplification, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: true, 
             description:        null, 
-            helpLinkUri:        DiagnosticIdentifiers.SimplifyLambdaExpression, 
+            helpLinkUri:        DiagnosticIdentifiers.ConvertLambdaExpressionBodyToExpressionBody, 
             customTags:         Array.Empty<string>());
 
-        public static readonly DiagnosticDescriptor SimplifyLambdaExpressionFadeOut = DiagnosticDescriptorFactory.CreateFadeOut(SimplifyLambdaExpression);
+        public static readonly DiagnosticDescriptor ConvertLambdaExpressionBodyToExpressionBodyFadeOut = DiagnosticDescriptorFactory.CreateFadeOut(ConvertLambdaExpressionBodyToExpressionBody);
 
         /// <summary>RCS1031</summary>
         public static readonly DiagnosticDescriptor RemoveUnnecessaryBraces = DiagnosticDescriptorFactory.Default.Create(
@@ -774,15 +774,15 @@ namespace Roslynator.CSharp
             customTags:         Array.Empty<string>());
 
         /// <summary>RCS1078</summary>
-        public static readonly DiagnosticDescriptor UseEmptyStringLiteralInsteadOfStringEmpty = DiagnosticDescriptorFactory.Default.Create(
-            id:                 DiagnosticIdentifiers.UseEmptyStringLiteralInsteadOfStringEmpty, 
-            title:              "Use \"\" instead of string.Empty.", 
+        public static readonly DiagnosticDescriptor UseEmptyStringLiteralInsteadOfStringEmptyOrViceVersa = DiagnosticDescriptorFactory.Default.Create(
+            id:                 DiagnosticIdentifiers.UseEmptyStringLiteralInsteadOfStringEmptyOrViceVersa, 
+            title:              "Use \"\" instead of string.Empty (or vice versa).", 
             messageFormat:      "Use \"\" instead of string.Empty", 
             category:           DiagnosticCategories.General, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: false, 
             description:        null, 
-            helpLinkUri:        DiagnosticIdentifiers.UseEmptyStringLiteralInsteadOfStringEmpty, 
+            helpLinkUri:        DiagnosticIdentifiers.UseEmptyStringLiteralInsteadOfStringEmptyOrViceVersa, 
             customTags:         WellKnownDiagnosticTags.Unnecessary);
 
         /// <summary>RCS1079</summary>
@@ -862,15 +862,15 @@ namespace Roslynator.CSharp
         public static readonly DiagnosticDescriptor UseUnaryOperatorInsteadOfAssignmentFadeOut = DiagnosticDescriptorFactory.CreateFadeOut(UseUnaryOperatorInsteadOfAssignment);
 
         /// <summary>RCS1090</summary>
-        public static readonly DiagnosticDescriptor CallConfigureAwait = DiagnosticDescriptorFactory.Default.Create(
-            id:                 DiagnosticIdentifiers.CallConfigureAwait, 
-            title:              "Call 'ConfigureAwait(false)'.", 
-            messageFormat:      "Call 'ConfigureAwait(false).", 
+        public static readonly DiagnosticDescriptor AddCallToConfigureAwaitOrViceVersa = DiagnosticDescriptorFactory.Default.Create(
+            id:                 DiagnosticIdentifiers.AddCallToConfigureAwaitOrViceVersa, 
+            title:              "Add call to 'ConfigureAwait' (or vice versa).", 
+            messageFormat:      "Add call to 'ConfigureAwait'.", 
             category:           DiagnosticCategories.Design, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: true, 
             description:        null, 
-            helpLinkUri:        DiagnosticIdentifiers.CallConfigureAwait, 
+            helpLinkUri:        DiagnosticIdentifiers.AddCallToConfigureAwaitOrViceVersa, 
             customTags:         Array.Empty<string>());
 
         /// <summary>RCS1091</summary>
@@ -2002,15 +2002,15 @@ namespace Roslynator.CSharp
             customTags:         Array.Empty<string>());
 
         /// <summary>RCS1210</summary>
-        public static readonly DiagnosticDescriptor ReturnTaskInsteadOfNull = DiagnosticDescriptorFactory.Default.Create(
-            id:                 DiagnosticIdentifiers.ReturnTaskInsteadOfNull, 
-            title:              "Return Task.FromResult instead of returning null.", 
-            messageFormat:      "Return Task.FromResult instead of returning null.", 
+        public static readonly DiagnosticDescriptor ReturnCompletedTaskInsteadOfNull = DiagnosticDescriptorFactory.Default.Create(
+            id:                 DiagnosticIdentifiers.ReturnCompletedTaskInsteadOfNull, 
+            title:              "Return completed task instead of returning null.", 
+            messageFormat:      "Return completed task instead of returning null.", 
             category:           DiagnosticCategories.Usage, 
             defaultSeverity:    DiagnosticSeverity.Warning, 
             isEnabledByDefault: true, 
             description:        null, 
-            helpLinkUri:        DiagnosticIdentifiers.ReturnTaskInsteadOfNull, 
+            helpLinkUri:        DiagnosticIdentifiers.ReturnCompletedTaskInsteadOfNull, 
             customTags:         Array.Empty<string>());
 
         /// <summary>RCS1211</summary>
@@ -2113,18 +2113,6 @@ namespace Roslynator.CSharp
             isEnabledByDefault: true, 
             description:        null, 
             helpLinkUri:        DiagnosticIdentifiers.SimplifyCodeBranching, 
-            customTags:         Array.Empty<string>());
-
-        /// <summary>RCS1219</summary>
-        public static readonly DiagnosticDescriptor CallSkipAndAnyInsteadOfCount = DiagnosticDescriptorFactory.Default.Create(
-            id:                 DiagnosticIdentifiers.CallSkipAndAnyInsteadOfCount, 
-            title:              "Call 'Enumerable.Skip' and 'Enumerable.Any' instead of 'Enumerable.Count'.", 
-            messageFormat:      "Call 'Enumerable.Skip' and 'Enumerable.Any' instead of 'Enumerable.Count'.", 
-            category:           DiagnosticCategories.Performance, 
-            defaultSeverity:    DiagnosticSeverity.Info, 
-            isEnabledByDefault: false, 
-            description:        null, 
-            helpLinkUri:        DiagnosticIdentifiers.CallSkipAndAnyInsteadOfCount, 
             customTags:         Array.Empty<string>());
 
         /// <summary>RCS1220</summary>
@@ -2457,7 +2445,7 @@ namespace Roslynator.CSharp
         public static readonly DiagnosticDescriptor UseIsNullPatternInsteadOfComparisonOrViceVersa = DiagnosticDescriptorFactory.Default.Create(
             id:                 DiagnosticIdentifiers.UseIsNullPatternInsteadOfComparisonOrViceVersa, 
             title:              "Use 'is null' pattern instead of comparison (or vice versa).", 
-            messageFormat:      "Use 'is null' pattern instead '{0}' operator.", 
+            messageFormat:      "Use 'is null' pattern instead of '{0}' operator.", 
             category:           DiagnosticCategories.Style, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: false, 
@@ -2479,6 +2467,54 @@ namespace Roslynator.CSharp
 
         public static partial class ReportOnly
         {
+            /// <summary>RCS1014a</summary>
+            public static readonly DiagnosticDescriptor UseImplicitlyTypedArrayWhenTypeIsObvious = DiagnosticDescriptorFactory.Default.Create(
+                id:                 DiagnosticIdentifiers.UseExplicitlyTypedArrayOrViceVersa, 
+                title:              "Use explicitly typed array (or vice versa).", 
+                messageFormat:      "Use implicitly typed array (when type is obvious).", 
+                category:           DiagnosticCategories.Readability, 
+                defaultSeverity:    DiagnosticSeverity.Info, 
+                isEnabledByDefault: false, 
+                description:        null, 
+                helpLinkUri:        DiagnosticIdentifiers.UseExplicitlyTypedArrayOrViceVersa, 
+                customTags:         WellKnownDiagnosticTags.Unnecessary);
+
+            /// <summary>RCS1014i</summary>
+            public static readonly DiagnosticDescriptor UseImplicitlyTypedArray = DiagnosticDescriptorFactory.Default.Create(
+                id:                 DiagnosticIdentifiers.UseExplicitlyTypedArrayOrViceVersa, 
+                title:              "Use explicitly typed array (or vice versa).", 
+                messageFormat:      "Use implicitly typed array.", 
+                category:           DiagnosticCategories.Readability, 
+                defaultSeverity:    DiagnosticSeverity.Info, 
+                isEnabledByDefault: false, 
+                description:        null, 
+                helpLinkUri:        DiagnosticIdentifiers.UseExplicitlyTypedArrayOrViceVersa, 
+                customTags:         Array.Empty<string>());
+
+            /// <summary>RCS1016a</summary>
+            public static readonly DiagnosticDescriptor ConvertExpressionBodyToBlockBodyWhenExpressionIsMultiLine = DiagnosticDescriptorFactory.Default.Create(
+                id:                 DiagnosticIdentifiers.ConvertBlockBodyToExpressionBodyOrViceVersa, 
+                title:              "Convert block body to expression-body (or vice versa).", 
+                messageFormat:      "Convert expression-body to block body when expression is multi-line.", 
+                category:           DiagnosticCategories.Usage, 
+                defaultSeverity:    DiagnosticSeverity.Hidden, 
+                isEnabledByDefault: false, 
+                description:        null, 
+                helpLinkUri:        DiagnosticIdentifiers.ConvertBlockBodyToExpressionBodyOrViceVersa, 
+                customTags:         Array.Empty<string>());
+
+            /// <summary>RCS1016b</summary>
+            public static readonly DiagnosticDescriptor ConvertExpressionBodyToBlockBodyWhenDeclarationIsMultiLine = DiagnosticDescriptorFactory.Default.Create(
+                id:                 DiagnosticIdentifiers.ConvertBlockBodyToExpressionBodyOrViceVersa, 
+                title:              "Convert block body to expression-body (or vice versa).", 
+                messageFormat:      "Convert expression-body to block body when declaration is multi-line.", 
+                category:           DiagnosticCategories.Usage, 
+                defaultSeverity:    DiagnosticSeverity.Hidden, 
+                isEnabledByDefault: false, 
+                description:        null, 
+                helpLinkUri:        DiagnosticIdentifiers.ConvertBlockBodyToExpressionBodyOrViceVersa, 
+                customTags:         Array.Empty<string>());
+
             /// <summary>RCS1018i</summary>
             public static readonly DiagnosticDescriptor RemoveAccessibilityModifiers = DiagnosticDescriptorFactory.Default.Create(
                 id:                 DiagnosticIdentifiers.AddAccessibilityModifiersOrViceVersa, 
@@ -2514,6 +2550,30 @@ namespace Roslynator.CSharp
                 description:        null, 
                 helpLinkUri:        DiagnosticIdentifiers.ParenthesizeConditionOfConditionalExpression, 
                 customTags:         Array.Empty<string>());
+
+            /// <summary>RCS1078i</summary>
+            public static readonly DiagnosticDescriptor UseStringEmptyInsteadOfEmptyStringLiteral = DiagnosticDescriptorFactory.Default.Create(
+                id:                 DiagnosticIdentifiers.UseEmptyStringLiteralInsteadOfStringEmptyOrViceVersa, 
+                title:              "Use \"\" instead of string.Empty (or vice versa).", 
+                messageFormat:      "Use string.Empty instead of \"\".", 
+                category:           DiagnosticCategories.General, 
+                defaultSeverity:    DiagnosticSeverity.Info, 
+                isEnabledByDefault: false, 
+                description:        null, 
+                helpLinkUri:        DiagnosticIdentifiers.UseEmptyStringLiteralInsteadOfStringEmptyOrViceVersa, 
+                customTags:         Array.Empty<string>());
+
+            /// <summary>RCS1090i</summary>
+            public static readonly DiagnosticDescriptor RemoveCallToConfigureAwait = DiagnosticDescriptorFactory.Default.Create(
+                id:                 DiagnosticIdentifiers.AddCallToConfigureAwaitOrViceVersa, 
+                title:              "Add call to 'ConfigureAwait' (or vice versa).", 
+                messageFormat:      "Remove call to 'ConfigureAwait'.", 
+                category:           DiagnosticCategories.Design, 
+                defaultSeverity:    DiagnosticSeverity.Info, 
+                isEnabledByDefault: true, 
+                description:        null, 
+                helpLinkUri:        DiagnosticIdentifiers.AddCallToConfigureAwaitOrViceVersa, 
+                customTags:         WellKnownDiagnosticTags.Unnecessary);
 
             /// <summary>RCS1096i</summary>
             public static readonly DiagnosticDescriptor ConvertBitwiseOperationToHasFlagCall = DiagnosticDescriptorFactory.Default.Create(

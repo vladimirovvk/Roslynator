@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Roslynator.CodeFixes;
 using Roslynator.CSharp;
@@ -53,7 +54,7 @@ namespace Roslynator.CommandLine
                     GenerateDocRootCommandLineOptions
                     >(args);
 
-                bool verbosityParsed = false;
+                var verbosityParsed = false;
 
                 parserResult.WithParsed<AbstractCommandLineOptions>(options =>
                 {
@@ -142,6 +143,9 @@ namespace Roslynator.CommandLine
             if (!TryParseKeyValuePairs(options.DiagnosticFixerMap, out List<KeyValuePair<string, string>> diagnosticFixerMap))
                 return 1;
 
+            if (!TryParseOptionValueAsEnum(options.FixScope, ParameterNames.FixScope, out FixAllScope fixAllScope, FixAllScope.Project))
+                return 1;
+
             if (!options.TryGetProjectFilter(out ProjectFilter projectFilter))
                 return 1;
 
@@ -150,6 +154,7 @@ namespace Roslynator.CommandLine
                 severityLevel: severityLevel,
                 diagnosticFixMap: diagnosticFixMap,
                 diagnosticFixerMap: diagnosticFixerMap,
+                fixAllScope: fixAllScope,
                 projectFilter: projectFilter);
 
             CommandResult result = await command.ExecuteAsync(options.Path, options.MSBuildPath, options.Properties);

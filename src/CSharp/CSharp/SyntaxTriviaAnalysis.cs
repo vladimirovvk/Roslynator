@@ -1,13 +1,18 @@
 ﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Roslynator.CSharp;
+using Roslynator.Text;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Roslynator.CSharp
 {
@@ -200,11 +205,7 @@ namespace Roslynator.CSharp
 
         public static IndentationAnalysis AnalyzeIndentation(SyntaxNode node, CancellationToken cancellationToken = default)
         {
-            SyntaxTrivia indentation = DetermineIndentation(node, cancellationToken);
-
-            int size = DetermineIndentationSize(node, cancellationToken);
-
-            return new IndentationAnalysis(indentation, size);
+            return IndentationAnalysis.Create(node, cancellationToken);
         }
 
         public static SyntaxTrivia DetermineIndentation(SyntaxNodeOrToken nodeOrToken, CancellationToken cancellationToken = default)
@@ -235,12 +236,14 @@ namespace Roslynator.CSharp
                 ? nodeOrToken.AsNode()
                 : nodeOrToken.AsToken().Parent;
 
-            while (!node.FullSpan.Contains(lineStartIndex))
-                node = node.GetParent(ascendOutOfTrivia: true);
+            SyntaxNode node2 = node;
 
-            if (node.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia))
+            while (!node2.FullSpan.Contains(lineStartIndex))
+                node2 = node2.GetParent(ascendOutOfTrivia: true);
+
+            if (node2.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia))
             {
-                if (((DocumentationCommentTriviaSyntax)node)
+                if (((DocumentationCommentTriviaSyntax)node2)
                     .ParentTrivia
                     .TryGetContainingList(out leading, allowTrailing: false))
                 {
@@ -252,7 +255,7 @@ namespace Roslynator.CSharp
             }
             else
             {
-                SyntaxToken token = node.FindToken(lineStartIndex);
+                SyntaxToken token = node2.FindToken(lineStartIndex);
 
                 leading = token.LeadingTrivia;
 
@@ -266,7 +269,39 @@ namespace Roslynator.CSharp
                 }
             }
 
+            if (!IsMemberDeclarationOrStatementOrAccessorDeclaration(node))
+            {
+                node = node.Parent;
+
+                while (node != null)
+                {
+                    if (IsMemberDeclarationOrStatementOrAccessorDeclaration(node))
+                    {
+                        leading = node.GetLeadingTrivia();
+
+                        if (leading.Any())
+                        {
+                            SyntaxTrivia trivia = leading.Last();
+
+                            if (trivia.IsWhitespaceTrivia())
+                                return trivia;
+                        }
+
+                        break;
+                    }
+
+                    node = node.Parent;
+                }
+            }
+
             return CSharpFactory.EmptyWhitespace();
+
+            static bool IsMemberDeclarationOrStatementOrAccessorDeclaration(SyntaxNode node)
+            {
+                return node is MemberDeclarationSyntax
+                    || (node is StatementSyntax && !node.IsKind(SyntaxKind.Block))
+                    || node is AccessorDeclarationSyntax;
+            }
         }
 
         public static int DetermineIndentationSize(SyntaxNode node, CancellationToken cancellationToken = default)
@@ -303,7 +338,6 @@ namespace Roslynator.CSharp
                                     }
                                 default:
                                     {
-                                        Debug.Fail(node.Parent.Kind().ToString());
                                         return 0;
                                     }
                             }
@@ -325,11 +359,14 @@ namespace Roslynator.CSharp
                                     }
                                 default:
                                     {
-                                        Debug.Fail(node.Parent.Kind().ToString());
                                         return 0;
                                     }
                             }
 
+                            break;
+                        }
+                    case BlockSyntax _:
+                        {
                             break;
                         }
                     case StatementSyntax statement:
@@ -354,9 +391,26 @@ namespace Roslynator.CSharp
 
                                         break;
                                     }
+                                case StatementSyntax statement2:
+                                    {
+                                        int size = GetIndentationSize(statement, statement2);
+
+                                        if (size > 0)
+                                            return size;
+
+                                        break;
+                                    }
+                                case ElseClauseSyntax elseClause:
+                                    {
+                                        int size = GetIndentationSize(statement, elseClause);
+
+                                        if (size > 0)
+                                            return size;
+
+                                        break;
+                                    }
                                 default:
                                     {
-                                        Debug.Fail(node.Parent.Kind().ToString());
                                         return 0;
                                     }
                             }
@@ -372,8 +426,6 @@ namespace Roslynator.CSharp
                 node = node.Parent;
 
             } while (node != null);
-
-            Debug.Fail("");
 
             return 0;
 
@@ -419,8 +471,6 @@ namespace Roslynator.CSharp
 
                     int length2 = indentation2.Span.Length;
 
-                    Debug.Assert(length1 >= length2, $"{length1} {length2}");
-
                     if (length1 > length2)
                         return length1 - length2;
                 }
@@ -434,6 +484,11 @@ namespace Roslynator.CSharp
             return AnalyzeIndentation(node, cancellationToken).GetIncreasedIndentation();
         }
 
+        public static int GetIncreasedIndentationLength(SyntaxNode node, CancellationToken cancellationToken = default)
+        {
+            return AnalyzeIndentation(node, cancellationToken).IncreasedIndentationLength;
+        }
+
         public static SyntaxTrivia GetIncreasedIndentationTrivia(SyntaxNode node, CancellationToken cancellationToken = default)
         {
             return AnalyzeIndentation(node, cancellationToken).GetIncreasedIndentationTrivia();
@@ -442,6 +497,114 @@ namespace Roslynator.CSharp
         public static SyntaxTriviaList GetIncreasedIndentationTriviaList(SyntaxNode node, CancellationToken cancellationToken = default)
         {
             return AnalyzeIndentation(node, cancellationToken).GetIncreasedIndentationTriviaList();
+        }
+
+        public static IEnumerable<IndentationInfo> FindIndentations(SyntaxNode node)
+        {
+            return FindIndentations(node, node.FullSpan);
+        }
+
+        public static IEnumerable<IndentationInfo> FindIndentations(SyntaxNode node, TextSpan span)
+        {
+            foreach (SyntaxTrivia trivia in node.DescendantTrivia(span))
+            {
+                if (trivia.IsKind(SyntaxKind.EndOfLineTrivia, SyntaxKind.SingleLineDocumentationCommentTrivia))
+                {
+                    int position = trivia.Span.End;
+
+                    if (span.Contains(position))
+                    {
+                        SyntaxTrivia trivia2 = node.FindTrivia(position);
+
+                        SyntaxKind kind = trivia2.Kind();
+
+                        if (kind == SyntaxKind.WhitespaceTrivia)
+                        {
+                            if (position == trivia2.SpanStart
+                                && span.Contains(trivia2.Span))
+                            {
+                                yield return new IndentationInfo(trivia2.Token, trivia2.Span);
+                            }
+                        }
+                        else if (kind != SyntaxKind.EndOfLineTrivia)
+                        {
+                            SyntaxToken token = node.FindToken(position);
+
+                            if (position == token.SpanStart
+                                && span.Contains(token.SpanStart))
+                            {
+                                yield return new IndentationInfo(token, new TextSpan(token.SpanStart, 0));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public static TNode SetIndentation<TNode>(
+            TNode expression,
+            SyntaxNode containingDeclaration,
+            int increaseCount = 0) where TNode : SyntaxNode
+        {
+            ImmutableDictionary<SyntaxToken, IndentationInfo> indentations = null;
+            int length;
+
+            using (IEnumerator<IndentationInfo> en = FindIndentations(expression, expression.Span).GetEnumerator())
+            {
+                if (!en.MoveNext())
+                    return expression;
+
+                ImmutableDictionary<SyntaxToken, IndentationInfo>.Builder builder = ImmutableDictionary.CreateBuilder<SyntaxToken, IndentationInfo>();
+                length = en.Current.Span.Length;
+
+                do
+                {
+                    builder.Add(en.Current.Token, en.Current);
+
+                } while (en.MoveNext());
+
+                indentations = builder.ToImmutableDictionary();
+            }
+
+            IndentationAnalysis analysis = AnalyzeIndentation(containingDeclaration);
+
+            string increasedIndentation = analysis.GetIncreasedIndentation();
+
+            string replacement = (increaseCount > 0)
+                ? string.Concat(Enumerable.Repeat(analysis.GetSingleIndentation(), increaseCount))
+                : "";
+
+            replacement = increasedIndentation + replacement;
+
+            SyntaxTrivia replacementTrivia = Whitespace(replacement);
+
+            return expression.ReplaceTokens(
+                indentations.Select(f => f.Key),
+                (token, _) =>
+                {
+                    IndentationInfo indentationInfo = indentations[token];
+
+                    SyntaxTrivia newIndentation = (indentationInfo.Span.Length > length)
+                        ? Whitespace(replacement + indentationInfo.ToString().Substring(length))
+                        : replacementTrivia;
+
+                    if (indentationInfo.Span.Length == 0)
+                        return token.AppendToLeadingTrivia(newIndentation);
+
+                    SyntaxTriviaList leading = token.LeadingTrivia;
+
+                    for (int i = leading.Count - 1; i >= 0; i--)
+                    {
+                        if (leading[i].Span == indentationInfo.Span)
+                        {
+                            SyntaxTriviaList newLeading = leading.ReplaceAt(i, newIndentation);
+                            return token.WithLeadingTrivia(newLeading);
+                        }
+                    }
+
+                    Debug.Fail(token.ToString());
+                    return token;
+                });
         }
     }
 }

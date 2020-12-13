@@ -127,7 +127,8 @@ namespace Roslynator.CSharp.Analysis
                 }
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
                 DiagnosticDescriptors.UseConditionalAccess,
                 Location.Create(binaryExpression.SyntaxTree, TextSpan.FromBounds(left.SpanStart, right.Span.End)));
 
@@ -159,7 +160,7 @@ namespace Roslynator.CSharp.Analysis
                 ? NullCheckStyles.NotEqualsToNull
                 : NullCheckStyles.EqualsToNull;
 
-            NullCheckExpressionInfo nullCheck = SyntaxInfo.NullCheckExpressionInfo(left, allowedStyles: allowedStyles);
+            NullCheckExpressionInfo nullCheck = SyntaxInfo.NullCheckExpressionInfo(left, semanticModel, allowedStyles: allowedStyles, cancellationToken: cancellationToken);
 
             ExpressionSyntax expression = nullCheck.Expression;
 

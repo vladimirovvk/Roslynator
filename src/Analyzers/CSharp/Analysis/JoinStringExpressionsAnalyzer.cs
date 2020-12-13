@@ -45,8 +45,8 @@ namespace Roslynator.CSharp.Analysis
 
             ExpressionSyntax firstExpression = null;
             ExpressionSyntax lastExpression = null;
-            bool isLiteral = false;
-            bool isVerbatim = false;
+            var isLiteral = false;
+            var isVerbatim = false;
 
             foreach (ExpressionSyntax expression in addExpression.AsChain().Reverse())
             {
@@ -149,7 +149,8 @@ namespace Roslynator.CSharp.Analysis
             if (isVerbatim
                 || tree.IsSingleLineSpan(span, cancellationToken))
             {
-                DiagnosticHelpers.ReportDiagnostic(context,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
                     DiagnosticDescriptors.JoinStringExpressions,
                     Location.Create(tree, span));
             }

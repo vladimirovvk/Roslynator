@@ -3,7 +3,7 @@
 set _msbuildPath="C:\Program Files\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild"
 set _properties=Configuration=Release,Deterministic=true,TreatWarningsAsErrors=true,WarningsNotAsErrors=1591
 set _outDir=..\out\Release
-set _version=3.0.0
+set _version=3.0.1
 
 orang delete "..\src" -a d -n "bin,obj" l li e -i "packages,node_modules" l li e ne -t n --content-only -y su s
 
@@ -25,7 +25,7 @@ if errorlevel 1 (
 )
 
 "..\src\Tools\MetadataGenerator\bin\Release\net48\Roslynator.MetadataGenerator.exe" "..\src"
-dotnet "..\src\Tools\CodeGenerator\bin\Release\netcoreapp2.0\CodeGenerator.dll" "..\src"
+dotnet "..\src\Tools\CodeGenerator\bin\Release\netcoreapp2.1\CodeGenerator.dll" "..\src"
 
 %_msbuildPath% "..\src\Roslynator.sln" ^
  /t:Clean ^

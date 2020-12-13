@@ -20,7 +20,7 @@ namespace Roslynator.CodeGeneration
             if (args == null || args.Length == 0)
             {
 #if DEBUG
-                args = new string[] { @"..\..\..\..\.." };
+                args = new[] { @"..\..\..\..\.." };
 #else
                 args = new string[] { Environment.CurrentDirectory };
 #endif
@@ -96,7 +96,9 @@ namespace Roslynator.CodeGeneration
             File.WriteAllText(
                 Path.Combine(rootPath, @"VisualStudioCode\package\src\configurationFiles.generated.ts"),
                 @"export const configurationFileContent = {
-	ruleset: `" + ruleSetXml + @"`,
+	ruleset: `"
+                    + ruleSetXml
+                    + @"`,
 	config: `<?xml version=""1.0"" encoding=""utf-8""?>
 <Roslynator>
   <Settings>

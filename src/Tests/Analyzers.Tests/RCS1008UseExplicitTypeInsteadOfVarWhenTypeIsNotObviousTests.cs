@@ -26,7 +26,7 @@ class C
 {
     void M()
     {
-        [|var|] a = ""a"";
+        var a = ""a"";
         [|var|] s = a;
     }
 }
@@ -35,7 +35,7 @@ class C
 {
     void M()
     {
-        string a = ""a"";
+        var a = ""a"";
         string s = a;
     }
 }
@@ -122,6 +122,32 @@ class C
     }
 }
 ", options: CSharpCodeVerificationOptions.Default_NullableReferenceTypes);
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseExplicitTypeInsteadOfVarWhenTypeIsNotObvious)]
+        public async Task Test_Parameter_NullableReferenceType_Disable()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+#nullable disable
+
+class C
+{
+    void M(string? p)
+    {
+        [|var|] s = p;
+    }
+}
+", @"
+#nullable disable
+
+class C
+{
+    void M(string? p)
+    {
+        string s = p;
+    }
+}
+", options: CSharpCodeVerificationOptions.Default_NullableReferenceTypes.AddAllowedCompilerDiagnosticId("CS8632"));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseExplicitTypeInsteadOfVarWhenTypeIsNotObvious)]

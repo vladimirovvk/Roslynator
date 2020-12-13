@@ -51,11 +51,11 @@ namespace Roslynator.CSharp.Analysis
                 return;
 
             bool? useCorrectDocumentationTagEnabled = null;
-            bool containsInheritDoc = false;
-            bool containsIncludeOrExclude = false;
-            bool containsSummaryElement = false;
-            bool containsContentElement = false;
-            bool isFirst = true;
+            var containsInheritDoc = false;
+            var containsIncludeOrExclude = false;
+            var containsSummaryElement = false;
+            var containsContentElement = false;
+            var isFirst = true;
 
             CancellationToken cancellationToken = context.CancellationToken;
 
@@ -176,7 +176,8 @@ namespace Roslynator.CSharp.Analysis
                 || orderParams
                 || unusedElement)
             {
-                SeparatedSyntaxList<ParameterSyntax> parameters = CSharpUtility.GetParameters((CSharpFacts.HasParameterList(parent.Kind())) ? parent : parent.Parent);
+                SeparatedSyntaxList<ParameterSyntax> parameters = CSharpUtility.GetParameters(
+                    (parent is MemberDeclarationSyntax) ? parent : parent.Parent);
 
                 if (addParam
                     && parameters.Any())
@@ -201,7 +202,8 @@ namespace Roslynator.CSharp.Analysis
                 || orderParams
                 || unusedElement)
             {
-                SeparatedSyntaxList<TypeParameterSyntax> typeParameters = CSharpUtility.GetTypeParameters((CSharpFacts.HasTypeParameterList(parent.Kind())) ? parent : parent.Parent);
+                SeparatedSyntaxList<TypeParameterSyntax> typeParameters = CSharpUtility.GetTypeParameters(
+                    (parent is MemberDeclarationSyntax) ? parent : parent.Parent);
 
                 if (addTypeParam
                     && typeParameters.Any())

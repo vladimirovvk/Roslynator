@@ -9,6 +9,54 @@ namespace Roslynator.CSharp
 {
     public static partial class AnalyzerOptions
     {
+        /// <summary>RCS1014a</summary>
+        public static readonly DiagnosticDescriptor UseImplicitlyTypedArrayWhenTypeIsObvious = DiagnosticDescriptorFactory.Default.Create(
+            id:                 AnalyzerOptionIdentifiers.UseImplicitlyTypedArrayWhenTypeIsObvious, 
+            title:              "Use implicitly typed array (when type is obvious).", 
+            messageFormat:      "Use implicitly typed array (when type is obvious).", 
+            category:           DiagnosticCategories.AnalyzerOption, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        AnalyzerOptionIdentifiers.UseImplicitlyTypedArrayWhenTypeIsObvious, 
+            customTags:         WellKnownDiagnosticTags.Unnecessary);
+
+        /// <summary>RCS1014i</summary>
+        public static readonly DiagnosticDescriptor UseImplicitlyTypedArray = DiagnosticDescriptorFactory.Default.Create(
+            id:                 AnalyzerOptionIdentifiers.UseImplicitlyTypedArray, 
+            title:              "Use implicitly typed array.", 
+            messageFormat:      "Use implicitly typed array.", 
+            category:           DiagnosticCategories.AnalyzerOption, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        AnalyzerOptionIdentifiers.UseImplicitlyTypedArray, 
+            customTags:         Array.Empty<string>());
+
+        /// <summary>RCS1016a</summary>
+        public static readonly DiagnosticDescriptor ConvertExpressionBodyToBlockBodyWhenExpressionIsMultiLine = DiagnosticDescriptorFactory.Default.Create(
+            id:                 AnalyzerOptionIdentifiers.ConvertExpressionBodyToBlockBodyWhenExpressionIsMultiLine, 
+            title:              "Convert expression-body to block body when expression is multi-line.", 
+            messageFormat:      "Convert expression-body to block body when expression is multi-line.", 
+            category:           DiagnosticCategories.AnalyzerOption, 
+            defaultSeverity:    DiagnosticSeverity.Hidden, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        AnalyzerOptionIdentifiers.ConvertExpressionBodyToBlockBodyWhenExpressionIsMultiLine, 
+            customTags:         Array.Empty<string>());
+
+        /// <summary>RCS1016b</summary>
+        public static readonly DiagnosticDescriptor ConvertExpressionBodyToBlockBodyWhenDeclarationIsMultiLine = DiagnosticDescriptorFactory.Default.Create(
+            id:                 AnalyzerOptionIdentifiers.ConvertExpressionBodyToBlockBodyWhenDeclarationIsMultiLine, 
+            title:              "Convert expression-body to block body when declaration is multi-line.", 
+            messageFormat:      "Convert expression-body to block body when declaration is multi-line.", 
+            category:           DiagnosticCategories.AnalyzerOption, 
+            defaultSeverity:    DiagnosticSeverity.Hidden, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        AnalyzerOptionIdentifiers.ConvertExpressionBodyToBlockBodyWhenDeclarationIsMultiLine, 
+            customTags:         Array.Empty<string>());
+
         /// <summary>RCS1018i</summary>
         public static readonly DiagnosticDescriptor RemoveAccessibilityModifiers = DiagnosticDescriptorFactory.Default.Create(
             id:                 AnalyzerOptionIdentifiers.RemoveAccessibilityModifiers, 
@@ -68,6 +116,30 @@ namespace Roslynator.CSharp
             description:        null, 
             helpLinkUri:        AnalyzerOptionIdentifiers.RemoveParenthesesFromConditionOfConditionalExpressionWhenExpressionIsSingleToken, 
             customTags:         Array.Empty<string>());
+
+        /// <summary>RCS1078i</summary>
+        public static readonly DiagnosticDescriptor UseStringEmptyInsteadOfEmptyStringLiteral = DiagnosticDescriptorFactory.Default.Create(
+            id:                 AnalyzerOptionIdentifiers.UseStringEmptyInsteadOfEmptyStringLiteral, 
+            title:              "Use string.Empty instead of \"\".", 
+            messageFormat:      "Use string.Empty instead of \"\".", 
+            category:           DiagnosticCategories.AnalyzerOption, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        AnalyzerOptionIdentifiers.UseStringEmptyInsteadOfEmptyStringLiteral, 
+            customTags:         Array.Empty<string>());
+
+        /// <summary>RCS1090i</summary>
+        public static readonly DiagnosticDescriptor RemoveCallToConfigureAwait = DiagnosticDescriptorFactory.Default.Create(
+            id:                 AnalyzerOptionIdentifiers.RemoveCallToConfigureAwait, 
+            title:              "Remove call to 'ConfigureAwait'.", 
+            messageFormat:      "Remove call to 'ConfigureAwait'.", 
+            category:           DiagnosticCategories.AnalyzerOption, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        AnalyzerOptionIdentifiers.RemoveCallToConfigureAwait, 
+            customTags:         WellKnownDiagnosticTags.Unnecessary);
 
         /// <summary>RCS1096i</summary>
         public static readonly DiagnosticDescriptor ConvertBitwiseOperationToHasFlagCall = DiagnosticDescriptorFactory.Default.Create(
@@ -141,5 +213,100 @@ namespace Roslynator.CSharp
             helpLinkUri:        AnalyzerOptionIdentifiers.UseComparisonInsteadOfIsNullPattern, 
             customTags:         Array.Empty<string>());
 
+        public static bool IsEnabled(CompilationOptions compilationOptions, DiagnosticDescriptor analyzerOption)
+        {
+            switch (analyzerOption.Id)
+            {
+                case AnalyzerOptionIdentifiers.UseImplicitlyTypedArrayWhenTypeIsObvious:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.UseExplicitlyTypedArrayOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.UseImplicitlyTypedArrayWhenTypeIsObvious);
+                }
+
+                case AnalyzerOptionIdentifiers.UseImplicitlyTypedArray:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.UseExplicitlyTypedArrayOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.UseImplicitlyTypedArray);
+                }
+
+                case AnalyzerOptionIdentifiers.ConvertExpressionBodyToBlockBodyWhenExpressionIsMultiLine:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.ConvertBlockBodyToExpressionBodyOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.ConvertExpressionBodyToBlockBodyWhenExpressionIsMultiLine);
+                }
+
+                case AnalyzerOptionIdentifiers.ConvertExpressionBodyToBlockBodyWhenDeclarationIsMultiLine:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.ConvertBlockBodyToExpressionBodyOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.ConvertExpressionBodyToBlockBodyWhenDeclarationIsMultiLine);
+                }
+
+                case AnalyzerOptionIdentifiers.RemoveAccessibilityModifiers:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.AddAccessibilityModifiersOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.RemoveAccessibilityModifiers);
+                }
+
+                case AnalyzerOptionIdentifiers.RemoveEmptyLineBetweenClosingBraceAndSwitchSection:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveRedundantEmptyLine) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.RemoveEmptyLineBetweenClosingBraceAndSwitchSection);
+                }
+
+                case AnalyzerOptionIdentifiers.DoNotRenamePrivateStaticReadOnlyFieldToCamelCaseWithUnderscore:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.RenamePrivateFieldToCamelCaseWithUnderscore) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.DoNotRenamePrivateStaticReadOnlyFieldToCamelCaseWithUnderscore);
+                }
+
+                case AnalyzerOptionIdentifiers.RemoveArgumentListFromObjectCreation:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.AddArgumentListToObjectCreationOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.RemoveArgumentListFromObjectCreation);
+                }
+
+                case AnalyzerOptionIdentifiers.RemoveParenthesesFromConditionOfConditionalExpressionWhenExpressionIsSingleToken:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.ParenthesizeConditionOfConditionalExpression) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.RemoveParenthesesFromConditionOfConditionalExpressionWhenExpressionIsSingleToken);
+                }
+
+                case AnalyzerOptionIdentifiers.UseStringEmptyInsteadOfEmptyStringLiteral:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.UseEmptyStringLiteralInsteadOfStringEmptyOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.UseStringEmptyInsteadOfEmptyStringLiteral);
+                }
+
+                case AnalyzerOptionIdentifiers.RemoveCallToConfigureAwait:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.AddCallToConfigureAwaitOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.RemoveCallToConfigureAwait);
+                }
+
+                case AnalyzerOptionIdentifiers.ConvertBitwiseOperationToHasFlagCall:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.ConvertHasFlagCallToBitwiseOperationOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.ConvertBitwiseOperationToHasFlagCall);
+                }
+
+                case AnalyzerOptionIdentifiers.SimplifyConditionalExpressionWhenItIncludesNegationOfCondition:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.SimplifyConditionalExpression) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.SimplifyConditionalExpressionWhenItIncludesNegationOfCondition);
+                }
+
+                case AnalyzerOptionIdentifiers.ConvertMethodGroupToAnonymousFunction:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.ConvertAnonymousFunctionToMethodGroupOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.ConvertMethodGroupToAnonymousFunction);
+                }
+
+                case AnalyzerOptionIdentifiers.DoNotUseElementAccessWhenExpressionIsInvocation:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.UseElementAccess) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.DoNotUseElementAccessWhenExpressionIsInvocation);
+                }
+
+                case AnalyzerOptionIdentifiers.UseIsNullPatternInsteadOfInequalityOperator:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.UseIsNullPatternInsteadOfComparisonOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.UseIsNullPatternInsteadOfInequalityOperator);
+                }
+
+                case AnalyzerOptionIdentifiers.UseComparisonInsteadOfIsNullPattern:
+                {
+                    return !compilationOptions.IsAnalyzerSuppressed(DiagnosticDescriptors.UseIsNullPatternInsteadOfComparisonOrViceVersa) && !compilationOptions.IsAnalyzerSuppressed(AnalyzerOptions.UseComparisonInsteadOfIsNullPattern);
+                }
+
+                default:
+                {
+                    throw new ArgumentException("", nameof(analyzerOption));
+                }
+            }
+        }
     }
 }

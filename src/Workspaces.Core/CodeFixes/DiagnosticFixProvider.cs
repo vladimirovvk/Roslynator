@@ -28,19 +28,21 @@ namespace Roslynator.CodeFixes
         {
             CodeFixProvider fixer = null;
             CodeAction fix = null;
+            Document document = null;
 
             for (int i = 0; i < fixers.Length; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                CodeAction fixCandidate = await GetFixAsync(
+                (CodeAction fixCandidate, Document documentCandidate) = await GetFixAsync(
                     diagnostics,
                     descriptor,
                     fixers[i],
                     project,
                     options,
                     formatProvider,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken)
+                    .ConfigureAwait(false);
 
                 if (fixCandidate != null)
                 {
@@ -52,21 +54,22 @@ namespace Roslynator.CodeFixes
                         {
                             fix = fixCandidate;
                             fixer = fixers[i];
+                            document = documentCandidate;
                         }
                     }
                     else if (options.DiagnosticFixerMap.IsEmpty
                         || !options.DiagnosticFixerMap.ContainsKey(descriptor.Id))
                     {
                         LogHelpers.WriteMultipleFixersSummary(descriptor.Id, fixer, fixers[i]);
-                        return new DiagnosticFix(null, fixer, fixers[i]);
+                        return new DiagnosticFix(null, null, fixer, fixers[i]);
                     }
                 }
             }
 
-            return new DiagnosticFix(fix, fixer, null);
+            return new DiagnosticFix(fix, document, fixer, null);
         }
 
-        public static async Task<CodeAction> GetFixAsync(
+        private static async Task<(CodeAction, Document)> GetFixAsync(
             ImmutableArray<Diagnostic> diagnostics,
             DiagnosticDescriptor descriptor,
             CodeFixProvider fixer,
@@ -86,19 +89,19 @@ namespace Roslynator.CodeFixes
                     return await GetFixAsync(diagnostics[0], fixer, project, options, formatProvider, cancellationToken).ConfigureAwait(false);
 
                 WriteLine($"  '{fixer.GetType().FullName}' does not have FixAllProvider", ConsoleColor.Yellow, Verbosity.Diagnostic);
-                return null;
+                return default;
             }
 
             if (!fixAllProvider.GetSupportedFixAllDiagnosticIds(fixer).Any(f => f == descriptor.Id))
             {
                 WriteLine($"  '{fixAllProvider.GetType().FullName}' does not support diagnostic '{descriptor.Id}'", ConsoleColor.Yellow, Verbosity.Diagnostic);
-                return null;
+                return default;
             }
 
-            if (!fixAllProvider.GetSupportedFixAllScopes().Any(f => f == FixAllScope.Project))
+            if (!fixAllProvider.GetSupportedFixAllScopes().Any(f => f == options.FixAllScope))
             {
-                WriteLine($"  '{fixAllProvider.GetType().FullName}' does not support scope '{FixAllScope.Project}'", ConsoleColor.Yellow, Verbosity.Diagnostic);
-                return null;
+                WriteLine($"  '{fixAllProvider.GetType().FullName}' does not support scope '{options.FixAllScope}'", ConsoleColor.Yellow, Verbosity.Diagnostic);
+                return default;
             }
 
             var multipleFixesInfos = new HashSet<MultipleFixesInfo>();
@@ -131,7 +134,7 @@ namespace Roslynator.CodeFixes
                 var fixAllContext = new FixAllContext(
                     document,
                     fixer,
-                    FixAllScope.Project,
+                    options.FixAllScope,
                     fix.EquivalenceKey,
                     new string[] { descriptor.Id },
                     new FixAllDiagnosticProvider(diagnostics),
@@ -148,17 +151,17 @@ namespace Roslynator.CodeFixes
 
                     WriteLine($"  FixAllProvider:  '{fixAllProvider.GetType().FullName}'", ConsoleColor.DarkGray, Verbosity.Diagnostic);
 
-                    return fixAll;
+                    return (fixAll, document);
                 }
 
                 WriteLine($"  Fixer '{fixer.GetType().FullName}' registered no action for diagnostic '{descriptor.Id}'", ConsoleColor.DarkGray, Verbosity.Diagnostic);
-                LogHelpers.WriteDiagnostics(diagnostics, baseDirectoryPath: Path.GetDirectoryName(project.FilePath), formatProvider: formatProvider, indentation: "    ", maxCount: 10, verbosity: Verbosity.Diagnostic);
+                LogHelpers.WriteDiagnostic(diagnostic, baseDirectoryPath: Path.GetDirectoryName(project.FilePath), formatProvider: formatProvider, indentation: "    ", verbosity: Verbosity.Diagnostic);
             }
 
-            return null;
+            return default;
         }
 
-        private static async Task<CodeAction> GetFixAsync(
+        private static async Task<(CodeAction, Document)> GetFixAsync(
             Diagnostic diagnostic,
             CodeFixProvider fixer,
             Project project,
@@ -167,14 +170,14 @@ namespace Roslynator.CodeFixes
             CancellationToken cancellationToken)
         {
             if (!diagnostic.Location.IsInSource)
-                return null;
+                return default;
 
             Document document = project.GetDocument(diagnostic.Location.SourceTree);
 
             Debug.Assert(document != null, "");
 
             if (document == null)
-                return null;
+                return default;
 
             CodeAction action = await GetFixAsync(diagnostic, fixer, document, multipleFixesInfos: default, options, cancellationToken).ConfigureAwait(false);
 
@@ -184,7 +187,7 @@ namespace Roslynator.CodeFixes
                 LogHelpers.WriteDiagnostic(diagnostic, baseDirectoryPath: Path.GetDirectoryName(project.FilePath), formatProvider: formatProvider, indentation: "    ", verbosity: Verbosity.Diagnostic);
             }
 
-            return action;
+            return (action, document);
         }
 
         private static async Task<CodeAction> GetFixAsync(
@@ -269,10 +272,13 @@ namespace Roslynator.CodeFixes
 
             public override int GetHashCode()
             {
-                return Hash.Combine(DiagnosticId,
-                    Hash.Combine(Fixer,
-                    Hash.Combine(EquivalenceKey1,
-                    Hash.Create(EquivalenceKey2))));
+                return Hash.Combine(
+                    DiagnosticId,
+                    Hash.Combine(
+                        Fixer,
+                        Hash.Combine(
+                            EquivalenceKey1,
+                            Hash.Create(EquivalenceKey2))));
             }
 
             public static bool operator ==(in MultipleFixesInfo info1, in MultipleFixesInfo info2)

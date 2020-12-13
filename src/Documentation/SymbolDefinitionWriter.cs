@@ -716,7 +716,8 @@ namespace Roslynator.Documentation
             using (IEnumerator<AttributeData> en = symbol
                 .GetAttributes()
                 .Where(f => Filter.IsMatch(symbol, f))
-                .OrderBy(f => f.AttributeClass, Comparer.TypeComparer).GetEnumerator())
+                .OrderBy(f => f.AttributeClass, Comparer.TypeComparer)
+                .GetEnumerator())
             {
                 if (en.MoveNext())
                 {
@@ -750,8 +751,8 @@ namespace Roslynator.Documentation
             if (!Format.Includes(SymbolDefinitionPartFilter.AttributeArguments))
                 return;
 
-            bool hasConstructorArgument = false;
-            bool hasNamedArgument = false;
+            var hasConstructorArgument = false;
+            var hasNamedArgument = false;
 
             WriteConstructorArguments();
             WriteNamedArguments();

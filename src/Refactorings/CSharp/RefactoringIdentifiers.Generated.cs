@@ -26,7 +26,6 @@ namespace Roslynator.CSharp.Refactorings
         public const string AddTypeParameter = Prefix + "0178";
         public const string AddUsingDirective = Prefix + "0013";
         public const string AddUsingStaticDirective = Prefix + "0014";
-        public const string CallConfigureAwait = Prefix + "0015";
         public const string CallExtensionMethodAsInstanceMethod = Prefix + "0016";
         public const string CallIndexOfInsteadOfContains = Prefix + "0144";
         public const string CallToMethod = Prefix + "0017";
@@ -40,10 +39,12 @@ namespace Roslynator.CSharp.Refactorings
         public const string CollapseToInitializer = Prefix + "0026";
         public const string CommentOutMember = Prefix + "0027";
         public const string CommentOutStatement = Prefix + "0028";
+        public const string ConvertBlockBodyToExpressionBody = Prefix + "0169";
         public const string ConvertCommentToDocumentationComment = Prefix + "0192";
         public const string ConvertConditionalOperatorToIfElse = Prefix + "0120";
         public const string ConvertDoToWhile = Prefix + "0123";
         public const string ConvertEmptyStringToStringEmpty = Prefix + "0171";
+        public const string ConvertExpressionBodyToBlockBody = Prefix + "0037";
         public const string ConvertForEachToFor = Prefix + "0129";
         public const string ConvertForEachToForAndReverseLoop = Prefix + "0188";
         public const string ConvertForToForEach = Prefix + "0130";
@@ -55,6 +56,8 @@ namespace Roslynator.CSharp.Refactorings
         public const string ConvertInterpolatedStringToConcatenation = Prefix + "0193";
         public const string ConvertInterpolatedStringToStringFormat = Prefix + "0201";
         public const string ConvertInterpolatedStringToStringLiteral = Prefix + "0136";
+        public const string ConvertLambdaExpressionBodyToBlockBody = Prefix + "0039";
+        public const string ConvertLambdaExpressionBodyToExpressionBody = Prefix + "0154";
         public const string ConvertMethodGroupToLambda = Prefix + "0137";
         public const string ConvertNullLiteralToDefaultExpression = Prefix + "0139";
         public const string ConvertRegularStringLiteralToVerbatimStringLiteral = Prefix + "0142";
@@ -76,9 +79,7 @@ namespace Roslynator.CSharp.Refactorings
         public const string ExpandCoalesceExpression = Prefix + "0035";
         public const string ExpandCompoundAssignmentOperator = Prefix + "0034";
         public const string ExpandEvent = Prefix + "0036";
-        public const string ExpandExpressionBody = Prefix + "0037";
         public const string ExpandInitializer = Prefix + "0038";
-        public const string ExpandLambdaExpressionBody = Prefix + "0039";
         public const string ExpandProperty = Prefix + "0040";
         public const string ExpandPropertyAndAddBackingField = Prefix + "0041";
         public const string ExtractEventHandlerMethod = Prefix + "0203";
@@ -86,13 +87,6 @@ namespace Roslynator.CSharp.Refactorings
         public const string ExtractGenericType = Prefix + "0044";
         public const string ExtractStatement = Prefix + "0045";
         public const string ExtractTypeDeclarationToNewFile = Prefix + "0046";
-        public const string FormatArgumentList = Prefix + "0048";
-        public const string FormatBinaryExpression = Prefix + "0049";
-        public const string FormatConditionalExpression = Prefix + "0050";
-        public const string FormatConstraintClauses = Prefix + "0187";
-        public const string FormatExpressionChain = Prefix + "0051";
-        public const string FormatInitializer = Prefix + "0052";
-        public const string FormatParameterList = Prefix + "0053";
         public const string GenerateBaseConstructors = Prefix + "0054";
         public const string GenerateCombinedEnumMember = Prefix + "0055";
         public const string GenerateEnumMember = Prefix + "0056";
@@ -180,9 +174,8 @@ namespace Roslynator.CSharp.Refactorings
         public const string ReplaceObjectCreationWithDefaultValue = Prefix + "0185";
         public const string ReplacePrefixOperatorWithPostfixOperator = Prefix + "0140";
         public const string ReplacePropertyWithMethod = Prefix + "0141";
-        public const string ReverseForLoop = Prefix + "0152";
+        public const string ReverseForStatement = Prefix + "0152";
         public const string SimplifyIf = Prefix + "0153";
-        public const string SimplifyLambdaExpression = Prefix + "0154";
         public const string SortCaseLabels = Prefix + "0207";
         public const string SortMemberDeclarations = Prefix + "0155";
         public const string SplitAttributes = Prefix + "0156";
@@ -199,16 +192,21 @@ namespace Roslynator.CSharp.Refactorings
         public const string UseConstantInsteadOfField = Prefix + "0128";
         public const string UseCSharp6DictionaryInitializer = Prefix + "0191";
         public const string UseElementAccessInsteadOfEnumerableMethod = Prefix + "0167";
-        public const string UseEmptyStringLiteralInsteadOfStringEmpty = Prefix + "0168";
         public const string UseEnumeratorExplicitly = Prefix + "0206";
-        public const string UseExpressionBodiedMember = Prefix + "0169";
         public const string UseLambdaExpressionInsteadOfAnonymousMethod = Prefix + "0170";
         public const string UseListInsteadOfYield = Prefix + "0183";
         public const string UseStringBuilderInsteadOfConcatenation = Prefix + "0182";
+        public const string WrapArguments = Prefix + "0048";
+        public const string WrapBinaryExpression = Prefix + "0049";
+        public const string WrapCallChain = Prefix + "0051";
+        public const string WrapConditionalExpression = Prefix + "0050";
+        public const string WrapConstraintClauses = Prefix + "0187";
         public const string WrapInCondition = Prefix + "0172";
         public const string WrapInIfDirective = Prefix + "0174";
+        public const string WrapInitializerExpressions = Prefix + "0052";
         public const string WrapInRegion = Prefix + "0175";
         public const string WrapInTryCatch = Prefix + "0176";
         public const string WrapInUsingStatement = Prefix + "0177";
+        public const string WrapParameters = Prefix + "0053";
     }
 }

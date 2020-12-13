@@ -305,6 +305,7 @@
     <Rule Id="RCS1010" Action="Info" />
     <Rule Id="RCS1013" Action="Info" />
     <Rule Id="RCS1014" Action="Info" />
+    <Rule Id="RCS1014a" Action="Info" />
     <Rule Id="RCS1017" Action="Info" />
     <Rule Id="RCS1018" Action="Warning" />
     <Rule Id="RCS1019" Action="Info" />
@@ -388,12 +389,14 @@
     <Rule Id="RCS0043" Action="Info" />
     <Rule Id="RCS0044" Action="Info" />
     <Rule Id="RCS0046" Action="Info" />
-    <Rule Id="RCS0047" Action="Info" />
     <Rule Id="RCS0048" Action="Hidden" />
     <Rule Id="RCS0049" Action="Info" />
     <Rule Id="RCS0050" Action="Info" />
     <Rule Id="RCS0051" Action="Info" />
     <Rule Id="RCS0051i" Action="Info" />
+    <Rule Id="RCS0053" Action="Info" />
+    <Rule Id="RCS0054" Action="Info" />
+    <Rule Id="RCS0055" Action="Info" />
   </Rules>
   <Rules AnalyzerId="SonarAnalyzer.CSharp" RuleNamespace="SonarAnalyzer.CSharp">
     <Rule Id="S101" Action="None" />
