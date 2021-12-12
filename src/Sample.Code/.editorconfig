@@ -1,0 +1,17 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+root = true
+
+# Code files
+[*.{cs,csx}]
+
+# Global severity for all analyzers
+#dotnet_analyzer_diagnostic.severity = none
+
+# Global severity for for analyzer with category "sample" (case-insensitive)
+#dotnet_analyzer_diagnostic.category-sample.severity = none
+
+# Severity for analyzer with id "ABC0001"
+dotnet_diagnostic.SMP0001.severity = warning
+
+sample.file_banner = Sample copyright
