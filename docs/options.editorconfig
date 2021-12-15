@@ -3,7 +3,7 @@
 is_global = true
 
 # Options in this file can be used
-#  1) In a standard.editorconfig file
+#  1) In a standard .editorconfig file
 #  2) In a Roslynator default configuration file
 #     Location of the file depends on the operation system:
 #       Windows: C:/Users/<USERNAME>/AppData/Local/.roslynatorconfig
