@@ -23,7 +23,7 @@ namespace Roslynator.CodeGeneration
 {
     internal static class Program
     {
-        private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        private static readonly UTF8Encoding _utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
         private static async Task Main(string[] args)
         {
@@ -172,7 +172,7 @@ namespace Roslynator.CodeGeneration
             {
                 WriteAllText(
                     $@"..\docs\analyzers\{analyzer.Id}.md",
-                    MarkdownGenerator.CreateAnalyzerMarkdown(analyzer, metadata.Options, appliesTo),
+                    MarkdownGenerator.CreateAnalyzerMarkdown(analyzer, metadata.ConfigOptions, appliesTo),
                     fileMustExists: false);
 
                 foreach (AnalyzerOptionMetadata option in analyzer.Options

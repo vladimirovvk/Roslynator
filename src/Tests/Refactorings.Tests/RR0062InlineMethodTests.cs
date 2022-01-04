@@ -55,7 +55,7 @@ namespace N
     static class B
     {
     }
-}", equivalenceKey: RefactoringId);
+}", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineMethod)]
@@ -101,7 +101,7 @@ namespace N
         public static C<T> EM<T>(this T _) => new C<T>();
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineMethod)]
@@ -167,7 +167,53 @@ namespace N2
     {
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineMethod)]
+        public async Task Test_IdentifierNameInsideTypeOf()
+        {
+            await VerifyRefactoringAsync(@"
+using System;
+using System.Runtime.CompilerServices;
+using System.Reflection;
+
+class C
+{
+    private static bool M(Type type)
+    {
+        return type.Has[||]Attribute<CompilerGeneratedAttribute>() || type.IsNotPublic;
+    }
+}
+
+public static class E
+{
+    public static bool HasAttribute<T>(this MemberInfo mi) where T : Attribute
+    {
+        return Attribute.IsDefined(mi, typeof(T));
+    }
+}
+", @"
+using System;
+using System.Runtime.CompilerServices;
+using System.Reflection;
+
+class C
+{
+    private static bool M(Type type)
+    {
+        return Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute)) || type.IsNotPublic;
+    }
+}
+
+public static class E
+{
+    public static bool HasAttribute<T>(this MemberInfo mi) where T : Attribute
+    {
+        return Attribute.IsDefined(mi, typeof(T));
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineMethod)]
@@ -193,7 +239,7 @@ class C
         get { return null; }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

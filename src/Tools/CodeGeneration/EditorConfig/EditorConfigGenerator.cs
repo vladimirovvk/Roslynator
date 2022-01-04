@@ -16,15 +16,15 @@ namespace Roslynator.CodeGeneration.EditorConfig
         {
             var optionMap = new Dictionary<string, HashSet<AnalyzerMetadata>>();
 
-            foreach (AnalyzerMetadata analyzer in metadata.Analyzers)
+            foreach (AnalyzerMetadata analyzer in metadata.GetAllAnalyzers())
             {
-                foreach (string option in analyzer.GlobalOptions)
+                foreach (ConfigOptionKeyMetadata option in analyzer.ConfigOptions)
                 {
-                    if (!optionMap.TryGetValue(option, out HashSet<AnalyzerMetadata> optionAnalyzers))
+                    if (!optionMap.TryGetValue(option.Key, out HashSet<AnalyzerMetadata> optionAnalyzers))
                         optionAnalyzers = new HashSet<AnalyzerMetadata>();
 
                     optionAnalyzers.Add(analyzer);
-                    optionMap[option] = optionAnalyzers;
+                    optionMap[option.Key] = optionAnalyzers;
                 }
             }
 
@@ -34,14 +34,28 @@ namespace Roslynator.CodeGeneration.EditorConfig
                 w.WriteLine("# Options");
                 w.WriteLine();
 
-                foreach (OptionDescriptor option in metadata.Options.OrderBy(f => f.Key))
+                var isSeparatedWithNewLine = true;
+
+                foreach (ConfigOptionMetadata option in metadata.ConfigOptions.OrderBy(f => f.Key))
                 {
-                    if (optionMap.TryGetValue(option.Key, out HashSet<AnalyzerMetadata> analyzers))
+                    if (optionMap.TryGetValue(option.Key, out HashSet<AnalyzerMetadata> analyzers)
+                        && !isSeparatedWithNewLine)
                     {
-                        w.WriteLine("# Applicable to: " + string.Join(", ", analyzers.OrderBy(f => f.Id).Select(f => f.Id)));
+                        w.WriteLine();
                     }
 
-                    w.WriteEntry(option.Key, option.DefaultValue);
+                    w.WriteEntry(option.Key, option.DefaultValue ?? option.DefaultValuePlaceholder);
+
+                    if (analyzers?.Count > 0)
+                    {
+                        w.WriteLine("# Applicable to: " + string.Join(", ", analyzers.OrderBy(f => f.Id).Select(f => f.Id)));
+                        w.WriteLine();
+                        isSeparatedWithNewLine = true;
+                    }
+                    else
+                    {
+                        isSeparatedWithNewLine = false;
+                    }
                 }
 
                 w.WriteLine();

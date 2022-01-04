@@ -192,7 +192,7 @@ namespace Roslynator.CSharp.Refactorings
 
             bool GetDefaultValueFromConfig()
             {
-                if (_configOptions.TryGetValue(OptionKeys.RefactoringEnabled, out string value)
+                if (_configOptions.TryGetValue(ConfigOptionKeys.RefactoringEnabled, out string value)
                     && bool.TryParse(value, out bool enabled))
                 {
                     return enabled;
@@ -634,7 +634,7 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.AssignmentExpression))
                                 continue;
 
-                            await AssignmentExpressionRefactoring.ComputeRefactoringsAsync(this, (AssignmentExpressionSyntax)node).ConfigureAwait(false);
+                            AssignmentExpressionRefactoring.ComputeRefactorings(this, (AssignmentExpressionSyntax)node);
                             flags.Set(Flag.AssignmentExpression);
                             continue;
                         }

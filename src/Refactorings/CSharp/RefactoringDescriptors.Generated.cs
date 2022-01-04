@@ -52,7 +52,6 @@ namespace Roslynator.CSharp.Refactorings
         public static RefactoringDescriptor ConvertLambdaBlockBodyToExpressionBody = new RefactoringDescriptor("RR0154", "roslynator.refactoring.convert_lambda_block_body_to_expression_body.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ConvertLambdaExpressionBodyToBlockBody = new RefactoringDescriptor("RR0039", "roslynator.refactoring.convert_lambda_expression_body_to_block_body.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ConvertMethodGroupToLambda = new RefactoringDescriptor("RR0137", "roslynator.refactoring.convert_method_group_to_lambda.enabled", isEnabledByDefault: true);
-        public static RefactoringDescriptor ConvertNullLiteralToDefaultExpression = new RefactoringDescriptor("RR0139", "roslynator.refactoring.convert_null_literal_to_default_expression.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ConvertRegularStringLiteralToVerbatimStringLiteral = new RefactoringDescriptor("RR0142", "roslynator.refactoring.convert_regular_string_literal_to_verbatim_string_literal.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ConvertReturnStatementToIf = new RefactoringDescriptor("RR0143", "roslynator.refactoring.convert_return_statement_to_if.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ConvertStatementsToIfElse = new RefactoringDescriptor("RR0211", "roslynator.refactoring.convert_statements_to_if_else.enabled", isEnabledByDefault: true);
@@ -63,12 +62,12 @@ namespace Roslynator.CSharp.Refactorings
         public static RefactoringDescriptor ConvertVerbatimStringLiteralToRegularStringLiterals = new RefactoringDescriptor("RR0149", "roslynator.refactoring.convert_verbatim_string_literal_to_regular_string_literals.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ConvertWhileToDo = new RefactoringDescriptor("RR0150", "roslynator.refactoring.convert_while_to_do.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ConvertWhileToFor = new RefactoringDescriptor("RR0151", "roslynator.refactoring.convert_while_to_for.enabled", isEnabledByDefault: true);
+        public static RefactoringDescriptor CopyArgument = new RefactoringDescriptor("RR0030", "roslynator.refactoring.copy_argument.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor CopyDocumentationCommentFromBaseMember = new RefactoringDescriptor("RR0029", "roslynator.refactoring.copy_documentation_comment_from_base_member.enabled", isEnabledByDefault: true);
-        public static RefactoringDescriptor DuplicateArgument = new RefactoringDescriptor("RR0030", "roslynator.refactoring.duplicate_argument.enabled", isEnabledByDefault: true);
-        public static RefactoringDescriptor DuplicateMember = new RefactoringDescriptor("RR0031", "roslynator.refactoring.duplicate_member_declaration.enabled", isEnabledByDefault: true);
-        public static RefactoringDescriptor DuplicateParameter = new RefactoringDescriptor("RR0032", "roslynator.refactoring.duplicate_parameter.enabled", isEnabledByDefault: true);
-        public static RefactoringDescriptor DuplicateStatement = new RefactoringDescriptor("RR0033", "roslynator.refactoring.duplicate_statement.enabled", isEnabledByDefault: true);
-        public static RefactoringDescriptor DuplicateSwitchSection = new RefactoringDescriptor("RR0212", "roslynator.refactoring.duplicate_switch_section.enabled", isEnabledByDefault: true);
+        public static RefactoringDescriptor CopyMemberDeclaration = new RefactoringDescriptor("RR0031", "roslynator.refactoring.copy_member_declaration.enabled", isEnabledByDefault: true);
+        public static RefactoringDescriptor CopyParameter = new RefactoringDescriptor("RR0032", "roslynator.refactoring.copy_parameter.enabled", isEnabledByDefault: true);
+        public static RefactoringDescriptor CopyStatement = new RefactoringDescriptor("RR0033", "roslynator.refactoring.copy_statement.enabled", isEnabledByDefault: true);
+        public static RefactoringDescriptor CopySwitchSection = new RefactoringDescriptor("RR0212", "roslynator.refactoring.copy_switch_section.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ExpandCoalesceExpression = new RefactoringDescriptor("RR0035", "roslynator.refactoring.expand_coalesce_expression.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ExpandCompoundAssignment = new RefactoringDescriptor("RR0034", "roslynator.refactoring.expand_compound_assignment.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ExpandEventDeclaration = new RefactoringDescriptor("RR0036", "roslynator.refactoring.expand_event_declaration.enabled", isEnabledByDefault: true);
@@ -161,6 +160,7 @@ namespace Roslynator.CSharp.Refactorings
         public static RefactoringDescriptor ReplaceExplicitCastWithAsExpression = new RefactoringDescriptor("RR0118", "roslynator.refactoring.replace_explicit_cast_with_as_expression.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ReplaceInterpolatedStringWithInterpolationExpression = new RefactoringDescriptor("RR0135", "roslynator.refactoring.replace_interpolated_string_with_interpolation_expression.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ReplaceMethodWithProperty = new RefactoringDescriptor("RR0138", "roslynator.refactoring.replace_method_with_property.enabled", isEnabledByDefault: false);
+        public static RefactoringDescriptor ReplaceNullLiteralWithDefaultExpression = new RefactoringDescriptor("RR0139", "roslynator.refactoring.replace_null_literal_with_default_expression.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ReplacePrefixOperatorWithPostfixOperator = new RefactoringDescriptor("RR0140", "roslynator.refactoring.replace_prefix_operator_with_postfix_operator.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ReplacePropertyWithMethod = new RefactoringDescriptor("RR0141", "roslynator.refactoring.replace_property_with_method.enabled", isEnabledByDefault: true);
         public static RefactoringDescriptor ReverseForStatement = new RefactoringDescriptor("RR0152", "roslynator.refactoring.reverse_for_statement.enabled", isEnabledByDefault: true);

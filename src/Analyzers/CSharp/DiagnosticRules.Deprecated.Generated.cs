@@ -133,6 +133,18 @@ namespace Roslynator.CSharp
             customTags:         Array.Empty<string>());
 
         [Obsolete("", error: true)]
+        internal static readonly DiagnosticDescriptor RenamePrivateFieldToCamelCaseWithUnderscore = DiagnosticDescriptorFactory.Create(
+            id:                 DiagnosticIdentifiers.RenamePrivateFieldToCamelCaseWithUnderscore, 
+            title:              "Rename private field to camel case with underscore.", 
+            messageFormat:      "Rename private field to camel case with underscore.", 
+            category:           DiagnosticCategories.Roslynator, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        DiagnosticIdentifiers.RenamePrivateFieldToCamelCaseWithUnderscore, 
+            customTags:         Array.Empty<string>());
+
+        [Obsolete("", error: true)]
         internal static readonly DiagnosticDescriptor ReplaceForEachWithFor = DiagnosticDescriptorFactory.Create(
             id:                 DiagnosticIdentifiers.ReplaceForEachWithFor, 
             title:              "Replace foreach statement with for statement.", 
@@ -237,8 +249,8 @@ namespace Roslynator.CSharp
         [Obsolete("", error: true)]
         internal static readonly DiagnosticDescriptor UseLinefeedAsNewLine = DiagnosticDescriptorFactory.Create(
             id:                 DiagnosticIdentifiers.UseLinefeedAsNewLine, 
-            title:              "Use linefeed as newline.", 
-            messageFormat:      "Use linefeed as newline.", 
+            title:              "Use linefeed as new line.", 
+            messageFormat:      "Use linefeed as new line.", 
             category:           DiagnosticCategories.Roslynator, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: false, 
@@ -249,8 +261,8 @@ namespace Roslynator.CSharp
         [Obsolete("", error: true)]
         internal static readonly DiagnosticDescriptor UseCarriageReturnAndLinefeedAsNewLine = DiagnosticDescriptorFactory.Create(
             id:                 DiagnosticIdentifiers.UseCarriageReturnAndLinefeedAsNewLine, 
-            title:              "Use carriage return + linefeed as newline.", 
-            messageFormat:      "Use carriage return + linefeed as newline.", 
+            title:              "Use carriage return + linefeed as new line.", 
+            messageFormat:      "Use carriage return + linefeed as new line.", 
             category:           DiagnosticCategories.Roslynator, 
             defaultSeverity:    DiagnosticSeverity.Info, 
             isEnabledByDefault: false, 

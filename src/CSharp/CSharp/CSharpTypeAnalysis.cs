@@ -500,8 +500,9 @@ namespace Roslynator.CSharp
                 case SyntaxKind.SwitchExpression:
                 case SyntaxKind.SwitchExpressionArm:
                 case SyntaxKind.YieldReturnStatement:
+                case SyntaxKind.ConditionalExpression:
                     {
-                        SyntaxDebug.Assert(!tupleExpression.Arguments.Any(f => f.Expression.IsKind(SyntaxKind.DeclarationExpression)), tupleExpression);
+                        SyntaxDebug.Assert(tupleExpression.ContainsDiagnostics || !tupleExpression.Arguments.Any(f => f.Expression.IsKind(SyntaxKind.DeclarationExpression)), tupleExpression);
                         return false;
                     }
 #endif

@@ -54,7 +54,6 @@ namespace Roslynator.CSharp.Refactorings
         public const string ConvertLambdaBlockBodyToExpressionBody = Prefix + "0154";
         public const string ConvertLambdaExpressionBodyToBlockBody = Prefix + "0039";
         public const string ConvertMethodGroupToLambda = Prefix + "0137";
-        public const string ConvertNullLiteralToDefaultExpression = Prefix + "0139";
         public const string ConvertRegularStringLiteralToVerbatimStringLiteral = Prefix + "0142";
         public const string ConvertReturnStatementToIf = Prefix + "0143";
         public const string ConvertStatementsToIfElse = Prefix + "0211";
@@ -65,12 +64,12 @@ namespace Roslynator.CSharp.Refactorings
         public const string ConvertVerbatimStringLiteralToRegularStringLiterals = Prefix + "0149";
         public const string ConvertWhileToDo = Prefix + "0150";
         public const string ConvertWhileToFor = Prefix + "0151";
+        public const string CopyArgument = Prefix + "0030";
         public const string CopyDocumentationCommentFromBaseMember = Prefix + "0029";
-        public const string DuplicateArgument = Prefix + "0030";
-        public const string DuplicateMember = Prefix + "0031";
-        public const string DuplicateParameter = Prefix + "0032";
-        public const string DuplicateStatement = Prefix + "0033";
-        public const string DuplicateSwitchSection = Prefix + "0212";
+        public const string CopyMemberDeclaration = Prefix + "0031";
+        public const string CopyParameter = Prefix + "0032";
+        public const string CopyStatement = Prefix + "0033";
+        public const string CopySwitchSection = Prefix + "0212";
         public const string ExpandCoalesceExpression = Prefix + "0035";
         public const string ExpandCompoundAssignment = Prefix + "0034";
         public const string ExpandEventDeclaration = Prefix + "0036";
@@ -163,6 +162,7 @@ namespace Roslynator.CSharp.Refactorings
         public const string ReplaceExplicitCastWithAsExpression = Prefix + "0118";
         public const string ReplaceInterpolatedStringWithInterpolationExpression = Prefix + "0135";
         public const string ReplaceMethodWithProperty = Prefix + "0138";
+        public const string ReplaceNullLiteralWithDefaultExpression = Prefix + "0139";
         public const string ReplacePrefixOperatorWithPostfixOperator = Prefix + "0140";
         public const string ReplacePropertyWithMethod = Prefix + "0141";
         public const string ReverseForStatement = Prefix + "0152";

@@ -42,7 +42,7 @@ is_global = true
 #roslynator.compiler_diagnostic_fix.<COMPILER_DIAGNOSTIC_ID>.enabled = true|false
 ";
 
-        internal static EditorConfigCodeAnalysisConfig Empty { get; } = new EditorConfigCodeAnalysisConfig();
+        internal static EditorConfigCodeAnalysisConfig Empty { get; } = new();
 
         public EditorConfigCodeAnalysisConfig(
             IEnumerable<KeyValuePair<string, string>> options = null,
@@ -57,13 +57,13 @@ is_global = true
             Refactorings = refactorings?.ToImmutableDictionary() ?? ImmutableDictionary<string, bool>.Empty;
             CodeFixes = codeFixes?.ToImmutableDictionary() ?? ImmutableDictionary<string, bool>.Empty;
 
-            if (Options.TryGetValue(OptionKeys.MaxLineLength, out string maxLineLengthRaw)
+            if (Options.TryGetValue(ConfigOptionKeys.MaxLineLength, out string maxLineLengthRaw)
                 && int.TryParse(maxLineLengthRaw, out int maxLineLength))
             {
                 MaxLineLength = maxLineLength;
             }
 
-            if (Options.TryGetValue(OptionKeys.PrefixFieldIdentifierWithUnderscore, out string prefixFieldIdentifierWithUnderscoreRaw)
+            if (Options.TryGetValue(ConfigOptionKeys.PrefixFieldIdentifierWithUnderscore, out string prefixFieldIdentifierWithUnderscoreRaw)
                 && bool.TryParse(prefixFieldIdentifierWithUnderscoreRaw, out bool prefixFieldIdentifierWithUnderscore))
             {
                 PrefixFieldIdentifierWithUnderscore = prefixFieldIdentifierWithUnderscore;
@@ -197,43 +197,6 @@ is_global = true
             }
 
             return path;
-        }
-
-        //TODO: delete
-        private static string CreateDefaultContent()
-        {
-            using var writer = new EditorConfigWriter(new StringWriter());
-
-            writer.WriteCommentChar();
-            writer.WriteLine("This config file enables to change DEFAULT configuration of analyzers, refactorings and code fixes.");
-
-            writer.WriteCommentChar();
-            writer.WriteLine("Config is loaded once when the IDE starts. Therefore a restart of the IDE is required for changes to take effect.");
-            writer.WriteLine();
-
-            writer.WriteGlobalDirective();
-            writer.WriteLine();
-            writer.WriteEntry(OptionKeys.MaxLineLength, OptionDefaultValues.MaxLineLength.ToString());
-            writer.WriteEntry(OptionKeys.PrefixFieldIdentifierWithUnderscore, OptionDefaultValues.PrefixFieldIdentifierWithUnderscore.ToString().ToLowerInvariant());
-            writer.WriteLine();
-            writer.WriteEntry(OptionKeys.RefactoringEnabled, true);
-            writer.WriteCommentChar();
-            writer.WriteRefactoring("<REFACTORING_NAME>", true);
-            writer.WriteLine();
-            writer.WriteEntry(OptionKeys.CompilerDiagnosticFixEnabled, true);
-            writer.WriteCommentChar();
-            writer.WriteCompilerDiagnosticFix("<COMPILER_DIAGNOSTIC_ID>", true);
-            writer.WriteLine();
-
-            const string allSeverities = "default|none|silent|suggestion|warning|error";
-
-            writer.WriteCommentChar();
-            writer.WriteAnalyzerCategory(DiagnosticCategories.Roslynator.ToLowerInvariant(), allSeverities);
-            writer.WriteLine();
-
-            writer.WriteEntry("dotnet_diagnostic.RCS0001.severity", allSeverities);
-
-            return writer.ToString();
         }
     }
 }

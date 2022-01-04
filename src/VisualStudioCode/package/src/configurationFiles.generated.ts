@@ -34,8 +34,83 @@ is_global = true
 
 # Options
 
+roslynator.accessibility_modifiers = explicit|implicit
+# Applicable to: RCS1018
+
+roslynator.anonymous_function_or_method_group = anonymous_function|method_group
+# Applicable to: RCS1207
+
+roslynator.array_creation_type_style = explicit|implicit|implicit_when_type_is_obvious
+# Applicable to: RCS1014
+
+roslynator.arrow_token_new_line = after|before
+# Applicable to: RCS0032
+
+roslynator.binary_operator_new_line = after|before
+# Applicable to: RCS0027
+
+roslynator.blank_line_between_closing_brace_and_switch_section = true|false
+# Applicable to: RCS1036
+
+roslynator.blank_line_between_single_line_accessors = true|false
+# Applicable to: RCS0011
+
+roslynator.blank_line_between_using_directive_groups = true|false
+# Applicable to: RCS0015
+
+roslynator.body_style = block|expression
+# Applicable to: RCS1016
+
+roslynator.condition_in_conditional_operator_parentheses_style = include|omit||omit_when_condition_is_single_token
+# Applicable to: RCS1051
+
+roslynator.conditional_operator_new_line = after|before
+# Applicable to: RCS0028
+
+roslynator.configure_await = true|false
+# Applicable to: RCS1090
+
+roslynator.empty_string_style = field|literal
+# Applicable to: RCS1078
+
+roslynator.enum_has_flag_style = method|operator
+# Applicable to: RCS1096
+
+roslynator.equals_token_new_line = after|before
+# Applicable to: RCS0052
+
 roslynator.max_line_length = 140
-roslynator.prefix_field_identifier_with_underscore = false
+# Applicable to: RCS0056
+
+roslynator.new_line_at_end_of_file = true|false
+# Applicable to: RCS0058
+
+roslynator.new_line_before_while_in_do_statement = true|false
+# Applicable to: RCS0051
+
+roslynator.null_check_style = equality_operator|pattern_matching
+# Applicable to: RCS1248
+
+roslynator.object_creation_parentheses_style = include|omit
+# Applicable to: RCS1050
+
+roslynator.object_creation_type_style = explicit|implicit|implicit_when_type_is_obvious
+# Applicable to: RCS1250
+
+roslynator.prefer_block_body_when_declaration_spans_over_multiple_lines = true|false
+# Applicable to: RCS1016
+
+roslynator.prefer_block_body_when_expression_spans_over_multiple_lines = true|false
+# Applicable to: RCS1016
+
+roslynator.prefix_field_identifier_with_underscore = true|false
+
+roslynator.suppress_unity_script_methods = true|false
+# Applicable to: RCS1213
+
+roslynator.use_var_instead_of_implicit_object_creation = true|false
+# Applicable to: RCS1250
+
 
 # Analyzers
 
@@ -47,9 +122,6 @@ dotnet_diagnostic.RCS0002.severity = none
 
 # Add empty line after using directive list
 dotnet_diagnostic.RCS0003.severity = none
-
-# Add empty line before closing brace of 'do' statement
-dotnet_diagnostic.RCS0004.severity = none
 
 # Add empty line before #endregion
 dotnet_diagnostic.RCS0005.severity = none
@@ -69,7 +141,7 @@ dotnet_diagnostic.RCS0009.severity = none
 # Add empty line between declarations
 dotnet_diagnostic.RCS0010.severity = none
 
-# Add empty line between single-line accessors (or vice versa)
+# Add/remove blank line between single-line accessors
 dotnet_diagnostic.RCS0011.severity = none
 # Remove empty line between single-line accessors
 roslynator.RCS0011.invert = false
@@ -83,60 +155,60 @@ dotnet_diagnostic.RCS0013.severity = none
 # Add empty line between switch sections
 dotnet_diagnostic.RCS0014.severity = none
 
-# Add empty line between using directives with different root namespace (or vice versa)
+# Add/remove empty line between using directive groups
 dotnet_diagnostic.RCS0015.severity = none
 # Remove empty line between using directives with different root namespace
 roslynator.RCS0015.invert = false
 
-# Add newline after attribute list
+# Add new line after attribute list
 dotnet_diagnostic.RCS0016.severity = none
 
-# Add newline after opening brace of accessor
+# Add new line after opening brace of accessor
 dotnet_diagnostic.RCS0020.severity = none
 
-# Add newline after opening brace of block
+# Add new line after opening brace of block
 dotnet_diagnostic.RCS0021.severity = none
 
-# Add newline after opening brace of empty block
+# Add new line after opening brace of empty block
 dotnet_diagnostic.RCS0022.severity = none
 
-# Add newline after opening brace of type declaration
+# Add new line after opening brace of type declaration
 dotnet_diagnostic.RCS0023.severity = none
 
-# Add newline after switch label
+# Add new line after switch label
 dotnet_diagnostic.RCS0024.severity = none
 
-# Add newline before accessor of full property
+# Add new line before accessor of full property
 dotnet_diagnostic.RCS0025.severity = none
 
-# Add newline before binary operator instead of after it (or vice versa)
+# Place new line after/before binary operator
 dotnet_diagnostic.RCS0027.severity = none
-# Add newline after binary operator instead of before it
+# Add new line after binary operator instead of before it
 roslynator.RCS0027.invert = false
 
-# Add newline before conditional operator instead of after it (or vice versa)
+# Place new line after/before '?:' operator
 dotnet_diagnostic.RCS0028.severity = none
-# Add newline after conditional operator instead of before it
+# Add new line after conditional operator instead of before it
 roslynator.RCS0028.invert = false
 
-# Add newline before constructor initializer
+# Add new line before constructor initializer
 dotnet_diagnostic.RCS0029.severity = none
 
-# Add newline before embedded statement
+# Add new line before embedded statement
 dotnet_diagnostic.RCS0030.severity = none
 
-# Add newline before enum member
+# Add new line before enum member
 dotnet_diagnostic.RCS0031.severity = none
 
-# Add newline before expression-body arrow instead of after it (or vice versa)
+# Place new line after/before arrow token
 dotnet_diagnostic.RCS0032.severity = none
-# Add newline after expression-body arrow instead of before it
+# Add new line after expression body arrow instead of before it
 roslynator.RCS0032.invert = false
 
-# Add newline before statement
+# Add new line before statement
 dotnet_diagnostic.RCS0033.severity = none
 
-# Add newline before type parameter constraint
+# Add new line before type parameter constraint
 dotnet_diagnostic.RCS0034.severity = none
 
 # Remove empty line between single-line declarations of same kind
@@ -145,22 +217,22 @@ dotnet_diagnostic.RCS0036.severity = none
 # Remove empty line between using directives with same root namespace
 dotnet_diagnostic.RCS0038.severity = none
 
-# Remove newline before base list
+# Remove new line before base list
 dotnet_diagnostic.RCS0039.severity = none
 
-# Remove newline between 'if' keyword and 'else' keyword
+# Remove new line between 'if' keyword and 'else' keyword
 dotnet_diagnostic.RCS0041.severity = none
 
-# Remove newlines from accessor list of auto-property
+# Remove new lines from accessor list of auto-property
 dotnet_diagnostic.RCS0042.severity = none
 
-# Remove newlines from accessor with single-line expression
+# Remove new lines from accessor with single-line expression
 dotnet_diagnostic.RCS0043.severity = none
 
-# Use carriage return + linefeed as newline
+# Use carriage return + linefeed as new line
 dotnet_diagnostic.RCS0044.severity = none
 
-# Use linefeed as newline
+# Use linefeed as new line
 dotnet_diagnostic.RCS0045.severity = none
 
 # Use spaces instead of tab
@@ -169,7 +241,7 @@ dotnet_diagnostic.RCS0046.severity = none
 # [deprecated] Wrap and indent each node in list
 dotnet_diagnostic.RCS0047.severity = none
 
-# Remove newlines from initializer with single-line expression
+# Remove new lines from initializer with single-line expression
 dotnet_diagnostic.RCS0048.severity = none
 
 # Add empty line after top comment
@@ -178,14 +250,14 @@ dotnet_diagnostic.RCS0049.severity = none
 # Add empty line before top declaration
 dotnet_diagnostic.RCS0050.severity = none
 
-# Add newline between closing brace and 'while' keyword (or vice versa)
+# Add/remove new line before 'while' in 'do' statement
 dotnet_diagnostic.RCS0051.severity = none
-# Remove newline between closing brace and 'while' keyword
+# Remove new line between closing brace and 'while' keyword
 roslynator.RCS0051.invert = false
 
-# Add newline before equals sign instead of after it (or vice versa)
+# Place new line after/before equals token
 dotnet_diagnostic.RCS0052.severity = none
-# Add newline after equals sign instead of before it
+# Add new line after equals sign instead of before it
 roslynator.RCS0052.invert = false
 
 # Fix formatting of a list
@@ -199,6 +271,12 @@ dotnet_diagnostic.RCS0055.severity = none
 
 # A line is too long
 dotnet_diagnostic.RCS0056.severity = none
+
+# Normalize whitespace at the beginning of a file
+dotnet_diagnostic.RCS0057.severity = none
+
+# Normalize whitespace at the end of a file
+dotnet_diagnostic.RCS0058.severity = none
 
 # Add braces (when expression spans over multiple lines)
 dotnet_diagnostic.RCS1001.severity = suggestion
@@ -236,7 +314,7 @@ dotnet_diagnostic.RCS1012.severity = none
 # Use predefined type
 dotnet_diagnostic.RCS1013.severity = none
 
-# Use explicitly typed array (or vice versa)
+# Use explicitly/implicitly typed array
 dotnet_diagnostic.RCS1014.severity = none
 # Use implicitly typed array
 roslynator.RCS1014.invert = false
@@ -246,16 +324,16 @@ roslynator.RCS1014.use_implicit_type_when_obvious = false
 # Use nameof operator
 dotnet_diagnostic.RCS1015.severity = suggestion
 
-# Convert block body to expression-body (or vice versa)
+# Use block body or expression body
 dotnet_diagnostic.RCS1016.severity = none
-# Convert expression-body to block body
+# Convert expression body to block body
 roslynator.RCS1016.invert = false
-# Convert expression-body to block body when declaration is multi-line
+# Convert expression body to block body when declaration is multi-line
 roslynator.RCS1016.use_block_body_when_declaration_is_multiline = false
-# Convert expression-body to block body when expression is multi-line
+# Convert expression body to block body when expression is multi-line
 roslynator.RCS1016.use_block_body_when_expression_is_multiline = false
 
-# Add accessibility modifiers (or vice versa)
+# Add/remove accessibility modifiers
 dotnet_diagnostic.RCS1018.severity = suggestion
 # Remove accessibility modifiers
 roslynator.RCS1018.invert = false
@@ -266,7 +344,7 @@ dotnet_diagnostic.RCS1019.severity = none
 # Simplify Nullable<T> to T?
 dotnet_diagnostic.RCS1020.severity = suggestion
 
-# Convert lambda expression body to expression-body
+# Convert lambda expression body to expression body
 dotnet_diagnostic.RCS1021.severity = suggestion
 
 # Remove unnecessary braces
@@ -313,11 +391,6 @@ dotnet_diagnostic.RCS1043.severity = silent
 # Remove original exception from throw statement
 dotnet_diagnostic.RCS1044.severity = warning
 
-# Rename private field to camel case with underscore
-dotnet_diagnostic.RCS1045.severity = none
-# Do not rename private static field to camel case with underscore
-roslynator.RCS1045.suppress_when_field_is_static = false
-
 # Asynchronous method name should end with 'Async'
 dotnet_diagnostic.RCS1046.severity = none
 
@@ -330,12 +403,12 @@ dotnet_diagnostic.RCS1048.severity = suggestion
 # Simplify boolean comparison
 dotnet_diagnostic.RCS1049.severity = suggestion
 
-# Add argument list to object creation expression (or vice versa)
+# Include/omit parentheses when creating new object
 dotnet_diagnostic.RCS1050.severity = none
-# Remove argument list from object creation expression
+# Remove parentheses when creating new object
 roslynator.RCS1050.invert = false
 
-# Parenthesize condition of conditional expression
+# Add/remove parentheses from condition in conditional operator
 dotnet_diagnostic.RCS1051.severity = none
 # Remove parentheses from condition of conditional expression (when condition is a single token)
 roslynator.RCS1051.do_not_parenthesize_single_token = false
@@ -400,7 +473,7 @@ dotnet_diagnostic.RCS1075.severity = warning
 # Optimize LINQ method call
 dotnet_diagnostic.RCS1077.severity = suggestion
 
-# Use "" instead of string.Empty (or vice versa)
+# Use "" or 'string.Empty'
 dotnet_diagnostic.RCS1078.severity = none
 # Use string.Empty instead of ""
 roslynator.RCS1078.invert = false
@@ -423,7 +496,7 @@ dotnet_diagnostic.RCS1085.severity = suggestion
 # Use --/++ operator instead of assignment
 dotnet_diagnostic.RCS1089.severity = suggestion
 
-# Add call to 'ConfigureAwait' (or vice versa)
+# Add/remove 'ConfigureAwait(false)' call
 dotnet_diagnostic.RCS1090.severity = none
 # Remove call to 'ConfigureAwait'
 roslynator.RCS1090.invert = false
@@ -437,7 +510,7 @@ dotnet_diagnostic.RCS1093.severity = suggestion
 # Declare using directive on top level
 dotnet_diagnostic.RCS1094.severity = none
 
-# Convert 'HasFlag' call to bitwise operation (or vice versa)
+# Use 'HasFlag' method or bitwise operator
 dotnet_diagnostic.RCS1096.severity = suggestion
 # Convert bitwise operation to 'HasFlag' call
 roslynator.RCS1096.invert = false
@@ -702,7 +775,7 @@ dotnet_diagnostic.RCS1205.severity = suggestion
 # Use conditional access instead of conditional expression
 dotnet_diagnostic.RCS1206.severity = suggestion
 
-# Convert anonymous function to method group (or vice versa)
+# Use anonymous function or method group
 dotnet_diagnostic.RCS1207.severity = none
 # Convert method group to anonymous function
 roslynator.RCS1207.invert = false
@@ -825,10 +898,16 @@ roslynator.RCS1246.suppress_when_expression_is_invocation = false
 # Fix documentation comment tag
 dotnet_diagnostic.RCS1247.severity = suggestion
 
-# Use pattern matching to check for null (or vice versa)
+# Normalize null check
 dotnet_diagnostic.RCS1248.severity = none
 # Use comparison instead of pattern matching to check for null
 roslynator.RCS1248.invert = false
+
+# Unnecessary null-forgiving operator
+dotnet_diagnostic.RCS1249.severity = suggestion
+
+# Use implicit/explicit object creation
+dotnet_diagnostic.RCS1250.severity = suggestion
 
 # Use pattern matching
 dotnet_diagnostic.RCS9001.severity = silent
@@ -907,7 +986,6 @@ roslynator.refactoring.convert_interpolated_string_to_string_literal.enabled = t
 roslynator.refactoring.convert_lambda_block_body_to_expression_body.enabled = true
 roslynator.refactoring.convert_lambda_expression_body_to_block_body.enabled = true
 roslynator.refactoring.convert_method_group_to_lambda.enabled = true
-roslynator.refactoring.convert_null_literal_to_default_expression.enabled = true
 roslynator.refactoring.convert_regular_string_literal_to_verbatim_string_literal.enabled = true
 roslynator.refactoring.convert_return_statement_to_if.enabled = true
 roslynator.refactoring.convert_statements_to_if_else.enabled = true
@@ -918,12 +996,12 @@ roslynator.refactoring.convert_verbatim_string_literal_to_regular_string_literal
 roslynator.refactoring.convert_verbatim_string_literal_to_regular_string_literals.enabled = true
 roslynator.refactoring.convert_while_to_do.enabled = true
 roslynator.refactoring.convert_while_to_for.enabled = true
+roslynator.refactoring.copy_argument.enabled = true
 roslynator.refactoring.copy_documentation_comment_from_base_member.enabled = true
-roslynator.refactoring.duplicate_argument.enabled = true
-roslynator.refactoring.duplicate_member_declaration.enabled = true
-roslynator.refactoring.duplicate_parameter.enabled = true
-roslynator.refactoring.duplicate_statement.enabled = true
-roslynator.refactoring.duplicate_switch_section.enabled = true
+roslynator.refactoring.copy_member_declaration.enabled = true
+roslynator.refactoring.copy_parameter.enabled = true
+roslynator.refactoring.copy_statement.enabled = true
+roslynator.refactoring.copy_switch_section.enabled = true
 roslynator.refactoring.expand_coalesce_expression.enabled = true
 roslynator.refactoring.expand_compound_assignment.enabled = true
 roslynator.refactoring.expand_event_declaration.enabled = true
@@ -1021,6 +1099,7 @@ roslynator.refactoring.replace_equality_operator_with_string_isnullorwhitespace.
 roslynator.refactoring.replace_explicit_cast_with_as_expression.enabled = true
 roslynator.refactoring.replace_interpolated_string_with_interpolation_expression.enabled = true
 roslynator.refactoring.replace_method_with_property.enabled = false
+roslynator.refactoring.replace_null_literal_with_default_expression.enabled = true
 roslynator.refactoring.replace_prefix_operator_with_postfix_operator.enabled = true
 roslynator.refactoring.replace_property_with_method.enabled = true
 roslynator.refactoring.reverse_for_statement.enabled = true
@@ -1233,6 +1312,7 @@ roslynator.compiler_diagnostic_fix.CS8070.enabled = true
 roslynator.compiler_diagnostic_fix.CS8112.enabled = true
 roslynator.compiler_diagnostic_fix.CS8139.enabled = true
 roslynator.compiler_diagnostic_fix.CS8340.enabled = true
+roslynator.compiler_diagnostic_fix.CS8403.enabled = true
 roslynator.compiler_diagnostic_fix.CS8618.enabled = true
 roslynator.compiler_diagnostic_fix.CS8625.enabled = true
 roslynator.compiler_diagnostic_fix.CS8632.enabled = true

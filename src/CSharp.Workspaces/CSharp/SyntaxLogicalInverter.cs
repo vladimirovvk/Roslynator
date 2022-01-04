@@ -18,9 +18,9 @@ namespace Roslynator.CSharp
     /// </summary>
     public class SyntaxLogicalInverter
     {
-        public static SyntaxLogicalInverter Default { get; } = new SyntaxLogicalInverter(SyntaxLogicalInverterOptions.Default);
+        public static SyntaxLogicalInverter Default { get; } = new(SyntaxLogicalInverterOptions.Default);
 
-        internal static SyntaxLogicalInverter CSharp8 { get; } = new SyntaxLogicalInverter(SyntaxLogicalInverterOptions.CSharp8);
+        internal static SyntaxLogicalInverter CSharp8 { get; } = new(SyntaxLogicalInverterOptions.CSharp8);
 
         public SyntaxLogicalInverter(SyntaxLogicalInverterOptions options)
         {
@@ -452,6 +452,18 @@ namespace Roslynator.CSharp
                 pattern = notPattern.Pattern;
 
                 return isPattern.WithPattern(pattern.PrependToLeadingTrivia(notPattern.GetLeadingTrivia()));
+            }
+            else if (pattern.IsKind(SyntaxKind.DeclarationPattern))
+            {
+                if (Options.UseNotPattern)
+                {
+                    return IsPatternExpression(
+                        isPattern.Expression,
+                        isPattern.IsKeyword.WithTrailingTrivia(Space),
+                        UnaryPattern(
+                            Token(SyntaxKind.NotKeyword).WithTrailingTrivia(isPattern.IsKeyword.TrailingTrivia),
+                            isPattern.Pattern));
+                }
             }
             else if (pattern is ConstantPatternSyntax constantPattern)
             {

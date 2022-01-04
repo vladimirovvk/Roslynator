@@ -12,6 +12,8 @@ namespace Roslynator.Formatting.CSharp.Tests
     {
         public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.LineIsTooLong;
 
+        public override CSharpTestOptions Options => base.Options.AddConfigOption(ConfigOptionKeys.MaxLineLength, "125");
+
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.LineIsTooLong)]
         public async Task Test_ExpressionBody_AddNewLineBeforeArrow()
         {
@@ -45,9 +47,7 @@ class C
     string M(object pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp) =>
         null;
 }
-", options: Options
-                .EnableDiagnostic(DiagnosticRules.AddNewLineBeforeExpressionBodyArrowInsteadOfAfterItOrViceVersa)
-                .EnableConfigOption(AnalyzerOptions.AddNewLineAfterExpressionBodyArrowInsteadOfBeforeIt.OptionKey));
+", options: Options.AddConfigOption(ConfigOptionKeys.ArrowTokenNewLine, "after"));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.LineIsTooLong)]
@@ -72,9 +72,7 @@ class C
     {
     }
 }
-", options: Options
-                .EnableDiagnostic(DiagnosticRules.AddNewLineBeforeExpressionBodyArrowInsteadOfAfterItOrViceVersa)
-                .EnableConfigOption(AnalyzerOptions.AddNewLineAfterExpressionBodyArrowInsteadOfBeforeIt.OptionKey));
+", options: Options.AddConfigOption(ConfigOptionKeys.ArrowTokenNewLine, "after"));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.LineIsTooLong)]
@@ -968,9 +966,7 @@ class C
 {
 [|    string Fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo() => null;|]
 }
-", options: Options
-                .EnableDiagnostic(DiagnosticRules.AddNewLineBeforeExpressionBodyArrowInsteadOfAfterItOrViceVersa)
-                .EnableConfigOption(AnalyzerOptions.AddNewLineAfterExpressionBodyArrowInsteadOfBeforeIt.OptionKey));
+", options: Options.AddConfigOption(ConfigOptionKeys.ArrowTokenNewLine, "after"));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.LineIsTooLong)]

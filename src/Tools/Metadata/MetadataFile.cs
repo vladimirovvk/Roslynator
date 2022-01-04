@@ -14,7 +14,7 @@ namespace Roslynator.Metadata
 {
     public static class MetadataFile
     {
-        private static readonly Regex _lfWithoutCr = new Regex(@"(?<!\r)\n");
+        private static readonly Regex _lfWithoutCr = new(@"(?<!\r)\n");
 
         private static string NormalizeNewLine(this string value)
         {
@@ -43,7 +43,8 @@ namespace Roslynator.Metadata
                 IEnumerable<SampleMetadata> samples = LoadSamples(element)?.Select(f => f.WithBefore(f.Before.Replace("[|Id|]", id)));
                 IEnumerable<LinkMetadata> links = LoadLinks(element);
                 IEnumerable<AnalyzerOptionMetadata> options = LoadOptions(element, id);
-                IEnumerable<string> globalOptions = LoadGlobalOptions(element);
+                IEnumerable<ConfigOptionKeyMetadata> configOptions = LoadConfigOptions(element);
+                string[] tags = (element.Element("Tags")?.Value ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
                 yield return new AnalyzerMetadata(
                     id: id,
@@ -61,8 +62,9 @@ namespace Roslynator.Metadata
                     remarks: remarks,
                     samples: samples,
                     links: links,
-                    globalOptions: globalOptions,
+                    configOptions: configOptions,
                     options: options,
+                    tags: tags,
                     kind: AnalyzerOptionKind.None,
                     parent: null);
             }
@@ -133,12 +135,12 @@ namespace Roslynator.Metadata
                 .Select(f => LoadOption(f, parentId));
         }
 
-        private static IEnumerable<string> LoadGlobalOptions(XElement element)
+        private static IEnumerable<ConfigOptionKeyMetadata> LoadConfigOptions(XElement element)
         {
             return element
-                .Element("GlobalOptions")?
+                .Element("ConfigOptions")?
                 .Elements("Option")
-                .Select(f => f.Attribute("Key").Value);
+                .Select(f => new ConfigOptionKeyMetadata("roslynator." + f.Attribute("Key").Value, bool.Parse(f.Attribute("IsRequired")?.Value ?? bool.FalseString)));
         }
 
         private static AnalyzerOptionMetadata LoadOption(XElement element, string parentId)
@@ -156,6 +158,12 @@ namespace Roslynator.Metadata
             string summary = element.Element("Summary")?.Value.NormalizeNewLine();
             IEnumerable<SampleMetadata> samples = LoadSamples(element)?.Select(f => f.WithBefore(f.Before.Replace("[|Id|]", parentId)));
             bool isObsolete = element.AttributeValueAsBooleanOrDefault("IsObsolete");
+            string[] tags = (element.Element("Tags")?.Value ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            string newOptionKey = element.Element("NewOptionKey")?.Value;
+
+            if (newOptionKey?.StartsWith("roslynator.") == false)
+                newOptionKey = "roslynator." + newOptionKey;
 
             return new AnalyzerOptionMetadata(
                 identifier: identifier,
@@ -163,6 +171,7 @@ namespace Roslynator.Metadata
                 parentId: parentId,
                 optionKey: optionKey,
                 optionValue: optionValue,
+                newOptionKey: newOptionKey,
                 kind: kind,
                 title: title,
                 isEnabledByDefault: isEnabledByDefault,
@@ -170,7 +179,8 @@ namespace Roslynator.Metadata
                 minLanguageVersion: minLanguageVersion,
                 summary: summary,
                 samples: samples,
-                isObsolete: isObsolete);
+                isObsolete: isObsolete,
+                tags: tags);
         }
 
         public static IEnumerable<CodeFixMetadata> ReadCodeFixes(string filePath)
@@ -204,6 +214,26 @@ namespace Roslynator.Metadata
                     element.Attribute("Message").Value,
                     element.Attribute("Severity").Value,
                     element.Attribute("HelpUrl").Value);
+            }
+        }
+
+        public static IEnumerable<ConfigOptionMetadata> ReadOptions(string filePath)
+        {
+            XDocument doc = XDocument.Load(filePath);
+
+            foreach (XElement element in doc.Root.Elements("Option"))
+            {
+                string id = element.Attribute("Id").Value;
+
+                string key = (element.Element("Key")?.Value)
+                    ?? string.Join("_", Regex.Split(id, @"(?<=\p{Ll})(?=\p{Lu})").Select(f => f.ToLowerInvariant()));
+
+                yield return new ConfigOptionMetadata(
+                    id,
+                    "roslynator." + key,
+                    element.Element("DefaultValue")?.Value,
+                    element.Element("ValuePlaceholder").Value,
+                    element.Element("Description").Value);
             }
         }
 

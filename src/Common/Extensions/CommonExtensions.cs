@@ -4,85 +4,60 @@ using System;
 using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Roslynator.Configuration;
 
 namespace Roslynator
 {
     internal static class CommonExtensions
     {
         public static bool IsEnabled(
-            this AnalyzerOptionDescriptor analyzerOption,
-            SyntaxNodeAnalysisContext context)
+            this SyntaxNodeAnalysisContext context,
+            ConfigOptionDescriptor option,
+            bool? defaultValue = null)
         {
-            return IsEnabled(
-                analyzerOption,
-                context.Node.SyntaxTree,
-                context.Options);
-        }
-
-        public static bool? IsEnabled(
-            this AnalyzerOptionDescriptor analyzerOption,
-            SyntaxNodeAnalysisContext context,
-            bool checkParent)
-        {
-            return IsEnabled(
-                analyzerOption,
-                context.Node.SyntaxTree,
-                context.Compilation.Options,
-                context.Options,
-                checkParent);
+            return IsEnabled(context.Options, option, context.Node.SyntaxTree, defaultValue);
         }
 
         public static bool IsEnabled(
-            this AnalyzerOptionDescriptor analyzerOption,
-            SymbolAnalysisContext context)
-        {
-            return IsEnabled(
-                analyzerOption,
-                context.Symbol.Locations[0].SourceTree,
-                context.Options);
-        }
-
-        public static bool? IsEnabled(
-            this AnalyzerOptionDescriptor analyzerOption,
+            this AnalyzerOptions analyzerOptions,
+            ConfigOptionDescriptor option,
             SyntaxTree syntaxTree,
-            CompilationOptions compilationOptions,
-            AnalyzerOptions analyzerOptions,
-            bool checkParent)
-        {
-            if (checkParent && !analyzerOption.Descriptor.IsEffective(syntaxTree, compilationOptions))
-                return null;
-
-            return IsEnabled(analyzerOption, syntaxTree, analyzerOptions);
-        }
-
-        public static bool IsEnabled(
-            this AnalyzerOptionDescriptor analyzerOption,
-            SyntaxTree syntaxTree,
-            AnalyzerOptions analyzerOptions)
+            bool? defaultValue = null)
         {
             if (analyzerOptions
                 .AnalyzerConfigOptionsProvider
                 .GetOptions(syntaxTree)
-                .TryGetValue(analyzerOption.OptionKey, out string value)
+                .TryGetValue(option.Key, out string value)
                 && bool.TryParse(value, out bool result))
             {
                 return result;
             }
 
-            return false;
+            return defaultValue
+                ?? CodeAnalysisConfig.Instance.GetOptionAsBool(option.Key)
+                ?? option.DefaultValueAsBool
+                ?? false;
         }
 
-        public static bool TryGetInt32Value(
-            this OptionDescriptor option,
+        public static bool TryGetOptionAsBool(
+            this SyntaxNodeAnalysisContext context,
+            ConfigOptionDescriptor option,
+            out bool result)
+        {
+            return TryGetOptionAsBool(context.Options, option, context.Node.SyntaxTree, out result);
+        }
+
+        public static bool TryGetOptionAsBool(
+            this AnalyzerOptions analyzerOptions,
+            ConfigOptionDescriptor option,
             SyntaxTree syntaxTree,
-            AnalyzerOptions analyzerOptions,
-            out int result)
+            out bool result)
         {
             if (analyzerOptions
                 .AnalyzerConfigOptionsProvider
                 .GetOptions(syntaxTree)
-                .TryGetValue(option.Key, out string textValue)
-                && int.TryParse(textValue, NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.CurrentCulture, out int value))
+                .TryGetValue(option.Key, out string rawValue)
+                && bool.TryParse(rawValue, out bool value))
             {
                 result = value;
                 return true;
@@ -92,15 +67,70 @@ namespace Roslynator
             return false;
         }
 
-        public static int GetInt32Value(
-            this OptionDescriptor option,
+        public static bool TryGetOptionAsInt(
+            this AnalyzerOptions analyzerOptions,
+            ConfigOptionDescriptor option,
             SyntaxTree syntaxTree,
-            AnalyzerOptions analyzerOptions,
+            out int result)
+        {
+            if (analyzerOptions
+                .AnalyzerConfigOptionsProvider
+                .GetOptions(syntaxTree)
+                .TryGetValue(option.Key, out string rawValue)
+                && int.TryParse(rawValue, NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.CurrentCulture, out int value))
+            {
+                result = value;
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+        public static int GetOptionAsInt(
+            this AnalyzerOptions analyzerOptions,
+            ConfigOptionDescriptor option,
+            SyntaxTree syntaxTree,
             int defaultValue)
         {
-            return (TryGetInt32Value(option, syntaxTree, analyzerOptions, out int result))
+            return (TryGetOptionAsInt(analyzerOptions, option, syntaxTree, out int result))
                 ? result
                 : defaultValue;
+        }
+
+        internal static bool IsEnabled(this AnalyzerConfigOptions analyzerConfigOptions, ConfigOptionDescriptor option)
+        {
+            return analyzerConfigOptions.TryGetValue(option.Key, out string rawValue)
+                && bool.TryParse(rawValue, out bool value)
+                && value;
+        }
+
+        internal static bool ContainsKey(this AnalyzerConfigOptions analyzerConfigOptions, ConfigOptionDescriptor option)
+        {
+            return analyzerConfigOptions.TryGetValue(option.Key, out string _);
+        }
+
+        internal static bool ContainsKey(this AnalyzerConfigOptions analyzerConfigOptions, string key)
+        {
+            return analyzerConfigOptions.TryGetValue(key, out string _);
+        }
+
+        internal static bool TryGetValueAsBool(this AnalyzerConfigOptions analyzerConfigOptions, ConfigOptionDescriptor option, out bool value)
+        {
+            value = false;
+
+            return analyzerConfigOptions.TryGetValue(option.Key, out string rawValue)
+                && bool.TryParse(rawValue, out value);
+        }
+
+        internal static AnalyzerConfigOptions GetConfigOptions(this SyntaxNodeAnalysisContext context)
+        {
+            return context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Node.SyntaxTree);
+        }
+
+        internal static AnalyzerConfigOptions GetConfigOptions(this SyntaxTreeAnalysisContext context)
+        {
+            return context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Tree);
         }
     }
 }
