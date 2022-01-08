@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Linq;
@@ -25,7 +25,7 @@ namespace Roslynator.CSharp.Refactorings.ReplaceMethodWithProperty
         public static async Task<Solution> RefactorAsync(
             Document document,
             MethodDeclarationSyntax methodDeclaration,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             Solution solution = document.Solution();
 

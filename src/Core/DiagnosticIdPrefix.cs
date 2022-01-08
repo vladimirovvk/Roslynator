@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -39,6 +39,10 @@ namespace Roslynator
                         {
                             return BC;
                         }
+                        else if (HasPrefix(BL))
+                        {
+                            return BL;
+                        }
 
                         break;
                     }
@@ -74,6 +78,10 @@ namespace Roslynator
                         {
                             return IDE;
                         }
+                        else if (HasPrefix(IL))
+                        {
+                            return IL;
+                        }
 
                         break;
                     }
@@ -82,6 +90,10 @@ namespace Roslynator
                         if (HasPrefix(RCS))
                         {
                             return RCS;
+                        }
+                        else if (HasPrefix(ROS))
+                        {
+                            return ROS;
                         }
                         else if (HasPrefix(RECS))
                         {
@@ -103,6 +115,10 @@ namespace Roslynator
                         if (HasPrefix(SA))
                         {
                             return SA;
+                        }
+                        else if (HasPrefix(SX))
+                        {
+                            return SX;
                         }
 
                         break;

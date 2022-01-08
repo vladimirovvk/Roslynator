@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,14 +14,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(EmptyStatementCodeFixProvider))]
     [Shared]
-    public class EmptyStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class EmptyStatementCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.RemoveEmptyStatement); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -30,7 +30,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Remove empty statement",
-                cancellationToken => RemoveEmptyStatementRefactoring.RefactorAsync(context.Document, emptyStatement, cancellationToken),
+                ct => RemoveEmptyStatementRefactoring.RefactorAsync(context.Document, emptyStatement, ct),
                 GetEquivalenceKey(DiagnosticIdentifiers.RemoveEmptyStatement));
 
             context.RegisterCodeFix(codeAction, context.Diagnostics);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -17,18 +17,18 @@ namespace Roslynator.CSharp.Analysis
             ExpressionSyntax right,
             bool fadeOut)
         {
-            if (context.IsAnalyzerSuppressed(DiagnosticDescriptors.SimplifyBooleanComparison))
+            if (!DiagnosticRules.SimplifyBooleanComparison.IsEffective(context))
                 return;
 
             if (binaryExpression.SpanContainsDirectives())
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.SimplifyBooleanComparison, binaryExpression);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.SimplifyBooleanComparison, binaryExpression);
 
             if (!fadeOut)
                 return;
 
-            DiagnosticDescriptor fadeOutDescriptor = DiagnosticDescriptors.SimplifyBooleanComparisonFadeOut;
+            DiagnosticDescriptor fadeOutDescriptor = DiagnosticRules.SimplifyBooleanComparisonFadeOut;
 
             DiagnosticHelpers.ReportToken(context, fadeOutDescriptor, binaryExpression.OperatorToken);
 

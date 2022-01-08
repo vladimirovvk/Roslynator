@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +17,8 @@ namespace Roslynator.CodeGeneration.CSharp
         {
             return CompilationUnit(
                 UsingDirectives("System"),
-                NamespaceDeclaration("Roslynator.CSharp.Refactorings",
+                NamespaceDeclaration(
+                    "Roslynator.CSharp.Refactorings",
                     ClassDeclaration(
                         Modifiers.Public_Static_Partial(),
                         "RefactoringIdentifiers",

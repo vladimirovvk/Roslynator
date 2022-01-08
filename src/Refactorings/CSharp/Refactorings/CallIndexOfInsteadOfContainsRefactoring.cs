@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,8 +22,8 @@ namespace Roslynator.CSharp.Refactorings
             {
                 context.RegisterRefactoring(
                     "Call 'IndexOf' instead of 'Contains'",
-                    cancellationToken => RefactorAsync(context.Document, invocation, cancellationToken),
-                    RefactoringIdentifiers.CallIndexOfInsteadOfContains);
+                    ct => RefactorAsync(context.Document, invocation, ct),
+                    RefactoringDescriptors.CallIndexOfInsteadOfContains);
             }
         }
 

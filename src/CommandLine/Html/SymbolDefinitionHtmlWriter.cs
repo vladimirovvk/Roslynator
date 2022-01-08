@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -26,8 +26,9 @@ namespace Roslynator.Documentation.Html
             SymbolFilterOptions filter = null,
             DefinitionListFormat format = null,
             SymbolDocumentationProvider documentationProvider = null,
+            INamedTypeSymbol hierarchyRoot = null,
             SourceReferenceProvider sourceReferenceProvider = null,
-            DocumentationDisplayMode documentationDisplayMode = DocumentationDisplayMode.ToolTip) : base(filter, format, documentationProvider)
+            DocumentationDisplayMode documentationDisplayMode = DocumentationDisplayMode.ToolTip) : base(filter, format, documentationProvider, hierarchyRoot)
         {
             _writer = writer;
             SourceReferenceProvider = sourceReferenceProvider;
@@ -42,7 +43,7 @@ namespace Roslynator.Documentation.Html
 
         public DocumentationDisplayMode DocumentationDisplayMode { get; }
 
-        public override void WriteDocument(IEnumerable<IAssemblySymbol> assemblies, CancellationToken cancellationToken = default(CancellationToken))
+        public override void WriteDocument(IEnumerable<IAssemblySymbol> assemblies, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -359,7 +360,7 @@ namespace Roslynator.Documentation.Html
         public override void WriteAttributeSeparator(ISymbol symbol)
         {
             if (symbol.Kind == SymbolKind.Assembly
-                || (Format.Includes(SymbolDefinitionFormatOptions.Attributes) && SupportsMultilineDefinitions))
+                || (Format.Includes(WrapListOptions.Attributes) && SupportsMultilineDefinitions))
             {
                 Write("]");
                 WriteLine();
@@ -426,7 +427,7 @@ namespace Roslynator.Documentation.Html
             SymbolDisplayFormat format = null,
             bool removeAttributeSuffix = false)
         {
-            bool shouldWriteContainingNamespace = false;
+            bool shouldWriteContainingNamespace;
 
             if (symbol.Kind == SymbolKind.Field
                 && symbol.ContainingType.TypeKind == TypeKind.Enum)
@@ -536,9 +537,9 @@ namespace Roslynator.Documentation.Html
             WriteString(DocumentationUtility.CreateLocalLink(symbol));
         }
 
-        internal override void WriteTypeHierarchyItem(TypeHierarchyItem item, CancellationToken cancellationToken = default(CancellationToken))
+        internal override void WriteTypeHierarchyItem(TypeHierarchyItem item, CancellationToken cancellationToken = default)
         {
-            (_typeHierarchy ?? (_typeHierarchy = new List<TypeHierarchyItem>())).Add(item);
+            (_typeHierarchy ??= new List<TypeHierarchyItem>()).Add(item);
             base.WriteTypeHierarchyItem(item, cancellationToken);
             _typeHierarchy.RemoveAt(_typeHierarchy.Count - 1);
         }
@@ -618,7 +619,7 @@ namespace Roslynator.Documentation.Html
 
             foreach (string elementText in elementsText)
             {
-                XElement element = XElement.Parse(elementText, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
+                var element = XElement.Parse(elementText, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
 
                 Dictionary<int, List<XElement>> elementsByLine = null;
 
@@ -764,7 +765,7 @@ namespace Roslynator.Documentation.Html
                 WriteDocumentationCommentToolTip(summaryElement);
             }
 
-            bool hasExceptions = false;
+            var hasExceptions = false;
 
             using (IEnumerator<XElement> en = xmlDocumentation.Elements(WellKnownXmlTags.Exception).GetEnumerator())
             {
@@ -802,8 +803,8 @@ namespace Roslynator.Documentation.Html
                                 Write(TextUtility.RemovePrefixFromDocumentationCommentId(commentId));
                             }
                         }
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
                 }
             }
 
@@ -820,10 +821,9 @@ namespace Roslynator.Documentation.Html
             {
                 if (en.MoveNext())
                 {
-                    XNode node = null;
-
-                    bool isFirst = true;
-                    bool isLast = false;
+                    XNode node;
+                    var isFirst = true;
+                    bool isLast;
 
                     do
                     {
@@ -903,8 +903,8 @@ namespace Roslynator.Documentation.Html
                         }
 
                         isFirst = false;
-                    }
-                    while (!isLast);
+
+                    } while (!isLast);
                 }
             }
         }

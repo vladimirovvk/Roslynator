@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Text;
 using System.Threading;
@@ -19,6 +19,12 @@ namespace Roslynator.CSharp.Refactorings
 
             int i = 0;
             SyntaxList<InterpolatedStringContentSyntax> contents = interpolatedString.Contents;
+
+            if (contents.Count == 0)
+            {
+                return span.Start == interpolatedString.StringStartToken.Span.End
+                    && span.End == interpolatedString.StringEndToken.SpanStart;
+            }
 
             foreach (InterpolatedStringContentSyntax content in contents)
             {
@@ -53,7 +59,7 @@ namespace Roslynator.CSharp.Refactorings
             InterpolatedStringExpressionSyntax interpolatedString,
             TextSpan span,
             bool addNameOf = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             string s = interpolatedString.ToString();
 
@@ -73,7 +79,9 @@ namespace Roslynator.CSharp.Refactorings
                     isVerbatim: interpolatedString.IsVerbatim(),
                     isInterpolatedText: true);
 
-                sb.Append(CSharpFactory.NameOfExpression(identifier));
+                sb.Append("nameof(");
+                sb.Append(identifier);
+                sb.Append(")");
             }
 
             int closeBracePosition = sb.Length;

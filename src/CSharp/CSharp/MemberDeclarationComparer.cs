@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace Roslynator.CSharp
 {
     internal abstract class MemberDeclarationComparer : IComparer<MemberDeclarationSyntax>
     {
-        internal const int MaxRank = 18;
+        internal const int MaxRank = 19;
 
         internal const int ConstRank = 0;
         internal const int FieldRank = 1;
@@ -52,7 +52,9 @@ namespace Roslynator.CSharp
                 case SyntaxKind.EnumDeclaration:
                 case SyntaxKind.InterfaceDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
                 case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.RecordDeclaration:
                 case SyntaxKind.NamespaceDeclaration:
                     return true;
                 case SyntaxKind.DestructorDeclaration:
@@ -130,6 +132,9 @@ namespace Roslynator.CSharp
                         return ((StructDeclarationSyntax)member).Identifier.ValueText;
                     case SyntaxKind.ClassDeclaration:
                         return ((ClassDeclarationSyntax)member).Identifier.ValueText;
+                    case SyntaxKind.RecordDeclaration:
+                    case SyntaxKind.RecordStructDeclaration:
+                        return ((RecordDeclarationSyntax)member).Identifier.ValueText;
                     case SyntaxKind.NamespaceDeclaration:
                         return ((NamespaceDeclarationSyntax)member).Name.ToString();
                     case SyntaxKind.DestructorDeclaration:

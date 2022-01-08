@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -16,11 +16,11 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SynchronizeAccessibilityCodeFixProvider))]
     [Shared]
-    public class SynchronizeAccessibilityCodeFixProvider : BaseCodeFixProvider
+    public sealed class SynchronizeAccessibilityCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.PartialDeclarationsHaveConfictingAccessibilityModifiers); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0262_PartialDeclarationsHaveConflictingAccessibilityModifiers); }
         }
 
         public override FixAllProvider GetFixAllProvider()
@@ -28,14 +28,14 @@ namespace Roslynator.CSharp.CodeFixes
             return null;
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.SynchronizeAccessibility))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.SynchronizeAccessibility, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out MemberDeclarationSyntax memberDeclaration))
                 return;
@@ -56,8 +56,8 @@ namespace Roslynator.CSharp.CodeFixes
                 {
                     CodeAction codeAction = CodeAction.Create(
                         $"Change accessibility to '{SyntaxFacts.GetText(accessibility)}'",
-                        cancellationToken => ChangeAccessibilityRefactoring.RefactorAsync(context.Solution(), memberDeclarations, accessibility, cancellationToken),
-                        GetEquivalenceKey(CompilerDiagnosticIdentifiers.PartialDeclarationsHaveConfictingAccessibilityModifiers, accessibility.ToString()));
+                        ct => ChangeAccessibilityRefactoring.RefactorAsync(context.Solution(), memberDeclarations, accessibility, ct),
+                        GetEquivalenceKey(CompilerDiagnosticIdentifiers.CS0262_PartialDeclarationsHaveConflictingAccessibilityModifiers, accessibility.ToString()));
 
                     context.RegisterCodeFix(codeAction, diagnostic);
                 }

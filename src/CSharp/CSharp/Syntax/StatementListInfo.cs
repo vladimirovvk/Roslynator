@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -246,7 +246,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public StatementSyntax First()
         {
-            return Statements.First();
+            return Statements[0];
         }
 
         /// <summary>
@@ -258,7 +258,7 @@ namespace Roslynator.CSharp.Syntax
         }
 
         /// <summary>
-        /// Searches for a statement that matches the predicate and returns returns zero-based index of the first occurrence in the list.
+        /// Searches for a statement that matches the predicate and returns zero-based index of the first occurrence in the list.
         /// </summary>
         /// <param name="predicate"></param>
         public int IndexOf(Func<StatementSyntax, bool> predicate)
@@ -312,7 +312,7 @@ namespace Roslynator.CSharp.Syntax
         }
 
         /// <summary>
-        /// Searches for a statement that matches the predicate and returns returns zero-based index of the last occurrence in the list.
+        /// Searches for a statement that matches the predicate and returns zero-based index of the last occurrence in the list.
         /// </summary>
         /// <param name="predicate"></param>
         public int LastIndexOf(Func<StatementSyntax, bool> predicate)

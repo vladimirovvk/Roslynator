@@ -1,14 +1,17 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 
 namespace Roslynator.Metadata
 {
     public class AnalyzerMetadata
     {
+        private IReadOnlyList<AnalyzerMetadata> _optionAnalyzers;
+
         public AnalyzerMetadata(
             string id,
             string identifier,
@@ -25,7 +28,11 @@ namespace Roslynator.Metadata
             string remarks,
             IEnumerable<SampleMetadata> samples,
             IEnumerable<LinkMetadata> links,
-            bool isDevelopment = false)
+            IEnumerable<ConfigOptionKeyMetadata> configOptions,
+            IEnumerable<AnalyzerOptionMetadata> options,
+            IEnumerable<string> tags,
+            AnalyzerOptionKind kind,
+            AnalyzerMetadata parent)
         {
             Id = id;
             Identifier = identifier;
@@ -40,9 +47,16 @@ namespace Roslynator.Metadata
             MinLanguageVersion = minLanguageVersion;
             Summary = summary;
             Remarks = remarks;
+            Tags = new ReadOnlyCollection<string>(tags?.ToArray() ?? Array.Empty<string>());
+            ConfigOptions = new ReadOnlyCollection<ConfigOptionKeyMetadata>(configOptions?.ToArray() ?? Array.Empty<ConfigOptionKeyMetadata>());
             Samples = new ReadOnlyCollection<SampleMetadata>(samples?.ToArray() ?? Array.Empty<SampleMetadata>());
             Links = new ReadOnlyCollection<LinkMetadata>(links?.ToArray() ?? Array.Empty<LinkMetadata>());
-            IsDevelopment = isDevelopment;
+            Options = new ReadOnlyCollection<AnalyzerOptionMetadata>(options?.ToArray() ?? Array.Empty<AnalyzerOptionMetadata>());
+            Kind = kind;
+            Parent = parent;
+
+            if (Parent != null)
+                _optionAnalyzers = new ReadOnlyCollection<AnalyzerMetadata>(new List<AnalyzerMetadata>());
         }
 
         public string Id { get; }
@@ -71,10 +85,34 @@ namespace Roslynator.Metadata
 
         public string Remarks { get; }
 
+        public IReadOnlyList<string> Tags { get; }
+
+        public IReadOnlyList<ConfigOptionKeyMetadata> ConfigOptions { get; }
+
         public IReadOnlyList<SampleMetadata> Samples { get; }
 
         public IReadOnlyList<LinkMetadata> Links { get; }
 
-        public bool IsDevelopment { get; }
+        public IReadOnlyList<AnalyzerOptionMetadata> Options { get; }
+
+        public IReadOnlyList<AnalyzerMetadata> OptionAnalyzers
+        {
+            get
+            {
+                if (_optionAnalyzers == null)
+                {
+                    Interlocked.CompareExchange(
+                        ref _optionAnalyzers,
+                        new ReadOnlyCollection<AnalyzerMetadata>(Options.Select(f => f.CreateAnalyzerMetadata(this)).ToList()),
+                        null);
+                }
+
+                return _optionAnalyzers;
+            }
+        }
+
+        public AnalyzerOptionKind Kind { get; }
+
+        public AnalyzerMetadata Parent { get; }
     }
 }

@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1032RemoveRedundantParenthesesTests : AbstractCSharpFixVerifier
+    public class RCS1032RemoveRedundantParenthesesTests : AbstractCSharpDiagnosticVerifier<RemoveRedundantParenthesesAnalyzer, ParenthesizedExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.RemoveRedundantParentheses;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new RemoveRedundantParenthesesAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new RemoveRedundantParenthesesCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.RemoveRedundantParentheses;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
         public async Task Test_Argument()
@@ -25,7 +20,7 @@ class C
 {
     void M(object x)
     {
-        M([|(|]x));
+        M([|(|]x{|a:)|});
     }
 }
 ", @"
@@ -271,7 +266,7 @@ class C
         [InlineData("[|(|]i) |= [|(|]0);", "i |= 0;")]
         [InlineData("[|(|]i) <<= [|(|]0);", "i <<= 0;")]
         [InlineData("[|(|]i) >>= [|(|]0);", "i >>= 0;")]
-        public async Task Test_Statement(string fromData, string toData)
+        public async Task Test_Statement(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 using System;
@@ -286,7 +281,7 @@ class C
         [||]
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
@@ -294,7 +289,7 @@ class C
         [InlineData(@"f = ![|(|]s.StartsWith(""""));", @"f = !s.StartsWith("""");")]
         [InlineData("f = ![|(|]foo.Value);", "f = !foo.Value;")]
         [InlineData("f = ![|(|]foo[0]);", "f = !foo[0];")]
-        public async Task Test_LogicalNot(string fromData, string toData)
+        public async Task Test_LogicalNot(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 class Foo
@@ -315,13 +310,13 @@ class Foo
         get { return i == 0; }
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
         [InlineData("[|(|]f) == [|(|]true)", "f == true")]
         [InlineData("[|(|]f) != [|(|]true)", "f != true")]
-        public async Task Test_EqualsNotEquals(string fromData, string toData)
+        public async Task Test_EqualsNotEquals(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 class Foo
@@ -333,7 +328,7 @@ class Foo
         if ([||]) { }
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
@@ -341,7 +336,7 @@ class Foo
         [InlineData("[|(|]i) >= [|(|]0)", "i >= 0")]
         [InlineData("[|(|]i) < [|(|]0)", "i < 0")]
         [InlineData("[|(|]i) <= [|(|]0)", "i <= 0")]
-        public async Task Test_GreaterThanLessThan(string fromData, string toData)
+        public async Task Test_GreaterThanLessThan(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 class Foo
@@ -353,7 +348,7 @@ class Foo
         if ([||]) { }
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
@@ -369,7 +364,7 @@ class Foo
         [InlineData("[|(|]i) | [|(|]0)", "i | 0")]
         [InlineData("[|(|]f) && [|(|]f2)", "f && f2")]
         [InlineData("[|(|]f) || [|(|]f2)", "f || f2")]
-        public async Task Test_BinaryExpression(string fromData, string toData)
+        public async Task Test_BinaryExpression(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 class Foo
@@ -383,7 +378,7 @@ class Foo
         var x = [||];
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
@@ -399,7 +394,7 @@ class Foo
         [InlineData("[|(|]i | 0) | i", "i | 0 | i")]
         [InlineData("[|(|]f && f2) && f", "f && f2 && f")]
         [InlineData("[|(|]f || f2) || f", "f || f2 || f")]
-        public async Task Test_BinaryExpressionChain(string fromData, string toData)
+        public async Task Test_BinaryExpressionChain(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 class Foo
@@ -413,7 +408,35 @@ class Foo
         var x = [||];
     }
 }
-", fromData, toData);
+", source, expected);
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
+        public async Task TestDiagnostic_LambdaInArgument()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Collections.Generic;
+using System.Linq;
+
+class C
+{
+    void M()
+    {
+        var items = new List<string>().Select(f => [|(|]f));
+    }
+}
+", @"
+using System.Collections.Generic;
+using System.Linq;
+
+class C
+{
+    void M()
+    {
+        var items = new List<string>().Select(f => f);
+    }
+}
+");
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
@@ -509,6 +532,60 @@ class C
 
         f = f && (true && f);
         f = f || (true || f);
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
+        public async Task TestNoDiagnostic_AliasQualifiedNameInInterpolatedString()
+        {
+            await VerifyNoDiagnosticAsync(@"
+namespace N
+{
+    class C
+    {
+        static string M1() => $""{(global::N.C.M1())}"";
+        static string M2() => $""{(global::N.C.P)}"";
+        static string M3() => $""{(global::N.C.I.IM())}"";
+        static string M4() => $""{(global::N.C.I.IP)}"";
+        static string M5() => $""{(global::N.C.I[0])}"";
+        static string M6() => $""{(global::N.C.I?.IM())}"";
+        static string M7() => $""{(global::N.C.I?.IP)}"";
+        static string M8() => $""{(global::N.C.I?[0])}"";
+
+        public static C I { get; } = new C();
+
+        string IM() => null;
+
+        public static string P { get; }
+
+        public string IP { get; }
+
+        public string this[int index] => null;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantParentheses)]
+        public async Task TestNoDiagnostic_SwitchExpressionInsideAwaitExpression()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+using System.Threading.Tasks;
+
+class C
+{
+    async Task<string> M()
+    {
+        string action = null;
+
+        return await (action switch
+        {
+            """" => Task.FromResult(default(string)),
+            _ => throw new NotSupportedException(),
+        });
     }
 }
 ");

@@ -1,23 +1,17 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.Analysis.UsePatternMatching;
 using Roslynator.CSharp.CodeFixes;
-using Roslynator.CSharp.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1220UsePatternMatchingInsteadOfIsAndCastTests : AbstractCSharpFixVerifier
+    public class RCS1220UsePatternMatchingInsteadOfIsAndCastTests : AbstractCSharpDiagnosticVerifier<UsePatternMatchingInsteadOfIsAndCastAnalyzer, UsePatternMatchingInsteadOfIsAndCastCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UsePatternMatchingInsteadOfIsAndCast;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UsePatternMatchingInsteadOfIsAndCastAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new UsePatternMatchingInsteadOfIsAndCastCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UsePatternMatchingInsteadOfIsAndCast;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UsePatternMatchingInsteadOfIsAndCast)]
         public async Task Test_LogicalAndExpression()
@@ -292,7 +286,7 @@ class C
         if (x is string && ((string)x) == s) { }
     }
 }
-", options: CSharpCodeVerificationOptions.DefaultWithCSharp6);
+", options: WellKnownCSharpTestOptions.Default_CSharp6);
         }
     }
 }

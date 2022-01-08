@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,9 +15,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, ParameterSyntax parameter)
         {
-            if (!context.IsAnyRefactoringEnabled(
-                RefactoringIdentifiers.AddIdentifierToParameter,
-                RefactoringIdentifiers.RenameParameterAccordingToTypeName))
+            if (!context.IsRefactoringEnabled(RefactoringDescriptors.RenameParameterAccordingToTypeName))
             {
                 return;
             }
@@ -29,29 +27,8 @@ namespace Roslynator.CSharp.Refactorings
             if (parameterSymbol?.Type == null)
                 return;
 
-            if (parameter.Identifier.IsMissing)
-            {
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddIdentifierToParameter))
-                {
-                    TextSpan span = (parameter.Type != null)
-                        ? TextSpan.FromBounds(parameter.Type.Span.End, parameter.Span.End)
-                        : parameter.Span;
-
-                    if (span.Contains(context.Span))
-                    {
-                        string name = NameGenerator.CreateName(parameterSymbol.Type, firstCharToLower: true);
-
-                        if (!string.IsNullOrEmpty(name))
-                        {
-                            context.RegisterRefactoring(
-                                $"Add identifier '{name}'",
-                                cancellationToken => AddParameterNameToParameterAsync(context.Document, parameter, name, cancellationToken),
-                                RefactoringIdentifiers.AddIdentifierToParameter);
-                        }
-                    }
-                }
-            }
-            else if (context.IsRefactoringEnabled(RefactoringIdentifiers.RenameParameterAccordingToTypeName)
+            if (!parameter.Identifier.IsMissing
+                && context.IsRefactoringEnabled(RefactoringDescriptors.RenameParameterAccordingToTypeName)
                 && parameter.Identifier.Span.Contains(context.Span))
             {
                 string oldName = parameter.Identifier.ValueText;
@@ -66,8 +43,8 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         $"Rename '{oldName}' to '{newName}'",
-                        cancellationToken => Renamer.RenameSymbolAsync(context.Solution, parameterSymbol, newName, default(OptionSet), cancellationToken),
-                        RefactoringIdentifiers.RenameParameterAccordingToTypeName);
+                        ct => Renamer.RenameSymbolAsync(context.Solution, parameterSymbol, newName, default(OptionSet), ct),
+                        RefactoringDescriptors.RenameParameterAccordingToTypeName);
                 }
             }
         }
@@ -76,7 +53,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             ParameterSyntax parameter,
             string name,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ParameterSyntax newParameter = parameter
                 .WithType(parameter.Type.WithoutTrailingTrivia())

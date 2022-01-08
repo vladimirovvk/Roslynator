@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -13,14 +13,20 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ParameterCodeFixProvider))]
     [Shared]
-    public class ParameterCodeFixProvider : BaseCodeFixProvider
+    public sealed class ParameterCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(DiagnosticIdentifiers.OverridingMemberCannotChangeParamsModifier); }
+            get
+            {
+                return ImmutableArray.Create(
+                    DiagnosticIdentifiers.OverridingMemberShouldNotChangeParamsModifier,
+                    DiagnosticIdentifiers.MakeParameterRefReadOnly,
+                    DiagnosticIdentifiers.DoNotPassNonReadOnlyStructByReadOnlyReference);
+            }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -31,7 +37,7 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case DiagnosticIdentifiers.OverridingMemberCannotChangeParamsModifier:
+                    case DiagnosticIdentifiers.OverridingMemberShouldNotChangeParamsModifier:
                         {
                             if (parameter.IsParams())
                             {
@@ -40,6 +46,20 @@ namespace Roslynator.CSharp.CodeFixes
                             else
                             {
                                 ModifiersCodeFixRegistrator.AddModifier(context, diagnostic, parameter, SyntaxKind.ParamsKeyword);
+                            }
+
+                            break;
+                        }
+                    case DiagnosticIdentifiers.MakeParameterRefReadOnly:
+                    case DiagnosticIdentifiers.DoNotPassNonReadOnlyStructByReadOnlyReference:
+                        {
+                            if (parameter.Modifiers.Contains(SyntaxKind.InKeyword))
+                            {
+                                ModifiersCodeFixRegistrator.RemoveModifier(context, diagnostic, parameter, SyntaxKind.InKeyword);
+                            }
+                            else
+                            {
+                                ModifiersCodeFixRegistrator.AddModifier(context, diagnostic, parameter, SyntaxKind.InKeyword);
                             }
 
                             break;

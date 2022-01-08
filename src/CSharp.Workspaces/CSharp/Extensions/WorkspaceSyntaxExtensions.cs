@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using Microsoft.CodeAnalysis;
@@ -35,7 +35,6 @@ namespace Roslynator.CSharp
         /// <param name="expression"></param>
         /// <param name="includeElasticTrivia">If true, add elastic trivia.</param>
         /// <param name="simplifiable">If true, attach <see cref="Simplifier.Annotation"/> to the parenthesized expression.</param>
-        /// <returns></returns>
         public static ParenthesizedExpressionSyntax Parenthesize(
             this ExpressionSyntax expression,
             bool includeElasticTrivia = true,
@@ -83,7 +82,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <typeparam name="TNode"></typeparam>
         /// <param name="node"></param>
-        /// <returns></returns>
         public static TNode WithFormatterAnnotation<TNode>(this TNode node) where TNode : SyntaxNode
         {
             if (node == null)
@@ -97,7 +95,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <typeparam name="TNode"></typeparam>
         /// <param name="node"></param>
-        /// <returns></returns>
         public static TNode WithSimplifierAnnotation<TNode>(this TNode node) where TNode : SyntaxNode
         {
             if (node == null)
@@ -138,7 +135,6 @@ namespace Roslynator.CSharp
         /// Adds <see cref="Formatter.Annotation"/> to the specified token, creating a new token of the same type with the <see cref="Formatter.Annotation"/> on it.
         /// </summary>
         /// <param name="token"></param>
-        /// <returns></returns>
         public static SyntaxToken WithFormatterAnnotation(this SyntaxToken token)
         {
             return token.WithAdditionalAnnotations(_formatterAnnotationArray);
@@ -149,13 +145,17 @@ namespace Roslynator.CSharp
         /// "Rename" annotation is specified by <see cref="RenameAnnotation.Kind"/>.
         /// </summary>
         /// <param name="token"></param>
-        /// <returns></returns>
         public static SyntaxToken WithSimplifierAnnotation(this SyntaxToken token)
         {
             return token.WithAdditionalAnnotations(_simplifierAnnotationArray);
         }
 
-        internal static SyntaxToken WithNavigationAnnotation(this SyntaxToken token)
+        /// <summary>
+        /// Adds navigation annotation to the specified token, creating a new token of the same type with the navigation annotation on it.
+        /// Navigation annotation allows to mark a token that should be selected after the code action is applied.
+        /// </summary>
+        /// <param name="token"></param>
+        public static SyntaxToken WithNavigationAnnotation(this SyntaxToken token)
         {
             return token.WithAdditionalAnnotations(_navigationAnnotationArray);
         }
@@ -165,7 +165,6 @@ namespace Roslynator.CSharp
         /// "Rename" annotation is specified by <see cref="RenameAnnotation.Kind"/>.
         /// </summary>
         /// <param name="token"></param>
-        /// <returns></returns>
         public static SyntaxToken WithRenameAnnotation(this SyntaxToken token)
         {
             return token.WithAdditionalAnnotations(_renameAnnotationArray);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,8 +23,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Invert binary expression",
-                cancellationToken => RefactorAsync(context.Document, binaryExpression, cancellationToken),
-                RefactoringIdentifiers.InvertBinaryExpression);
+                ct => RefactorAsync(context.Document, binaryExpression, ct),
+                RefactoringDescriptors.InvertBinaryExpression);
         }
 
         private static bool CanRefactor(SyntaxNode node)
@@ -60,11 +60,11 @@ namespace Roslynator.CSharp.Refactorings
         public static async Task<Document> RefactorAsync(
             Document document,
             BinaryExpressionSyntax binaryExpression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-            ExpressionSyntax newNode = SyntaxInverter.LogicallyInvert(binaryExpression, semanticModel, cancellationToken);
+            ExpressionSyntax newNode = SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(binaryExpression, semanticModel, cancellationToken);
 
             newNode = newNode.WithFormatterAnnotation();
 

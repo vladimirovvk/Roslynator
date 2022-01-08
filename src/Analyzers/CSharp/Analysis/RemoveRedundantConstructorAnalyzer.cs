@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,24 +12,29 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantConstructorAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantConstructorAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveRedundantConstructor); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveRedundantConstructor);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeConstructorDeclaration, SyntaxKind.ConstructorDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeConstructorDeclaration(f), SyntaxKind.ConstructorDeclaration);
         }
 
-        public static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
         {
             var constructor = (ConstructorDeclarationSyntax)context.Node;
 
@@ -67,7 +72,7 @@ namespace Roslynator.CSharp.Analysis
             if (!constructor.DescendantTrivia(constructor.Span).All(f => f.IsWhitespaceOrEndOfLineTrivia()))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantConstructor, constructor);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantConstructor, constructor);
         }
 
         private static bool IsSingleInstanceConstructor(ConstructorDeclarationSyntax constructor)

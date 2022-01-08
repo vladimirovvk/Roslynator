@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace Roslynator
             ISymbol symbol,
             Solution solution,
             bool allowCandidate = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return FindReferencesAsync(symbol, solution, null, allowCandidate, cancellationToken);
         }
@@ -28,7 +28,7 @@ namespace Roslynator
             Solution solution,
             IImmutableSet<Document> documents,
             bool allowCandidate = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (symbol == null)
                 throw new ArgumentNullException(nameof(symbol));
@@ -42,7 +42,8 @@ namespace Roslynator
                 symbol,
                 solution,
                 documents,
-                cancellationToken).ConfigureAwait(false))
+                cancellationToken)
+                .ConfigureAwait(false))
             {
                 foreach (IGrouping<Document, ReferenceLocation> grouping in referencedSymbol.Locations.GroupBy(f => f.Document))
                 {
@@ -61,7 +62,7 @@ namespace Roslynator
             ISymbol symbol,
             Solution solution,
             bool allowCandidate = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return FindReferencesByDocumentAsync(symbol, solution, null, allowCandidate, cancellationToken);
         }
@@ -71,7 +72,7 @@ namespace Roslynator
             Solution solution,
             IImmutableSet<Document> documents,
             bool allowCandidate = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (symbol == null)
                 throw new ArgumentNullException(nameof(symbol));
@@ -85,7 +86,8 @@ namespace Roslynator
                 symbol,
                 solution,
                 documents,
-                cancellationToken).ConfigureAwait(false))
+                cancellationToken)
+                .ConfigureAwait(false))
             {
                 foreach (IGrouping<Document, ReferenceLocation> grouping in referencedSymbol.Locations.GroupBy(f => f.Document))
                 {
@@ -101,7 +103,7 @@ namespace Roslynator
                     {
                         var info = new DocumentReferenceInfo(document, root, nodes.ToImmutableArray());
 
-                        (infos ?? (infos = new List<DocumentReferenceInfo>())).Add(info);
+                        (infos ??= new List<DocumentReferenceInfo>()).Add(info);
                     }
                 }
             }
@@ -113,7 +115,7 @@ namespace Roslynator
             ISymbol symbol,
             Document document,
             bool allowCandidate = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (symbol == null)
                 throw new ArgumentNullException(nameof(symbol));
@@ -129,7 +131,8 @@ namespace Roslynator
                 symbol,
                 document.Solution(),
                 ImmutableHashSet.Create(document),
-                cancellationToken).ConfigureAwait(false))
+                cancellationToken)
+                .ConfigureAwait(false))
             {
                 FindReferences(referencedSymbol.Locations, root, allowCandidate, ref nodes);
             }
@@ -156,7 +159,7 @@ namespace Roslynator
 
                         Debug.Assert(node != null);
 
-                        (nodes ?? (nodes = new List<SyntaxNode>())).Add(node);
+                        (nodes ??= new List<SyntaxNode>()).Add(node);
                     }
                 }
             }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -15,35 +15,40 @@ using Roslynator.CSharp.SyntaxWalkers;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class InlineLocalVariableAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class InlineLocalVariableAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.InlineLocalVariable,
-                    DiagnosticDescriptors.InlineLocalVariableFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.InlineLocalVariable,
+                        DiagnosticRules.InlineLocalVariableFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.InlineLocalVariable))
-                    return;
-
-                startContext.RegisterSyntaxNodeAction(AnalyzeLocalDeclarationStatement, SyntaxKind.LocalDeclarationStatement);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.InlineLocalVariable.IsEffective(c))
+                        AnalyzeLocalDeclarationStatement(c);
+                },
+                SyntaxKind.LocalDeclarationStatement);
         }
 
-        public static void AnalyzeLocalDeclarationStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLocalDeclarationStatement(SyntaxNodeAnalysisContext context)
         {
             var localDeclarationStatement = (LocalDeclarationStatementSyntax)context.Node;
 
@@ -147,20 +152,28 @@ namespace Roslynator.CSharp.Analysis
                         if (localSymbol?.IsErrorType() != false)
                             return;
 
-                        ContainsLocalOrParameterReferenceWalker walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
+                        ContainsLocalOrParameterReferenceWalker walker = null;
 
-                        walker.Visit(forEachStatement.Statement);
-
-                        if (!walker.Result
-                            && index < statements.Count - 2)
+                        try
                         {
-                            walker.VisitList(statements, index + 2);
+                            walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
+
+                            walker.Visit(forEachStatement.Statement);
+
+                            if (!walker.Result
+                                && index < statements.Count - 2)
+                            {
+                                walker.VisitList(statements, index + 2);
+                            }
+
+                            if (!walker.Result)
+                                ReportDiagnostic(context, localDeclarationInfo, forEachStatement.Expression);
                         }
-
-                        if (ContainsLocalOrParameterReferenceWalker.GetResultAndFree(walker))
-                            return;
-
-                        ReportDiagnostic(context, localDeclarationInfo, forEachStatement.Expression);
+                        finally
+                        {
+                            if (walker != null)
+                                ContainsLocalOrParameterReferenceWalker.Free(walker);
+                        }
 
                         break;
                     }
@@ -179,20 +192,28 @@ namespace Roslynator.CSharp.Analysis
                         if (localSymbol?.IsErrorType() != false)
                             return;
 
-                        ContainsLocalOrParameterReferenceWalker walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
+                        ContainsLocalOrParameterReferenceWalker walker = null;
 
-                        walker.VisitList(switchStatement.Sections);
-
-                        if (!walker.Result
-                            && index < statements.Count - 2)
+                        try
                         {
-                            walker.VisitList(statements, index + 2);
+                            walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
+
+                            walker.VisitList(switchStatement.Sections);
+
+                            if (!walker.Result
+                                && index < statements.Count - 2)
+                            {
+                                walker.VisitList(statements, index + 2);
+                            }
+
+                            if (!walker.Result)
+                                ReportDiagnostic(context, localDeclarationInfo, switchStatement.Expression);
                         }
-
-                        if (ContainsLocalOrParameterReferenceWalker.GetResultAndFree(walker))
-                            return;
-
-                        ReportDiagnostic(context, localDeclarationInfo, switchStatement.Expression);
+                        finally
+                        {
+                            if (walker != null)
+                                ContainsLocalOrParameterReferenceWalker.Free(walker);
+                        }
 
                         break;
                     }
@@ -227,20 +248,28 @@ namespace Roslynator.CSharp.Analysis
             if (localSymbol?.IsErrorType() != false)
                 return;
 
-            ContainsLocalOrParameterReferenceWalker walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
+            ContainsLocalOrParameterReferenceWalker walker = null;
 
-            walker.Visit(assignment.Left);
-
-            if (!walker.Result
-                && index < statements.Count - 2)
+            try
             {
-                walker.VisitList(statements, index + 2);
+                walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
+
+                walker.Visit(assignment.Left);
+
+                if (!walker.Result
+                    && index < statements.Count - 2)
+                {
+                    walker.VisitList(statements, index + 2);
+                }
+
+                if (!walker.Result)
+                    ReportDiagnostic(context, localDeclarationInfo, identifierName);
             }
-
-            if (ContainsLocalOrParameterReferenceWalker.GetResultAndFree(walker))
-                return;
-
-            ReportDiagnostic(context, localDeclarationInfo, identifierName);
+            finally
+            {
+                if (walker != null)
+                    ContainsLocalOrParameterReferenceWalker.Free(walker);
+            }
         }
 
         private static void Analyze(
@@ -275,12 +304,22 @@ namespace Roslynator.CSharp.Analysis
 
             if (index < statements.Count - 2)
             {
-                ContainsLocalOrParameterReferenceWalker walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
+                ContainsLocalOrParameterReferenceWalker walker = null;
 
-                walker.VisitList(statements, index + 2);
+                try
+                {
+                    walker = ContainsLocalOrParameterReferenceWalker.GetInstance(localSymbol, context.SemanticModel, context.CancellationToken);
 
-                if (ContainsLocalOrParameterReferenceWalker.GetResultAndFree(walker))
-                    return;
+                    walker.VisitList(statements, index + 2);
+
+                    if (walker.Result)
+                        return;
+                }
+                finally
+                {
+                    if (walker != null)
+                        ContainsLocalOrParameterReferenceWalker.Free(walker);
+                }
             }
 
             ReportDiagnostic(context, localDeclarationInfo, identifierName);
@@ -313,16 +352,16 @@ namespace Roslynator.CSharp.Analysis
             in SingleLocalDeclarationStatementInfo localDeclarationInfo,
             ExpressionSyntax expression)
         {
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.InlineLocalVariable, localDeclarationInfo.Statement);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.InlineLocalVariable, localDeclarationInfo.Statement);
 
             foreach (SyntaxToken modifier in localDeclarationInfo.Modifiers)
-                DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.InlineLocalVariableFadeOut, modifier);
+                DiagnosticHelpers.ReportToken(context, DiagnosticRules.InlineLocalVariableFadeOut, modifier);
 
-            DiagnosticHelpers.ReportNode(context, DiagnosticDescriptors.InlineLocalVariableFadeOut, localDeclarationInfo.Type);
-            DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.InlineLocalVariableFadeOut, localDeclarationInfo.Identifier);
-            DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.InlineLocalVariableFadeOut, localDeclarationInfo.EqualsToken);
-            DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.InlineLocalVariableFadeOut, localDeclarationInfo.SemicolonToken);
-            DiagnosticHelpers.ReportNode(context, DiagnosticDescriptors.InlineLocalVariableFadeOut, expression);
+            DiagnosticHelpers.ReportNode(context, DiagnosticRules.InlineLocalVariableFadeOut, localDeclarationInfo.Type);
+            DiagnosticHelpers.ReportToken(context, DiagnosticRules.InlineLocalVariableFadeOut, localDeclarationInfo.Identifier);
+            DiagnosticHelpers.ReportToken(context, DiagnosticRules.InlineLocalVariableFadeOut, localDeclarationInfo.EqualsToken);
+            DiagnosticHelpers.ReportToken(context, DiagnosticRules.InlineLocalVariableFadeOut, localDeclarationInfo.SemicolonToken);
+            DiagnosticHelpers.ReportNode(context, DiagnosticRules.InlineLocalVariableFadeOut, expression);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,42 +11,48 @@ using Roslynator.CSharp;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AnonymousMethodAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AnonymousMethodAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                  DiagnosticDescriptors.UseLambdaExpressionInsteadOfAnonymousMethod,
-                  DiagnosticDescriptors.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.UseLambdaExpressionInsteadOfAnonymousMethod,
+                        DiagnosticRules.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.UseLambdaExpressionInsteadOfAnonymousMethod))
-                    return;
-
-                startContext.RegisterSyntaxNodeAction(AnalyzeAnonymousMethod, SyntaxKind.AnonymousMethodExpression);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.UseLambdaExpressionInsteadOfAnonymousMethod.IsEffective(c))
+                        AnalyzeAnonymousMethod(c);
+                },
+                SyntaxKind.AnonymousMethodExpression);
         }
 
         private static void AnalyzeAnonymousMethod(SyntaxNodeAnalysisContext context)
         {
             var anonymousMethod = (AnonymousMethodExpressionSyntax)context.Node;
 
-            if (UseLambdaExpressionInsteadOfAnonymousMethodAnalysis.IsFixable(anonymousMethod))
+            if (UseLambdaInsteadOfAnonymousMethodAnalysis.IsFixable(anonymousMethod))
             {
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.UseLambdaExpressionInsteadOfAnonymousMethod,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.UseLambdaExpressionInsteadOfAnonymousMethod,
                     anonymousMethod);
 
                 FadeOut(context, anonymousMethod);
@@ -55,7 +61,7 @@ namespace Roslynator.CSharp.Analysis
 
         private static void FadeOut(SyntaxNodeAnalysisContext context, AnonymousMethodExpressionSyntax anonymousMethod)
         {
-            DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut, anonymousMethod.DelegateKeyword);
+            DiagnosticHelpers.ReportToken(context, DiagnosticRules.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut, anonymousMethod.DelegateKeyword);
 
             BlockSyntax block = anonymousMethod.Block;
 
@@ -68,10 +74,10 @@ namespace Roslynator.CSharp.Analysis
 
                 if (statement.IsKind(SyntaxKind.ReturnStatement, SyntaxKind.ExpressionStatement))
                 {
-                    CSharpDiagnosticHelpers.ReportBraces(context, DiagnosticDescriptors.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut, block);
+                    CSharpDiagnosticHelpers.ReportBraces(context, DiagnosticRules.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut, block);
 
                     if (statement.IsKind(SyntaxKind.ReturnStatement))
-                        DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut, ((ReturnStatementSyntax)statement).ReturnKeyword);
+                        DiagnosticHelpers.ReportToken(context, DiagnosticRules.UseLambdaExpressionInsteadOfAnonymousMethodFadeOut, ((ReturnStatementSyntax)statement).ReturnKeyword);
                 }
             }
         }

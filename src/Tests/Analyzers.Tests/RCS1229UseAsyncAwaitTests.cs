@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1229UseAsyncAwaitTests : AbstractCSharpFixVerifier
+    public class RCS1229UseAsyncAwaitTests : AbstractCSharpDiagnosticVerifier<UseAsyncAwaitAnalyzer, UseAsyncAwaitCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UseAsyncAwait;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UseAsyncAwaitAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new UseAsyncAwaitCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UseAsyncAwait;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAsyncAwait)]
         public async Task Test_Method_TaskOfT()
@@ -326,6 +321,273 @@ class C
     }
 
     Task<string> GetAsync() => Task.FromResult(default(string));
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAsyncAwait)]
+        public async Task Test_UsingLocalDeclaration()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System;
+using System.Threading.Tasks;
+
+public class C
+{
+    public Task<string> [|M|]()
+    {
+        using var disposable = default(IDisposable);
+        return GetAsync();
+    }
+
+    Task<string> GetAsync() => Task.FromResult(default(string));
+}
+", @"
+using System;
+using System.Threading.Tasks;
+
+public class C
+{
+    public async Task<string> M()
+    {
+        using var disposable = default(IDisposable);
+        return await GetAsync();
+    }
+
+    Task<string> GetAsync() => Task.FromResult(default(string));
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAsyncAwait)]
+        public async Task Test_UsingLocalDeclaration2()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System;
+using System.Threading.Tasks;
+
+public class C
+{
+    public Task<string> [|M|]()
+    {
+        {
+            using var disposable = default(IDisposable);
+
+            {
+            }
+
+            return GetAsync();
+        }
+    }
+
+    Task<string> GetAsync() => Task.FromResult(default(string));
+}
+", @"
+using System;
+using System.Threading.Tasks;
+
+public class C
+{
+    public async Task<string> M()
+    {
+        {
+            using var disposable = default(IDisposable);
+
+            {
+            }
+
+            return await GetAsync();
+        }
+    }
+
+    Task<string> GetAsync() => Task.FromResult(default(string));
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAsyncAwait)]
+        public async Task Test_TryCatch()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System;
+using System.Threading.Tasks;
+
+class C
+{
+    Task<int> [|M|]()
+    {
+        var x = new C();
+
+        try
+        {
+            return x.GetAsync();
+        }
+        finally
+        {
+        }
+    }
+
+    Task<int> GetAsync() => Task.FromResult(0);
+}
+", @"
+using System;
+using System.Threading.Tasks;
+
+class C
+{
+    async Task<int> M()
+    {
+        var x = new C();
+
+        try
+        {
+            return await x.GetAsync();
+        }
+        finally
+        {
+        }
+    }
+
+    Task<int> GetAsync() => Task.FromResult(0);
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_UsingLocalDeclaration()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+using System.Threading.Tasks;
+
+public class C
+{
+    public Task<string> M()
+    {
+        {
+            {
+                using var disposable = default(IDisposable);
+            }
+
+            return GetAsync();
+        }
+    }
+
+    Task<string> GetAsync() => Task.FromResult(default(string));
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_TaskCompletedTask()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Threading;
+using System.Threading.Tasks;
+
+class C
+{
+    Task M(CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        return Task.CompletedTask;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_TaskFromCanceled()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Threading;
+using System.Threading.Tasks;
+
+class C
+{
+    Task M(CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        return Task.FromCanceled(cancellationToken);
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_TaskFromException()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Threading;
+using System.Threading.Tasks;
+
+class C
+{
+    Task M(CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        return Task.FromException(default(System.Exception));
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_TaskOfTFromResult()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Threading;
+using System.Threading.Tasks;
+
+class C
+{
+    Task<int> M(CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        return Task.FromResult(1);
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_TaskOfTFromCanceled()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Threading;
+using System.Threading.Tasks;
+
+class C
+{
+    Task<int> M(CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        return Task.FromCanceled<int>(cancellationToken);
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_TaskOfTFromException()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Threading;
+using System.Threading.Tasks;
+
+class C
+{
+    Task<int> M(CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        return Task.FromException<int>(default(System.Exception));
+    }
 }
 ");
         }

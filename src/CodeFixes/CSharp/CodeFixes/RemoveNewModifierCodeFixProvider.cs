@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -13,21 +13,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RemoveNewModifierCodeFixProvider))]
     [Shared]
-    public class RemoveNewModifierCodeFixProvider : BaseCodeFixProvider
+    public sealed class RemoveNewModifierCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.MemberDoesNotHideAccessibleMember); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0109_MemberDoesNotHideAccessibleMember); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveNewModifier))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveNewModifier, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out MemberDeclarationSyntax memberDeclaration))
                 return;

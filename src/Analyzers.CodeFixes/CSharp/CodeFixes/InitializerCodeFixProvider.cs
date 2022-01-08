@@ -1,8 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
@@ -15,19 +14,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(InitializerCodeFixProvider))]
     [Shared]
-    public class InitializerCodeFixProvider : BaseCodeFixProvider
+    public sealed class InitializerCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get
-            {
-                return ImmutableArray.Create(
-                    DiagnosticIdentifiers.RemoveRedundantCommaInInitializer,
-                    DiagnosticIdentifiers.FormatInitializerWithSingleExpressionOnSingleLine);
-            }
+            get { return ImmutableArray.Create(DiagnosticIdentifiers.RemoveRedundantCommaInInitializer); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -55,28 +49,8 @@ namespace Roslynator.CSharp.CodeFixes
                             context.RegisterCodeFix(codeAction, diagnostic);
                             break;
                         }
-                    case DiagnosticIdentifiers.FormatInitializerWithSingleExpressionOnSingleLine:
-                        {
-                            CodeAction codeAction = CodeAction.Create(
-                                "Format initializer on a single line",
-                                ct => FormatInitializerOnSingleLineAsync(context.Document, initializer, ct),
-                                GetEquivalenceKey(diagnostic));
-
-                            context.RegisterCodeFix(codeAction, diagnostic);
-                            break;
-                        }
                 }
             }
-        }
-
-        private static Task<Document> FormatInitializerOnSingleLineAsync(
-            Document document,
-            InitializerExpressionSyntax initializer,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            return SyntaxFormatter.ToSingleLineAsync(document, initializer, removeTrailingComma: true, cancellationToken);
         }
 
         private static InitializerExpressionSyntax RemoveTrailingComma(InitializerExpressionSyntax initializer)

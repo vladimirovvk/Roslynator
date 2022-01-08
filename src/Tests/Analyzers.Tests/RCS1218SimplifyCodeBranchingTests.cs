@@ -1,37 +1,32 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1218SimplifyCodeBranchingTests : AbstractCSharpFixVerifier
+    public class RCS1218SimplifyCodeBranchingTests : AbstractCSharpDiagnosticVerifier<SimplifyCodeBranchingAnalyzer, SimplifyCodeBranchingCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.SimplifyCodeBranching;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new SimplifyCodeBranchingAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new SimplifyCodeBranchingCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.SimplifyCodeBranching;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_IfElse_WithBraces()
+        public async Task Test_EmptyIf_Else_WithBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
 {
     void M(bool f1 = false, bool f2 = false)
     {
-        [|if (f1)
+        [|if|] (f1)
         {
         }
         else
         {
             M();
-        }|]
+        }
     }
 }
 ", @"
@@ -49,18 +44,18 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_IfElse_WithoutBraces()
+        public async Task Test_EmptyIf_Else_WithoutBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
 {
     void M(bool f1 = false, bool f2 = false)
     {
-        [|if (f1)
+        [|if|] (f1)
         {
         }
         else
-            M();|]
+            M();
     }
 }
 ", @"
@@ -76,20 +71,20 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_IfElseIf_WithBraces()
+        public async Task Test_EmptyIf_ElseIf_WithBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
 {
     void M(bool f1 = false, bool f2 = false)
     {
-        [|if (f1)
+        [|if|] (f1)
         {
         }
         else if (f2)
         {
             M();
-        }|]
+        }
     }
 }
 ", @"
@@ -107,18 +102,18 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_IfElseIf_WithoutBraces()
+        public async Task Test_EmptyIf_ElseIf_WithoutBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
 {
     void M(bool f1 = false, bool f2 = false)
     {
-        [|if (f1)
+        [|if|] (f1)
         {
         }
         else if (f2)
-            M();|]
+            M();
     }
 }
 ", @"
@@ -134,7 +129,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_IfElseWithBraces()
+        public async Task Test_While_IfElse_SingleStatement_WithBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -143,81 +138,14 @@ class C
     {
         while (true)
         {
-            [|if (f1)
+            [|if|] (f1)
             {
                 M();
             }
             else
             {
                 break;
-            }|]
-        }
-    }
-}
-", @"
-class C
-{
-    void M(bool f1 = false, bool f2 = false)
-    {
-        while (f1)
-        {
-            M();
-        }
-    }
-}
-");
-        }
-
-        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_IfElseWithoutBraces()
-        {
-            await VerifyDiagnosticAndFixAsync(@"
-class C
-{
-    void M(bool f1 = false, bool f2 = false)
-    {
-        while (true)
-        {
-            [|if (f1)
-                M();
-            else
-                break;|]
-        }
-    }
-}
-", @"
-class C
-{
-    void M(bool f1 = false, bool f2 = false)
-    {
-        while (f1)
-        {
-            M();
-        }
-    }
-}
-");
-        }
-
-        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_IfElseWithMultipleStatements()
-        {
-            await VerifyDiagnosticAndFixAsync(@"
-class C
-{
-    void M(bool f1 = false, bool f2 = false)
-    {
-        while (true)
-        {
-            [|if (f1)
-            {
-                M();
-                M();
             }
-            else
-            {
-                break;
-            }|]
         }
     }
 }
@@ -229,7 +157,6 @@ class C
         while (f1)
         {
             M();
-            M();
         }
     }
 }
@@ -237,7 +164,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_EmbeddedIfElseWithSingleStatement()
+        public async Task Test_While_IfElse_SingleStatement_WithoutBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -245,14 +172,12 @@ class C
     void M(bool f1 = false, bool f2 = false)
     {
         while (true)
-            [|if (f1)
-            {
+        {
+            [|if|] (f1)
                 M();
-            }
             else
-            {
                 break;
-            }|]
+        }
     }
 }
 ", @"
@@ -270,7 +195,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_EmbeddedIfElseWithMultipleStatements()
+        public async Task Test_While_IfElse_SingleStatement_WithMultipleStatements()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -278,7 +203,8 @@ class C
     void M(bool f1 = false, bool f2 = false)
     {
         while (true)
-            [|if (f1)
+        {
+            [|if|] (f1)
             {
                 M();
                 M();
@@ -286,7 +212,8 @@ class C
             else
             {
                 break;
-            }|]
+            }
+        }
     }
 }
 ", @"
@@ -305,7 +232,403 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_IfWithBraces_LastStatement()
+        public async Task Test_While_IfElse_WithBraces()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+            {
+                M();
+            }
+            else
+            {
+                break;
+            }
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (f1)
+        {
+            M();
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_EmptyIf_WithBraces()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+            {
+            }
+            else
+            {
+                break;
+            }
+
+            M();
+        }
+    }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (f1)
+        {
+
+            M();
+        }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_ElseContainsBreak_WithoutBraces()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+                M();
+            else
+                break;
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (f1)
+        {
+            M();
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_ElseContainsBreak_WithMultipleStatements()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+            {
+                M();
+                M();
+            }
+            else
+            {
+                break;
+            }
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (f1)
+        {
+            M();
+            M();
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_IfContainsBreak_WithBraces()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+            {
+                break;
+            }
+            else
+            {
+                M();
+            }
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (!f1)
+        {
+            M();
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_EmptyElse_WithBraces()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+            {
+                break;
+            }
+            else
+            {
+            }
+
+            M();
+        }
+    }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (!f1)
+        {
+
+            M();
+        }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_IfContainsBreak_WithoutBraces()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+                break;
+            else
+                M();
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (!f1)
+        {
+            M();
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_IfContainsBreak_WithMultipleStatements()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+        {
+            [|if|] (f1)
+            {
+                break;
+            }
+            else
+            {
+                M();
+                M();
+            }
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (!f1)
+        {
+            M();
+            M();
+
+            M2();
+        }
+    }
+
+    void M2() { }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_Embedded()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+            [|if|] (f1)
+            {
+                M();
+            }
+            else
+            {
+                break;
+            }
+    }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (f1)
+        {
+            M();
+        }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_IfElse_Embedded_MultipleStatements()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (true)
+            [|if|] (f1)
+            {
+                M();
+                M();
+            }
+            else
+            {
+                break;
+            }
+    }
+}
+", @"
+class C
+{
+    void M(bool f1 = false, bool f2 = false)
+    {
+        while (f1)
+        {
+            M();
+            M();
+        }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_While_SimpleIf_WithBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -318,10 +641,10 @@ class C
         {
             M();
 
-            [|if (f)
+            [|if|] (f)
             {
                 break;
-            }|]
+            }
         }
     }
 }
@@ -343,7 +666,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_IfWithoutBraces_LastStatement()
+        public async Task Test_While_SimpleIf_WithoutBraces()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -354,8 +677,8 @@ class C
         {
             M();
 
-            [|if (f1)
-                break;|]
+            [|if|] (f1)
+                break;
         }
     }
 }
@@ -375,7 +698,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_IfWithBraces_FirstStatement()
+        public async Task Test_While_SimpleIf_WithBraces_FirstStatement()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -384,10 +707,10 @@ class C
     {
         while (true)
         {
-            [|if (f1)
+            [|if|] (f1)
             {
                 break;
-            }|]
+            }
             M();
         }
     }
@@ -407,7 +730,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_While_IfWithoutBraces_FirstStatement()
+        public async Task Test_While_SimpleIf_WithoutBraces_FirstStatement()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -416,8 +739,8 @@ class C
     {
         while (true)
         {
-            [|if (f1)
-                break;|]
+            [|if|] (f1)
+                break;
             M();
         }
     }
@@ -437,7 +760,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_Do_IfWithBraces_LastStatement()
+        public async Task Test_Do_SimpleIf_WithBraces_LastStatement()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -450,10 +773,10 @@ class C
         {
             M();
 
-            [|if (f)
+            [|if|] (f)
             {
                 break;
-            }|]
+            }
         }
         while (true);
     }
@@ -476,7 +799,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_Do_IfWithoutBraces_LastStatement()
+        public async Task Test_Do_SimpleIf_WithoutBraces_LastStatement()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -487,8 +810,8 @@ class C
         {
             M();
 
-            [|if (f1)
-                break;|]
+            [|if|] (f1)
+                break;
         }
         while (true);
     }
@@ -509,7 +832,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_Do_IfWithBraces_FirstStatement()
+        public async Task Test_Do_SimpleIf_WithBraces_FirstStatement()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -518,10 +841,10 @@ class C
     {
         do
         {
-            [|if (f1)
+            [|if|] (f1)
             {
                 break;
-            }|]
+            }
             M();
         }
         while (true);
@@ -542,7 +865,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_Do_IfWithoutBraces_FirstStatement()
+        public async Task Test_Do_SimpleIf_WithoutBraces_FirstStatement()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -551,8 +874,8 @@ class C
     {
         do
         {
-            [|if (f1)
-                break;|]
+            [|if|] (f1)
+                break;
             M();
         }
         while (true);
@@ -573,7 +896,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
-        public async Task Test_IfThatContainsOnlyDo()
+        public async Task Test_If_ContainingOnlyDo()
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -582,14 +905,14 @@ class C
     {
         bool f = false;
 
-        [|if (f)
+        [|if|] (f)
         {
             do
             {
                 M();
             }
             while (f);
-        }|]
+        }
     }
 }
 ", @"
@@ -603,6 +926,258 @@ class C
         {
             M();
         }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_LastIfElseWithReturn_Method()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        bool x = false;
+
+        [|if|] (x)
+        {
+            return;
+        }
+        else
+        {
+            M();
+        }
+
+        object LF() => null;
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        bool x = false;
+
+        if (!x)
+        {
+            M();
+        }
+
+        object LF() => null;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_LastIfElseWithReturn_LocalFunction()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        void LF()
+        {
+            if (x)
+            {
+                return;
+            }
+            else [|if|] (y)
+            {
+                return;
+            }
+            else
+            {
+                M();
+            }
+        }
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        void LF()
+        {
+            if (x)
+            {
+                return;
+            }
+            else if (!y)
+            {
+                M();
+            }
+        }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_LastIfElseWithContinue_ForEach()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Collections.Generic;
+
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        var items = new List<string>();
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            [|if|] (x)
+            {
+                continue;
+            }
+            else
+            {
+                M();
+            }
+        }
+
+        object LF() => null;
+    }
+}
+", @"
+using System.Collections.Generic;
+
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        var items = new List<string>();
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (!x)
+            {
+                M();
+            }
+        }
+
+        object LF() => null;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_LastIfElseWithContinue_For()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Collections.Generic;
+
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        var items = new List<string>();
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            [|if|] (x)
+            {
+                continue;
+            }
+            else
+            {
+                M();
+            }
+        }
+
+        object LF() => null;
+    }
+}
+", @"
+using System.Collections.Generic;
+
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        var items = new List<string>();
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (!x)
+            {
+                M();
+            }
+        }
+
+        object LF() => null;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.SimplifyCodeBranching)]
+        public async Task Test_LastIfElseWithContinue_While()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Collections.Generic;
+
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        var items = new List<string>();
+
+        while (x)
+        {
+            [|if|] (y)
+            {
+                continue;
+            }
+            else
+            {
+                M();
+            }
+        }
+
+        object LF() => null;
+    }
+}
+", @"
+using System.Collections.Generic;
+
+class C
+{
+    void M()
+    {
+        bool x = false, y = false;
+
+        var items = new List<string>();
+
+        while (x)
+        {
+            if (!y)
+            {
+                M();
+            }
+        }
+
+        object LF() => null;
     }
 }
 ");
@@ -700,17 +1275,6 @@ class C
             if (f2)
             {
                 break;
-            }
-        }
-
-        while (true)
-        {
-            if (f1)
-            {
-                break;
-            }
-            else
-            {
             }
         }
 

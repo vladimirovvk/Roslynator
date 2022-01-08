@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,24 +10,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UseEventArgsEmptyAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UseEventArgsEmptyAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UseEventArgsEmpty); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UseEventArgsEmpty);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeObjectCreationExpression, SyntaxKind.ObjectCreationExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeObjectCreationExpression(f), SyntaxKind.ObjectCreationExpression);
         }
 
-        public static void AnalyzeObjectCreationExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeObjectCreationExpression(SyntaxNodeAnalysisContext context)
         {
             if (context.Node.SpanContainsDirectives())
                 return;
@@ -45,7 +50,7 @@ namespace Roslynator.CSharp.Analysis
             if (typeSymbol?.HasMetadataName(MetadataNames.System_EventArgs) != true)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseEventArgsEmpty, objectCreation);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseEventArgsEmpty, objectCreation);
         }
     }
 }

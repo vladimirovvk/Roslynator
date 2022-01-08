@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -13,6 +13,12 @@ namespace Roslynator.CSharp.Refactorings
         {
             SyntaxToken identifier = classDeclaration.Identifier;
             ComputeRefactorings(context, classDeclaration, identifier);
+        }
+
+        public static void ComputeRefactorings(RefactoringContext context, RecordDeclarationSyntax recordDeclaration)
+        {
+            SyntaxToken identifier = recordDeclaration.Identifier;
+            ComputeRefactorings(context, recordDeclaration, identifier);
         }
 
         public static void ComputeRefactorings(RefactoringContext context, StructDeclarationSyntax structDeclaration)
@@ -49,8 +55,8 @@ namespace Roslynator.CSharp.Refactorings
             {
                 context.RegisterRefactoring(
                     ExtractTypeDeclarationToNewDocumentRefactoring.GetTitle(identifier.ValueText),
-                    cancellationToken => ExtractTypeDeclarationToNewDocumentRefactoring.RefactorAsync(context.Document, memberDeclaration, cancellationToken),
-                    RefactoringIdentifiers.ExtractTypeDeclarationToNewFile);
+                    ct => ExtractTypeDeclarationToNewDocumentRefactoring.RefactorAsync(context.Document, memberDeclaration, ct),
+                    RefactoringDescriptors.ExtractTypeDeclarationToNewFile);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -55,7 +55,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 GetTitle(parent.Kind()),
                 ct => RefactorAsync(context.Document, node, parent, ct),
-                RefactoringIdentifiers.MoveUnsafeContextToContainingDeclaration);
+                RefactoringDescriptors.MoveUnsafeContextToContainingDeclaration);
         }
 
         public static void ComputeRefactoring(RefactoringContext context, UnsafeStatementSyntax unsafeStatement)
@@ -78,7 +78,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 GetTitle(parent.Kind()),
                 ct => RefactorAsync(context.Document, unsafeStatement, parent, ct),
-                RefactoringIdentifiers.MoveUnsafeContextToContainingDeclaration);
+                RefactoringDescriptors.MoveUnsafeContextToContainingDeclaration);
         }
 
         private static string GetTitle(SyntaxKind kind)
@@ -133,7 +133,7 @@ namespace Roslynator.CSharp.Refactorings
             }
             else
             {
-                StatementSyntax first = statements.First();
+                StatementSyntax first = statements[0];
                 StatementSyntax last = statements.Last();
 
                 SyntaxTriviaList leadingTrivia = keyword.LeadingTrivia

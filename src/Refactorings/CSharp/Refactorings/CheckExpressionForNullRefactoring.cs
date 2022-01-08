@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -167,16 +167,16 @@ namespace Roslynator.CSharp.Refactorings
         {
             context.RegisterRefactoring(
                 GetTitle(expression),
-                cancellationToken => RefactorAsync(context.Document, expression, statement, cancellationToken),
-                RefactoringIdentifiers.CheckExpressionForNull);
+                ct => RefactorAsync(context.Document, expression, statement, ct),
+                RefactoringDescriptors.CheckExpressionForNull);
         }
 
         private static void RegisterRefactoring(RefactoringContext context, ExpressionSyntax expression, StatementSyntax statement, int statementCount)
         {
             context.RegisterRefactoring(
                 GetTitle(expression),
-                cancellationToken => RefactorAsync(context.Document, expression, statement, statementCount, cancellationToken),
-                RefactoringIdentifiers.CheckExpressionForNull);
+                ct => RefactorAsync(context.Document, expression, statement, statementCount, ct),
+                RefactoringDescriptors.CheckExpressionForNull);
         }
 
         private static string GetTitle(ExpressionSyntax expression)
@@ -200,7 +200,7 @@ namespace Roslynator.CSharp.Refactorings
 
             StatementSyntax nextStatement = statements[index + 1];
 
-            if (!(nextStatement is IfStatementSyntax ifStatement))
+            if (nextStatement is not IfStatementSyntax ifStatement)
                 return false;
 
             NullCheckExpressionInfo nullCheck = SyntaxInfo.NullCheckExpressionInfo(ifStatement.Condition, NullCheckStyles.NotEqualsToNull);
@@ -231,7 +231,7 @@ namespace Roslynator.CSharp.Refactorings
                 SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
                 ISymbol symbol = (statement is LocalDeclarationStatementSyntax localDeclaration)
-                    ? semanticModel.GetDeclaredSymbol(localDeclaration.Declaration.Variables.First(), cancellationToken)
+                    ? semanticModel.GetDeclaredSymbol(localDeclaration.Declaration.Variables[0], cancellationToken)
                     : semanticModel.GetSymbol(expression, cancellationToken);
 
                 int lastStatementIndex = IncludeAllReferencesOfSymbol(symbol, expression.Kind(), statements, statementIndex + 1, semanticModel, cancellationToken);
@@ -248,7 +248,8 @@ namespace Roslynator.CSharp.Refactorings
                         statementsInfo,
                         statementIndex,
                         lastStatementIndex,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken)
+                        .ConfigureAwait(false);
                 }
             }
 
@@ -303,7 +304,7 @@ namespace Roslynator.CSharp.Refactorings
             return document.ReplaceStatementsAsync(statementsInfo, newStatements, cancellationToken);
         }
 
-        private static IfStatementSyntax CreateNullCheck(ExpressionSyntax expression, SyntaxList<StatementSyntax> statements = default(SyntaxList<StatementSyntax>))
+        private static IfStatementSyntax CreateNullCheck(ExpressionSyntax expression, SyntaxList<StatementSyntax> statements = default)
         {
             SyntaxToken openBrace = (statements.Any())
                 ? OpenBraceToken()
@@ -336,7 +337,7 @@ namespace Roslynator.CSharp.Refactorings
                     {
                         ISymbol symbol2 = semanticModel.GetSymbol(node, cancellationToken);
 
-                        if (symbol.Equals(symbol2))
+                        if (SymbolEqualityComparer.Default.Equals(symbol, symbol2))
                             return i;
                     }
                 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Threading;
@@ -25,7 +25,8 @@ namespace Roslynator.CSharp.Refactorings
             if (node.IsKind(
                 SyntaxKind.ClassDeclaration,
                 SyntaxKind.InterfaceDeclaration,
-                SyntaxKind.StructDeclaration))
+                SyntaxKind.StructDeclaration,
+                SyntaxKind.RecordStructDeclaration))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
@@ -46,8 +47,9 @@ namespace Roslynator.CSharp.Refactorings
                         {
                             context.RegisterRefactoring(
                                 GetTitle(accessibility),
-                                cancellationToken => RefactorAsync(context.Solution, memberDeclarations, accessibility, cancellationToken),
-                                EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, accessibility.ToString()));
+                                ct => RefactorAsync(context.Solution, memberDeclarations, accessibility, ct),
+                                RefactoringDescriptors.ChangeAccessibility,
+                                accessibility.ToString());
                         }
                     }
 
@@ -70,22 +72,24 @@ namespace Roslynator.CSharp.Refactorings
                     {
                         context.RegisterRefactoring(
                             GetTitle(accessibility),
-                            cancellationToken => RefactorAsync(context.Solution, symbol, accessibility, cancellationToken),
-                            EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, accessibility.ToString()));
+                            ct => RefactorAsync(context.Solution, symbol, accessibility, ct),
+                            RefactoringDescriptors.ChangeAccessibility,
+                            accessibility.ToString());
                     }
                 }
                 else if (SyntaxAccessibility.IsValidAccessibility(node, accessibility))
                 {
                     context.RegisterRefactoring(
                         GetTitle(accessibility),
-                        cancellationToken => RefactorAsync(context.Document, node, accessibility, cancellationToken),
-                        EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, accessibility.ToString()));
+                        ct => RefactorAsync(context.Document, node, accessibility, ct),
+                        RefactoringDescriptors.ChangeAccessibility,
+                        accessibility.ToString());
                 }
             }
 
             ISymbol GetBaseSymbolOrDefault(SemanticModel semanticModel, CancellationToken cancellationToken)
             {
-                if (modifiersInfo.GetFilter().Any(ModifierFilter.AbstractVirtualOverride))
+                if (modifiersInfo.GetFilter().HasAnyFlag(ModifierFilter.AbstractVirtualOverride))
                     return ChangeAccessibilityRefactoring.GetBaseSymbolOrDefault(node, semanticModel, cancellationToken);
 
                 return null;

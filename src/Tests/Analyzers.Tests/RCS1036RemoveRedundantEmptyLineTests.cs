@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1036RemoveRedundantEmptyLineTests : AbstractCSharpFixVerifier
+    public class RCS1036RemoveRedundantEmptyLineTests : AbstractCSharpDiagnosticVerifier<RemoveRedundantEmptyLineAnalyzer, WhitespaceTriviaCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.RemoveRedundantEmptyLine;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new RemoveRedundantEmptyLineAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new WhitespaceTriviaCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.RemoveRedundantEmptyLine;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
         public async Task Test_ObjectInitializer()
@@ -198,6 +193,220 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_EmptyLineAfterDocComment()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    /// <summary></summary>
+[|
+|]    void M()
+    {
+    }
+}
+", @"
+class C
+{
+    /// <summary></summary>
+    void M()
+    {
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_EmptyLineBetweenClosingBraceAndSwitchSection()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        string x = null;
+
+        switch (x)
+        {
+            case ""a"":
+                {
+                    M();
+                    break;
+                }
+[|
+|]            case ""b"":
+                {
+                    M();
+                    break;
+                }
+[|
+|]            case ""c"":
+                break;
+        }
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        string x = null;
+
+        switch (x)
+        {
+            case ""a"":
+                {
+                    M();
+                    break;
+                }
+            case ""b"":
+                {
+                    M();
+                    break;
+                }
+            case ""c"":
+                break;
+        }
+    }
+}
+", options: Options.AddConfigOption(ConfigOptionKeys.BlankLineBetweenClosingBraceAndSwitchSection, false));
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_EndOfFile()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+}
+[|
+|]", @"
+class C
+{
+}
+", options: Options.EnableConfigOption(ConfigOptionKeys.BlankLineBetweenClosingBraceAndSwitchSection));
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_EndOfFile2()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+}
+[|
+
+|]", @"
+class C
+{
+}
+", options: Options.EnableConfigOption(ConfigOptionKeys.BlankLineBetweenClosingBraceAndSwitchSection));
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_LastEmptyLineInDoStatement()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        do
+        {
+            M();
+[|
+|]        } while (true);
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        do
+        {
+            M();
+        } while (true);
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_EmptyLineAfterLastEnumMember_NoTrailingComma()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    enum E
+    {
+        A,
+        B
+[|
+|]    }
+}
+", @"
+class C
+{
+    enum E
+    {
+        A,
+        B
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_EmptyLineAfterLastEnumMember_TrailingComma()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    enum E
+    {
+        A,
+        B,
+[|
+|]    }
+}
+", @"
+class C
+{
+    enum E
+    {
+        A,
+        B,
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task Test_EmptyLineBeforeFirstEnumMember()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    enum E
+    {
+[|
+|]        A,
+        B,
+    }
+}
+", @"
+class C
+{
+    enum E
+    {
+        A,
+        B,
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
         public async Task TestNoDiagnostic_ObjectInitializer()
         {
             await VerifyNoDiagnosticAsync(@"
@@ -246,6 +455,86 @@ class C
         var x = new C() { };
     }
 }
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task TestNoDiagnostic_EmptyLineBetweenClosingBraceAndSwitchSection()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+    void M()
+    {
+        string x = null;
+
+        switch (x)
+        {
+            case ""a"":
+                {
+                    M();
+                    break;
+                }
+
+            case ""b"":
+                break;
+        }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task TestNoDiagnostic_EmptyLineAtEndOfFile()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task TestNoDiagnostic_EmptyLineAtEndOfFileAfterMultiLineComment()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+}
+/** **/ 
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task TestNoDiagnostic_EmptyLineAtEndOfFileWithWhitespace()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+}
+ ");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task TestNoDiagnostic_EmptyLineAtEndOfFileAfterSingleLineComment()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+}
+//x
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantEmptyLine)]
+        public async Task TestNoDiagnostic_EmptyLineAtEndOfFileAfterPreprocessorDirective()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+}
+#if DEBUG
+#endif
 ");
         }
     }

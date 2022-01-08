@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,9 +15,9 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UseExplicitTypeInsteadOfVarCodeFixProvider))]
     [Shared]
-    public class UseExplicitTypeInsteadOfVarCodeFixProvider : BaseCodeFixProvider
+    public sealed class UseExplicitTypeInsteadOfVarCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
@@ -27,22 +27,20 @@ namespace Roslynator.CSharp.CodeFixes
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out SyntaxNode node, predicate: f => f.IsKind(SyntaxKind.VariableDeclaration, SyntaxKind.DeclarationExpression)))
                 return;
 
-            if (node.IsKind(SyntaxKind.VariableDeclaration))
+            if (node is VariableDeclarationSyntax variableDeclaration)
             {
-                var variableDeclaration = (VariableDeclarationSyntax)node;
-
                 TypeSyntax type = variableDeclaration.Type;
 
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(type, context.CancellationToken);
+                ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(variableDeclaration.Variables[0].Initializer.Value, context.CancellationToken);
 
                 RegisterCodeFix(context, type, typeSymbol, semanticModel);
             }
@@ -56,7 +54,9 @@ namespace Roslynator.CSharp.CodeFixes
 
                 var localSymbol = semanticModel.GetDeclaredSymbol(declarationExpression.Designation, context.CancellationToken) as ILocalSymbol;
 
-                RegisterCodeFix(context, type, localSymbol.Type, semanticModel);
+                ITypeSymbol typeSymbol = (localSymbol?.Type) ?? semanticModel.GetTypeSymbol(declarationExpression, context.CancellationToken);
+
+                RegisterCodeFix(context, type, typeSymbol, semanticModel);
             }
         }
 
@@ -64,7 +64,7 @@ namespace Roslynator.CSharp.CodeFixes
         {
             foreach (Diagnostic diagnostic in context.Diagnostics)
             {
-                CodeAction codeAction = CodeActionFactory.ChangeType(context.Document, type, typeSymbol, semanticModel, equivalenceKey: GetEquivalenceKey(diagnostic));
+                CodeAction codeAction = CodeActionFactory.UseExplicitType(context.Document, type, typeSymbol, semanticModel, equivalenceKey: GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);
             }

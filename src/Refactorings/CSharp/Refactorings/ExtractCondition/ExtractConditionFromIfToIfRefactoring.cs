@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +15,7 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
         {
         }
 
-        public static ExtractConditionFromIfToIfRefactoring Instance { get; } = new ExtractConditionFromIfToIfRefactoring();
+        public static ExtractConditionFromIfToIfRefactoring Instance { get; } = new();
 
         public override string Title
         {
@@ -27,7 +27,7 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
             in StatementListInfo statementsInfo,
             BinaryExpressionSyntax condition,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             var ifStatement = (IfStatementSyntax)condition.Parent;
 

@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1235OptimizeMethodCallTests : AbstractCSharpFixVerifier
+    public class RCS1235OptimizeMethodCallTests : AbstractCSharpDiagnosticVerifier<InvocationExpressionAnalyzer, OptimizeMethodCallCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.OptimizeMethodCall;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new InvocationExpressionAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new OptimizeMethodCallCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.OptimizeMethodCall;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.OptimizeMethodCall)]
         public async Task Test_CallCompareOrdinalInsteadOfCompare()

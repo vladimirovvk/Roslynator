@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -77,7 +77,6 @@ namespace Roslynator.CSharp
         /// <summary>
         /// Returns the string representation of the underlying syntax, not including its leading and trailing trivia.
         /// </summary>
-        /// <returns></returns>
         public override string ToString()
         {
             return IfStatement?.ToString() ?? "";

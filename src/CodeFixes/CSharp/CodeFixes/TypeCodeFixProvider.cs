@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,21 +16,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(TypeCodeFixProvider))]
     [Shared]
-    public class TypeCodeFixProvider : BaseCodeFixProvider
+    public sealed class TypeCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.UsingGenericTypeRequiresNumberOfTypeArguments); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0305_UsingGenericTypeRequiresNumberOfTypeArguments); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddTypeArgument))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddTypeArgument, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out TypeSyntax type))
                 return;
@@ -52,7 +52,7 @@ namespace Roslynator.CSharp.CodeFixes
                     {
                         CodeAction codeAction = CodeAction.Create(
                             GetTitle(typeParameters),
-                            cancellationToken =>
+                            ct =>
                             {
                                 SeparatedSyntaxList<TypeSyntax> typeArguments = CreateTypeArguments(typeParameters, type.SpanStart, semanticModel).ToSeparatedSyntaxList();
 
@@ -60,9 +60,9 @@ namespace Roslynator.CSharp.CodeFixes
 
                                 GenericNameSyntax newNode = SyntaxFactory.GenericName(identifierName.Identifier, SyntaxFactory.TypeArgumentList(typeArguments));
 
-                                return context.Document.ReplaceNodeAsync(type, newNode, cancellationToken);
+                                return context.Document.ReplaceNodeAsync(type, newNode, ct);
                             },
-                            GetEquivalenceKey(diagnostic, SymbolDisplay.ToDisplayString(namedTypeSymbol, SymbolDisplayFormats.Default)));
+                            GetEquivalenceKey(diagnostic, SymbolDisplay.ToDisplayString(namedTypeSymbol, SymbolDisplayFormats.DisplayName)));
 
                         context.RegisterCodeFix(codeAction, diagnostic);
                     }
@@ -87,7 +87,7 @@ namespace Roslynator.CSharp.CodeFixes
             int position,
             SemanticModel semanticModel)
         {
-            bool isFirst = true;
+            var isFirst = true;
 
             ImmutableArray<ISymbol> symbols = semanticModel.LookupSymbols(position);
 

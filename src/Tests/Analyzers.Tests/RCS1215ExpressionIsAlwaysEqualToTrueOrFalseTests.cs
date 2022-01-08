@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1215ExpressionIsAlwaysEqualToTrueOrFalseTests : AbstractCSharpFixVerifier
+    public class RCS1215ExpressionIsAlwaysEqualToTrueOrFalseTests : AbstractCSharpDiagnosticVerifier<BinaryOperatorAnalyzer, ExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.ExpressionIsAlwaysEqualToTrueOrFalse;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new ExpressionIsAlwaysEqualToTrueOrFalseAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new ExpressionCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.ExpressionIsAlwaysEqualToTrueOrFalse;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ExpressionIsAlwaysEqualToTrueOrFalse)]
         public async Task Test_True()
@@ -198,6 +193,78 @@ class C
         if (s == null || s.Contains(""a""))
         {
         }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ExpressionIsAlwaysEqualToTrueOrFalse)]
+        public async Task Test_EqualsToDoubleNaN()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        double x = default;
+        if ([|x == double.NaN|]) { }
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        double x = default;
+        if (double.IsNaN(x)) { }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ExpressionIsAlwaysEqualToTrueOrFalse)]
+        public async Task Test_EqualsToDoubleNaN_Right()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        double x = default;
+        if ([|double.NaN == x|]) { }
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        double x = default;
+        if (double.IsNaN(x)) { }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ExpressionIsAlwaysEqualToTrueOrFalse)]
+        public async Task Test_NotEqualsToDoubleNaN()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        double x = default;
+        if ([|x != double.NaN|]) { }
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        double x = default;
+        if (!double.IsNaN(x)) { }
     }
 }
 ");

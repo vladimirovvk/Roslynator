@@ -1,22 +1,17 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Roslynator.CSharp.CodeFixes;
-using Xunit;
 using Roslynator.CSharp.Analysis.UnusedMember;
+using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
+using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1213RemoveUnusedMemberDeclarationTests : AbstractCSharpFixVerifier
+    public class RCS1213RemoveUnusedMemberDeclarationTests : AbstractCSharpDiagnosticVerifier<UnusedMemberAnalyzer, UnusedMemberCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.RemoveUnusedMemberDeclaration;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UnusedMemberAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new UnusedMemberCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.RemoveUnusedMemberDeclaration;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveUnusedMemberDeclaration)]
         public async Task Test_Method()
@@ -331,6 +326,46 @@ class C
     }
 }
 ", options: Options.AddAllowedCompilerDiagnosticId("CS0246"));
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveUnusedMemberDeclaration)]
+        public async Task TestNoDiagnostic_Stackalloc()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+
+class C
+{
+    private const int K = 64;
+
+    public void M()
+    {
+        Span<char> buffer = stackalloc char[K];
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveUnusedMemberDeclaration)]
+        public async Task TestNoDiagnostic_UnityScriptMethods()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using UnityEngine;
+
+class C : MonoBehaviour
+{
+    private void Awake()
+    {
+    }
+}
+
+namespace UnityEngine
+{
+    class MonoBehaviour
+    {
+    }
+}
+", options: Options.AddConfigOption(ConfigOptionKeys.SuppressUnityScriptMethods, true));
         }
     }
 }

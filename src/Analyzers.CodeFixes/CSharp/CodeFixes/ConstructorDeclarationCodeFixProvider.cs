@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,9 +14,9 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ConstructorDeclarationCodeFixProvider))]
     [Shared]
-    public class ConstructorDeclarationCodeFixProvider : BaseCodeFixProvider
+    public sealed class ConstructorDeclarationCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
@@ -27,7 +27,7 @@ namespace Roslynator.CSharp.CodeFixes
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -42,7 +42,7 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Remove redundant base constructor call",
-                                cancellationToken => RemoveRedundantBaseConstructorCallRefactoring.RefactorAsync(context.Document, constructor, cancellationToken),
+                                ct => RemoveRedundantBaseConstructorCallRefactoring.RefactorAsync(context.Document, constructor, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -63,7 +63,7 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Change accessibility to 'protected'",
-                                cancellationToken => AbstractTypeShouldNotHavePublicConstructorsRefactoring.RefactorAsync(context.Document, constructor, cancellationToken),
+                                ct => AbstractTypeShouldNotHavePublicConstructorsRefactoring.RefactorAsync(context.Document, constructor, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);

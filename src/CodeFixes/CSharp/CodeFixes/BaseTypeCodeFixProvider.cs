@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,21 +15,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(BaseTypeCodeFixProvider))]
     [Shared]
-    public class BaseTypeCodeFixProvider : BaseCodeFixProvider
+    public sealed class BaseTypeCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.TypeInInterfaceListIsNotInterface); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0527_TypeInInterfaceListIsNotInterface); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceStructWithClass))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceStructWithClass, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out BaseTypeSyntax baseType))
                 return;
@@ -41,12 +41,12 @@ namespace Roslynator.CSharp.CodeFixes
 
             parent = parent.Parent;
 
-            if (!(parent is StructDeclarationSyntax structDeclaration))
+            if (parent is not StructDeclarationSyntax structDeclaration)
                 return;
 
             CodeAction codeAction = CodeAction.Create(
                 "Replace 'struct' with 'class'",
-                cancellationToken => context.Document.ReplaceNodeAsync(structDeclaration, ClassDeclaration(structDeclaration), cancellationToken),
+                ct => context.Document.ReplaceNodeAsync(structDeclaration, ClassDeclaration(structDeclaration), ct),
                 GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);

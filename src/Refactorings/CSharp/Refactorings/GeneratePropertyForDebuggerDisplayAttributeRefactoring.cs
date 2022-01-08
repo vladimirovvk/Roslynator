@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Linq;
@@ -23,7 +23,7 @@ namespace Roslynator.CSharp.Refactorings
             if (!attribute.IsParentKind(SyntaxKind.AttributeList))
                 return;
 
-            if (!attribute.Parent.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+            if (!attribute.Parent.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
                 return;
 
             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -47,8 +47,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Generate property '{DefaultNames.DebuggerDisplayPropertyName}'",
-                cancellationToken => RefactorAsync(context.Document, attribute, cancellationToken),
-                RefactoringIdentifiers.GeneratePropertyForDebuggerDisplayAttribute);
+                ct => RefactorAsync(context.Document, attribute, ct),
+                RefactoringDescriptors.GeneratePropertyForDebuggerDisplayAttribute);
         }
 
         private static bool CanRefactor(string value)
@@ -195,12 +195,13 @@ namespace Roslynator.CSharp.Refactorings
 
             string propertyName = NameGenerator.Default.EnsureUniqueName(DefaultNames.DebuggerDisplayPropertyName, semanticModel, typeDeclaration.OpenBraceToken.Span.End);
 
-            AttributeArgumentSyntax argument = attribute.ArgumentList.Arguments.First();
+            AttributeArgumentSyntax argument = attribute.ArgumentList.Arguments[0];
 
             TypeDeclarationSyntax newTypeDeclaration = typeDeclaration.ReplaceNode(
                 argument,
                 argument.WithExpression(
-                    StringLiteralExpression($"{{{propertyName},nq}}")).WithTriviaFrom(argument.Expression));
+                    StringLiteralExpression($"{{{propertyName},nq}}"))
+                    .WithTriviaFrom(argument.Expression));
 
             string value = semanticModel
                 .GetDeclaredSymbol(typeDeclaration, cancellationToken)
@@ -235,7 +236,7 @@ namespace Roslynator.CSharp.Refactorings
 
             int i = 0;
 
-            int lastPos = i;
+            int lastPos;
 
             while (true)
             {

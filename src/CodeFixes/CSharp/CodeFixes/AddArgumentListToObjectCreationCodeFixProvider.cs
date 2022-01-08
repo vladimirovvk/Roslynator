@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,21 +15,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddArgumentListToObjectCreationCodeFixProvider))]
     [Shared]
-    public class AddArgumentListToObjectCreationCodeFixProvider : BaseCodeFixProvider
+    public sealed class AddArgumentListToObjectCreationCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.NewExpressionRequiresParenthesesOrBracketsOrBracesAfterType); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS1526_NewExpressionRequiresParenthesesOrBracketsOrBracesAfterType); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddArgumentList))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddArgumentList, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, new TextSpan(context.Span.Start - 1, 0), out ObjectCreationExpressionSyntax objectCreation))
                 return;
@@ -43,7 +43,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Add argument list",
-                cancellationToken =>
+                ct =>
                 {
                     ObjectCreationExpressionSyntax newNode = objectCreation.Update(
                         objectCreation.NewKeyword,
@@ -51,7 +51,7 @@ namespace Roslynator.CSharp.CodeFixes
                         SyntaxFactory.ArgumentList().WithTrailingTrivia(objectCreation.Type.GetTrailingTrivia()),
                         objectCreation.Initializer);
 
-                    return context.Document.ReplaceNodeAsync(objectCreation, newNode, cancellationToken);
+                    return context.Document.ReplaceNodeAsync(objectCreation, newNode, ct);
                 },
                 GetEquivalenceKey(diagnostic));
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -16,21 +16,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SyntaxErrorCharExpectedCodeFixProvider))]
     [Shared]
-    public class SyntaxErrorCharExpectedCodeFixProvider : BaseCodeFixProvider
+    public sealed class SyntaxErrorCharExpectedCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.SyntaxErrorCharExpected); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS1003_SyntaxErrorCharExpected); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddMissingComma))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddMissingComma, context.Document, root.SyntaxTree))
+                return;
 
             ExpressionSyntax expression = root.FindNode(context.Span).FirstAncestorOrSelf<ExpressionSyntax>();
 
@@ -70,16 +70,12 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Add missing comma",
-                ct =>
-                {
-                    var textChange = new TextChange(new TextSpan(position, 0), ",");
-                    return context.Document.WithTextChangeAsync(textChange, ct);
-                },
+                ct => context.Document.WithTextChangeAsync(new TextSpan(position, 0), ",", ct),
                 GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);
 
-            int FindMissingCommaPosition<TNode>(SeparatedSyntaxList<TNode> nodes, TNode node) where TNode : SyntaxNode
+            static int FindMissingCommaPosition<TNode>(SeparatedSyntaxList<TNode> nodes, TNode node) where TNode : SyntaxNode
             {
                 int index = nodes.IndexOf(node);
 

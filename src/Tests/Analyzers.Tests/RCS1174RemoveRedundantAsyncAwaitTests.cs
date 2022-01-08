@@ -1,22 +1,21 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
-using Roslynator.CSharp.Analysis.RemoveAsyncAwait;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1174RemoveRedundantAsyncAwaitTests : AbstractCSharpFixVerifier
+    public class RCS1174RemoveRedundantAsyncAwaitTests : AbstractCSharpDiagnosticVerifier<RemoveRedundantAsyncAwaitAnalyzer, RemoveRedundantAsyncAwaitCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.RemoveRedundantAsyncAwait;
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.RemoveRedundantAsyncAwait;
 
-        public override DiagnosticAnalyzer Analyzer { get; } = new RemoveRedundantAsyncAwaitAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new RemoveRedundantAsyncAwaitCodeFixProvider();
+        public override CSharpTestOptions Options
+        {
+            get { return base.Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.CS0162_UnreachableCodeDetected); }
+        }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantAsyncAwait)]
         public async Task Test_Method_Body_ReturnAwait()
@@ -486,15 +485,15 @@ class C
 {
     [|async|] Task<object> GetAsync()
     {
-        bool f = false;
+        string s = null;
 
-        switch (f)
+        switch (s)
         {
-            case true:
+            case ""a"":
                 {
                     return await GetAsync();
                 }
-            case false:
+            case ""b"":
                 {
                     return await GetAsync();
                 }
@@ -512,15 +511,15 @@ class C
 {
     Task<object> GetAsync()
     {
-        bool f = false;
+        string s = null;
 
-        switch (f)
+        switch (s)
         {
-            case true:
+            case ""a"":
                 {
                     return GetAsync();
                 }
-            case false:
+            case ""b"":
                 {
                     return GetAsync();
                 }
@@ -729,7 +728,7 @@ class C
         return await DoAsync();
     }
 }
-", options: Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression));
+", options: Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.CS1997_SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantAsyncAwait)]
@@ -830,15 +829,15 @@ class C
 
     async Task<object> SwitchWithDefaultAsync()
     {
-        bool f = false;
+        string s = null;
 
-        switch (f)
+        switch (s)
         {
-            case true:
+            case ""a"":
                 {
                     return await GetAsync();
                 }
-            case false:
+            case ""b"":
                 {
                     return await GetAsync();
                 }
@@ -933,15 +932,15 @@ class C
 
     async Task<object> SwitchWithoutDefaultAsync()
     {
-        bool f = false;
+        string s = null;
 
-        switch (f)
+        switch (s)
         {
-            case true:
+            case ""a"":
                 {
                     return await GetAsync(await GetAsync());
                 }
-            case false:
+            case ""b"":
                 {
                     return await GetAsync(await GetAsync());
                 }
@@ -952,15 +951,15 @@ class C
 
     async Task<object> SwitchWithDefaultAsync()
     {
-        bool f = false;
+        string s = null;
 
-        switch (f)
+        switch (s)
         {
-            case true:
+            case ""a"":
                 {
                     return await GetAsync(await GetAsync());
                 }
-            case false:
+            case ""b"":
                 {
                     return await GetAsync(await GetAsync());
                 }

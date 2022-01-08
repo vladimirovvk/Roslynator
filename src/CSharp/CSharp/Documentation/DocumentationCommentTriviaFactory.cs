@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -7,9 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Roslynator.CSharp;
 using Roslynator.Text;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -18,7 +16,7 @@ namespace Roslynator.CSharp.Documentation
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     internal static class DocumentationCommentTriviaFactory
     {
-        private static readonly Regex _commentedEmptyLineRegex = new Regex(@"^///\s*(\r?\n|$)", RegexOptions.Multiline);
+        private static readonly Regex _commentedEmptyLineRegex = new(@"^///\s*(\r?\n|$)", RegexOptions.Multiline);
 
         public static SyntaxTrivia Parse(string xml, SemanticModel semanticModel, int position)
         {
@@ -52,12 +50,10 @@ namespace Roslynator.CSharp.Documentation
             {
                 XmlNodeSyntax xmlNode = content[i];
 
-                if (xmlNode.IsKind(SyntaxKind.XmlElement))
+                if (xmlNode is XmlElementSyntax xmlElement
+                    && xmlElement.IsLocalName("filterpriority", StringComparison.OrdinalIgnoreCase))
                 {
-                    var xmlElement = (XmlElementSyntax)xmlNode;
-
-                    if (xmlElement.IsLocalName("filterpriority", StringComparison.OrdinalIgnoreCase))
-                        content = content.RemoveAt(i);
+                    content = content.RemoveAt(i);
                 }
             }
 
@@ -78,7 +74,7 @@ namespace Roslynator.CSharp.Documentation
                 {
                     if (s.Length > 0)
                     {
-                        indent = indent ?? Regex.Match(s, "^ *").Value;
+                        indent ??= Regex.Match(s, "^ *").Value;
 
                         sb.Append("/// ");
                         s = Regex.Replace(s, $"^{indent}", "");

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -28,40 +28,6 @@ namespace Roslynator.CodeGeneration.CSharp
 
         private static IEnumerable<MemberDeclarationSyntax> CreateMembers(IEnumerable<RefactoringMetadata> refactorings, IComparer<string> comparer)
         {
-            yield return PropertyDeclaration(
-                Modifiers.Protected_Override(),
-                PredefinedStringType(),
-                Identifier("DisabledByDefault"),
-                AccessorList(AutoGetAccessorDeclaration()),
-                ParseExpression(
-                    "$\"" +
-                    string.Join(",", refactorings
-                        .Where(f => !f.IsEnabledByDefault)
-                        .OrderBy(f => f.Identifier, comparer)
-                        .Select(f => $"{{RefactoringIdentifiers.{f.Identifier}}}")) +
-                    "\""));
-
-            yield return PropertyDeclaration(
-                Modifiers.Protected_Override(),
-                PredefinedStringType(),
-                Identifier("MaxId"),
-                AccessorList(AutoGetAccessorDeclaration()),
-                ParseExpression($"RefactoringIdentifiers.{refactorings.OrderBy(f => f.Id, comparer).Last().Identifier}"));
-
-            yield return MethodDeclaration(
-                Modifiers.Internal_Static(),
-                VoidType(),
-                Identifier("SetRefactoringsDisabledByDefault"),
-                ParameterList(Parameter(IdentifierName("RefactoringSettings"), Identifier("settings"))),
-                Block(refactorings
-                    .Where(f => !f.IsEnabledByDefault)
-                    .OrderBy(f => f.Identifier, comparer)
-                    .Select(refactoring =>
-                    {
-                        return ExpressionStatement(
-                            ParseExpression($"settings.Disable(RefactoringIdentifiers.{refactoring.Identifier})"));
-                    })));
-
             yield return MethodDeclaration(
                 Modifiers.Protected_Override(),
                 VoidType(),

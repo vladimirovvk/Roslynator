@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +14,7 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
         {
         }
 
-        public static ExtractConditionFromWhileToNestedIfRefactoring Instance { get; } = new ExtractConditionFromWhileToNestedIfRefactoring();
+        public static ExtractConditionFromWhileToNestedIfRefactoring Instance { get; } = new();
 
         public override string Title
         {
@@ -36,7 +36,7 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
             WhileStatementSyntax whileStatement,
             BinaryExpressionSyntax condition,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             WhileStatementSyntax newNode = RemoveExpressionFromCondition(whileStatement, condition, expression);
 
@@ -50,7 +50,7 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
             WhileStatementSyntax whileStatement,
             BinaryExpressionSyntax condition,
             in ExpressionChain expressionChain,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             WhileStatementSyntax newNode = RemoveExpressionsFromCondition(whileStatement, condition, expressionChain);
 

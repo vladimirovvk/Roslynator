@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,23 +10,27 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AddBracesToIfElseAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AddBracesToIfElseAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AddBracesToIfElse); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AddBracesToIfElse);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeIfStatement, SyntaxKind.IfStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeElseClause, SyntaxKind.ElseClause);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIfStatement(f), SyntaxKind.IfStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeElseClause(f), SyntaxKind.ElseClause);
         }
 
         private static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
@@ -44,7 +48,7 @@ namespace Roslynator.CSharp.Analysis
             if (statement.ContainsDirectives)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AddBracesToIfElse, statement, CSharpFacts.GetTitle(ifStatement));
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AddBracesToIfElse, statement, CSharpFacts.GetTitle(ifStatement));
         }
 
         private static void AnalyzeElseClause(SyntaxNodeAnalysisContext context)
@@ -59,7 +63,7 @@ namespace Roslynator.CSharp.Analysis
             if (statement.ContainsDirectives)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AddBracesToIfElse, statement, CSharpFacts.GetTitle(elseClause));
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AddBracesToIfElse, statement, CSharpFacts.GetTitle(elseClause));
         }
     }
 }

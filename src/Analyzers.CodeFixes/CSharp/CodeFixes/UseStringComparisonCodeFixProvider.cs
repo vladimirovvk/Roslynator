@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -22,21 +22,25 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UseStringComparisonCodeFixProvider))]
     [Shared]
-    public class UseStringComparisonCodeFixProvider : BaseCodeFixProvider
+    public sealed class UseStringComparisonCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.UseStringComparison); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
-            if (!TryFindFirstAncestorOrSelf(root, context.Span, out SyntaxNode node, predicate: f => f.IsKind(
-                SyntaxKind.EqualsExpression,
-                SyntaxKind.NotEqualsExpression,
-                SyntaxKind.InvocationExpression)))
+            if (!TryFindFirstAncestorOrSelf(
+                root,
+                context.Span,
+                out SyntaxNode node,
+                predicate: f => f.IsKind(
+                    SyntaxKind.EqualsExpression,
+                    SyntaxKind.NotEqualsExpression,
+                    SyntaxKind.InvocationExpression)))
             {
                 return;
             }
@@ -118,7 +122,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 GetTitle(comparisonName),
-                cancellationToken => RefactorAsync(context.Document, binaryExpression, comparisonName, cancellationToken),
+                ct => RefactorAsync(context.Document, binaryExpression, comparisonName, ct),
                 GetEquivalenceKey(diagnostic, (comparisonName != "InvariantCultureIgnoreCase") ? comparisonName : null));
 
             context.RegisterCodeFix(codeAction, diagnostic);
@@ -165,7 +169,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 GetTitle(comparisonName),
-                cancellationToken => RefactorAsync(context.Document, invocationInfo, comparisonName, semanticModel, cancellationToken),
+                ct => RefactorAsync(context.Document, invocationInfo, comparisonName, semanticModel, ct),
                 GetEquivalenceKey(diagnostic, (comparisonName != "InvariantCultureIgnoreCase") ? comparisonName : null));
 
             context.RegisterCodeFix(codeAction, diagnostic);
@@ -278,7 +282,7 @@ namespace Roslynator.CSharp.CodeFixes
                     }
                 default:
                     {
-                        Debug.Fail(expression.Kind().ToString());
+                        SyntaxDebug.Fail(expression);
                         return Argument(expression);
                     }
             }
@@ -304,7 +308,7 @@ namespace Roslynator.CSharp.CodeFixes
                     }
                 default:
                     {
-                        Debug.Fail(expression.Kind().ToString());
+                        SyntaxDebug.Fail(expression);
                         return argument;
                     }
             }

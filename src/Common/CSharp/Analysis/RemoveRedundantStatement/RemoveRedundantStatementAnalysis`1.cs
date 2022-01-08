@@ -1,9 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
 {
@@ -11,7 +10,7 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
     {
         public virtual bool IsFixable(TStatement statement)
         {
-            if (!(statement.Parent is BlockSyntax block))
+            if (statement.Parent is not BlockSyntax block)
                 return false;
 
             if (!block.Statements.IsLast(statement, ignoreLocalFunctions: true))
@@ -72,7 +71,7 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
                         }
                     default:
                         {
-                            return IsFixable(containingStatement, block, kind);
+                            return IsFixable(statement, containingStatement, block, kind);
                         }
                 }
             }
@@ -135,12 +134,12 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
                         }
                     default:
                         {
-                            return IsFixable(containingStatement, block, kind);
+                            return IsFixable(statement, containingStatement, block, kind);
                         }
                 }
             }
         }
 
-        protected abstract bool IsFixable(StatementSyntax statement, BlockSyntax block, SyntaxKind parentKind);
+        protected abstract bool IsFixable(StatementSyntax statement, StatementSyntax containingStatement, BlockSyntax block, SyntaxKind parentKind);
     }
 }

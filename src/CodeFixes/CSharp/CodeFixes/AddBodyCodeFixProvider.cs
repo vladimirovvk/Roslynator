@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -18,27 +18,27 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddBodyCodeFixProvider))]
     [Shared]
-    public class AddBodyCodeFixProvider : BaseCodeFixProvider
+    public sealed class AddBodyCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.PartialMethodMayNotHaveMultipleDefiningDeclarations,
-                    CompilerDiagnosticIdentifiers.MemberMustDeclareBodyBecauseItIsNotMarkedAbstractExternOrPartial,
-                    CompilerDiagnosticIdentifiers.LocalFunctionMustAlwaysHaveBody);
+                    CompilerDiagnosticIdentifiers.CS0756_PartialMethodMayNotHaveMultipleDefiningDeclarations,
+                    CompilerDiagnosticIdentifiers.CS0501_MemberMustDeclareBodyBecauseItIsNotMarkedAbstractExternOrPartial,
+                    CompilerDiagnosticIdentifiers.CS8112_LocalFunctionMustAlwaysHaveBody);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddBody))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddBody, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(
                 root,
@@ -80,7 +80,7 @@ namespace Roslynator.CSharp.CodeFixes
                         if (parameterList == null)
                             break;
 
-                        return cancellationToken =>
+                        return ct =>
                         {
                             MethodDeclarationSyntax newNode = methodDeclaration
                                 .WithParameterList(parameterList.AppendToTrailingTrivia(semicolonToken.GetAllTrivia()))
@@ -88,7 +88,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 .WithBody(Block())
                                 .WithFormatterAnnotation();
 
-                            return context.Document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                            return context.Document.ReplaceNodeAsync(node, newNode, ct);
                         };
                     }
                 case SyntaxKind.ConstructorDeclaration:
@@ -105,7 +105,7 @@ namespace Roslynator.CSharp.CodeFixes
                         if (parameterList == null)
                             break;
 
-                        return cancellationToken =>
+                        return ct =>
                         {
                             ConstructorDeclarationSyntax newNode = constructorDeclaration
                                 .WithParameterList(parameterList.AppendToTrailingTrivia(semicolonToken.GetAllTrivia()))
@@ -113,7 +113,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 .WithBody(Block())
                                 .WithFormatterAnnotation();
 
-                            return context.Document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                            return context.Document.ReplaceNodeAsync(node, newNode, ct);
                         };
                     }
                 case SyntaxKind.DestructorDeclaration:
@@ -130,7 +130,7 @@ namespace Roslynator.CSharp.CodeFixes
                         if (parameterList == null)
                             break;
 
-                        return cancellationToken =>
+                        return ct =>
                         {
                             DestructorDeclarationSyntax newNode = destructorDeclaration
                                 .WithParameterList(parameterList.AppendToTrailingTrivia(semicolonToken.GetAllTrivia()))
@@ -138,7 +138,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 .WithBody(Block())
                                 .WithFormatterAnnotation();
 
-                            return context.Document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                            return context.Document.ReplaceNodeAsync(node, newNode, ct);
                         };
                     }
                 case SyntaxKind.OperatorDeclaration:
@@ -155,7 +155,7 @@ namespace Roslynator.CSharp.CodeFixes
                         if (parameterList == null)
                             break;
 
-                        return cancellationToken =>
+                        return ct =>
                         {
                             OperatorDeclarationSyntax newNode = operatorDeclaration
                                 .WithParameterList(parameterList.AppendToTrailingTrivia(semicolonToken.GetAllTrivia()))
@@ -163,7 +163,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 .WithBody(Block())
                                 .WithFormatterAnnotation();
 
-                            return context.Document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                            return context.Document.ReplaceNodeAsync(node, newNode, ct);
                         };
                     }
                 case SyntaxKind.ConversionOperatorDeclaration:
@@ -180,7 +180,7 @@ namespace Roslynator.CSharp.CodeFixes
                         if (parameterList == null)
                             break;
 
-                        return cancellationToken =>
+                        return ct =>
                         {
                             ConversionOperatorDeclarationSyntax newNode = conversionOperatorDeclaration
                                 .WithParameterList(parameterList.AppendToTrailingTrivia(semicolonToken.GetAllTrivia()))
@@ -188,7 +188,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 .WithBody(Block())
                                 .WithFormatterAnnotation();
 
-                            return context.Document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                            return context.Document.ReplaceNodeAsync(node, newNode, ct);
                         };
                     }
                 case SyntaxKind.GetAccessorDeclaration:
@@ -201,7 +201,7 @@ namespace Roslynator.CSharp.CodeFixes
                         if (semicolonToken.Kind() == SyntaxKind.None)
                             break;
 
-                        return cancellationToken =>
+                        return ct =>
                         {
                             AccessorDeclarationSyntax newNode = accessorDeclaration
                                 .WithSemicolonToken(default(SyntaxToken))
@@ -215,7 +215,7 @@ namespace Roslynator.CSharp.CodeFixes
                             if (!keyword.HasTrailingTrivia)
                                 newNode = newNode.WithKeyword(keyword.WithTrailingTrivia(ElasticSpace));
 
-                            return context.Document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                            return context.Document.ReplaceNodeAsync(node, newNode, ct);
                         };
                     }
                 case SyntaxKind.LocalFunctionStatement:
@@ -232,7 +232,7 @@ namespace Roslynator.CSharp.CodeFixes
                         if (parameterList == null)
                             break;
 
-                        return cancellationToken =>
+                        return ct =>
                         {
                             LocalFunctionStatementSyntax newNode = localFunction
                                 .WithParameterList(parameterList.AppendToTrailingTrivia(semicolonToken.GetAllTrivia()))
@@ -240,12 +240,12 @@ namespace Roslynator.CSharp.CodeFixes
                                 .WithBody(Block())
                                 .WithFormatterAnnotation();
 
-                            return context.Document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                            return context.Document.ReplaceNodeAsync(node, newNode, ct);
                         };
                     }
             }
 
-            Debug.Fail(node.Kind().ToString());
+            SyntaxDebug.Fail(node);
 
             return null;
         }

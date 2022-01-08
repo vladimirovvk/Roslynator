@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -71,6 +71,12 @@ namespace Roslynator.CSharp
             if (typeof(TNode) == typeof(StructDeclarationSyntax))
                 return new StructAccessibility();
 
+            if (typeof(TNode) == typeof(RecordDeclarationSyntax))
+                return new RecordAccessibility();
+
+            if (typeof(TNode) == typeof(IncompleteMemberSyntax))
+                return new IncompleteMemberAccessibility();
+
             throw new InvalidOperationException();
         }
 
@@ -78,28 +84,24 @@ namespace Roslynator.CSharp
         /// Returns an accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public abstract Accessibility GetAccessibility(TNode declaration);
 
         /// <summary>
         /// Returns a default accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public abstract Accessibility GetDefaultAccessibility(TNode declaration);
 
         /// <summary>
         /// Returns an explicit accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public abstract Accessibility GetExplicitAccessibility(TNode declaration);
 
         /// <summary>
         /// Returns a default explicit accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public abstract Accessibility GetDefaultExplicitAccessibility(TNode declaration);
 
         private class AccessorAccessibility : SyntaxAccessibility<AccessorDeclarationSyntax>
@@ -121,7 +123,7 @@ namespace Roslynator.CSharp
                         return SyntaxAccessibility<EventDeclarationSyntax>.Instance.GetDefaultAccessibility((EventDeclarationSyntax)containingDeclaration);
                 }
 
-                Debug.Assert(containingDeclaration == null, containingDeclaration.Kind().ToString());
+                SyntaxDebug.Assert(containingDeclaration == null, containingDeclaration);
 
                 return Accessibility.NotApplicable;
             }
@@ -159,7 +161,7 @@ namespace Roslynator.CSharp
                             return SyntaxAccessibility<EventDeclarationSyntax>.Instance.GetAccessibility((EventDeclarationSyntax)containingDeclaration);
                     }
 
-                    Debug.Fail(containingDeclaration.Kind().ToString());
+                    SyntaxDebug.Fail(containingDeclaration);
 
                     return Accessibility.NotApplicable;
                 }
@@ -186,7 +188,7 @@ namespace Roslynator.CSharp
                 if (declaration == null)
                     throw new ArgumentNullException(nameof(declaration));
 
-                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
                     ? Accessibility.Private
                     : Accessibility.Internal;
             }
@@ -196,7 +198,7 @@ namespace Roslynator.CSharp
                 if (declaration == null)
                     throw new ArgumentNullException(nameof(declaration));
 
-                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
                     ? Accessibility.Private
                     : Accessibility.Internal;
             }
@@ -325,7 +327,7 @@ namespace Roslynator.CSharp
                 if (declaration == null)
                     throw new ArgumentNullException(nameof(declaration));
 
-                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
                     ? Accessibility.Private
                     : Accessibility.Internal;
             }
@@ -335,7 +337,7 @@ namespace Roslynator.CSharp
                 if (declaration == null)
                     throw new ArgumentNullException(nameof(declaration));
 
-                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+                return (declaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
                     ? Accessibility.Private
                     : Accessibility.Internal;
             }
@@ -886,6 +888,83 @@ namespace Roslynator.CSharp
             }
 
             public override Accessibility GetExplicitAccessibility(StructDeclarationSyntax declaration)
+            {
+                if (declaration == null)
+                    throw new ArgumentNullException(nameof(declaration));
+
+                return SyntaxAccessibility.GetExplicitAccessibility(declaration.Modifiers);
+            }
+        }
+
+        private class RecordAccessibility : SyntaxAccessibility<RecordDeclarationSyntax>
+        {
+            public override Accessibility GetDefaultAccessibility(RecordDeclarationSyntax declaration)
+            {
+                return BaseTypeAccessibility.GetDefaultAccessibility(declaration);
+            }
+
+            public override Accessibility GetDefaultExplicitAccessibility(RecordDeclarationSyntax declaration)
+            {
+                return BaseTypeAccessibility.GetDefaultExplicitAccessibility(declaration);
+            }
+
+            public override Accessibility GetAccessibility(RecordDeclarationSyntax declaration)
+            {
+                if (declaration == null)
+                    throw new ArgumentNullException(nameof(declaration));
+
+                Accessibility accessibility = SyntaxAccessibility.GetExplicitAccessibility(declaration.Modifiers);
+
+                return (accessibility != Accessibility.NotApplicable)
+                    ? accessibility
+                    : GetDefaultAccessibility(declaration);
+            }
+
+            public override Accessibility GetExplicitAccessibility(RecordDeclarationSyntax declaration)
+            {
+                if (declaration == null)
+                    throw new ArgumentNullException(nameof(declaration));
+
+                return SyntaxAccessibility.GetExplicitAccessibility(declaration.Modifiers);
+            }
+        }
+
+        private class IncompleteMemberAccessibility : SyntaxAccessibility<IncompleteMemberSyntax>
+        {
+            public override Accessibility GetDefaultAccessibility(IncompleteMemberSyntax declaration)
+            {
+                if (declaration == null)
+                    throw new ArgumentNullException(nameof(declaration));
+
+                return (declaration.IsParentKind(SyntaxKind.InterfaceDeclaration))
+                    ? Accessibility.Public
+                    : Accessibility.Private;
+            }
+
+            public override Accessibility GetDefaultExplicitAccessibility(IncompleteMemberSyntax declaration)
+            {
+                if (declaration == null)
+                    throw new ArgumentNullException(nameof(declaration));
+
+                return Accessibility.NotApplicable;
+            }
+
+            public override Accessibility GetAccessibility(IncompleteMemberSyntax declaration)
+            {
+                if (declaration == null)
+                    throw new ArgumentNullException(nameof(declaration));
+
+                if (declaration.IsParentKind(SyntaxKind.InterfaceDeclaration))
+                    return Accessibility.Public;
+
+                Accessibility accessibility = SyntaxAccessibility.GetExplicitAccessibility(declaration.Modifiers);
+
+                return (accessibility != Accessibility.NotApplicable)
+                    ? accessibility
+                    : GetDefaultAccessibility(declaration);
+            }
+
+            public override Accessibility GetExplicitAccessibility(IncompleteMemberSyntax declaration)
             {
                 if (declaration == null)
                     throw new ArgumentNullException(nameof(declaration));

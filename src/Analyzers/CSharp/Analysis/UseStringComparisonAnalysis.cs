@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Linq;
@@ -126,7 +126,7 @@ namespace Roslynator.CSharp.Analysis
             in SimpleMemberInvocationExpressionInfo invocationInfo,
             ArgumentSyntax argument)
         {
-            if (!(argument.Parent is ArgumentListSyntax argumentList))
+            if (argument.Parent is not ArgumentListSyntax argumentList)
                 return;
 
             SeparatedSyntaxList<ArgumentSyntax> arguments = argumentList.Arguments;
@@ -253,7 +253,7 @@ namespace Roslynator.CSharp.Analysis
                     || name == "ToUpperInvariant";
             }
 
-            invocationInfo = default(SimpleMemberInvocationExpressionInfo);
+            invocationInfo = default;
             return false;
         }
 
@@ -277,7 +277,7 @@ namespace Roslynator.CSharp.Analysis
 
         private static void ReportDiagnostic(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseStringComparison, node);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseStringComparison, node);
         }
     }
 }

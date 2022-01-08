@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Roslynator.FindSymbols;
@@ -10,7 +10,8 @@ namespace Roslynator.Documentation
         protected AbstractSymbolDefinitionTextWriter(
             SymbolFilterOptions filter,
             DefinitionListFormat format = null,
-            SymbolDocumentationProvider documentationProvider = null) : base(filter, format, documentationProvider)
+            SymbolDocumentationProvider documentationProvider = null,
+            INamedTypeSymbol hierarchyRoot = null) : base(filter, format, documentationProvider, hierarchyRoot)
         {
         }
 
@@ -191,7 +192,7 @@ namespace Roslynator.Documentation
         public override void WriteAttributeSeparator(ISymbol symbol)
         {
             if (symbol.Kind == SymbolKind.Assembly
-                || (Format.Includes(SymbolDefinitionFormatOptions.Attributes) && SupportsMultilineDefinitions))
+                || (Format.Includes(WrapListOptions.Attributes) && SupportsMultilineDefinitions))
             {
                 Write("]");
                 WriteLine();

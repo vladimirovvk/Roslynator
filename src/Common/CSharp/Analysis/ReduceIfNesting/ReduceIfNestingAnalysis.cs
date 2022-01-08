@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using System.Threading;
@@ -25,7 +25,7 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
             IfStatementSyntax ifStatement,
             SemanticModel semanticModel,
             ReduceIfNestingOptions options,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (!IsFixable(ifStatement))
                 return Fail(ifStatement);
@@ -38,7 +38,7 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
             SemanticModel semanticModel,
             SyntaxKind jumpKind,
             ReduceIfNestingOptions options,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             StatementListInfo statementsInfo = SyntaxInfo.StatementListInfo(ifStatement);
 
@@ -158,10 +158,10 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
                         }
 
                         if (semanticModel
-                                .GetDeclaredSymbol(methodDeclaration, cancellationToken)?
-                                .ReturnType
-                                .OriginalDefinition
-                                .IsIEnumerableOrIEnumerableOfT() == true
+                            .GetDeclaredSymbol(methodDeclaration, cancellationToken)?
+                            .ReturnType
+                            .OriginalDefinition
+                            .IsIEnumerableOrIEnumerableOfT() == true
                             && methodDeclaration.ContainsYield())
                         {
                             return Success(SyntaxKind.YieldBreakStatement, parent);
@@ -188,9 +188,9 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
                         }
 
                         if (semanticModel.GetDeclaredSymbol(localFunction, cancellationToken)?
-                                .ReturnType
-                                .OriginalDefinition
-                                .IsIEnumerableOrIEnumerableOfT() == true
+                            .ReturnType
+                            .OriginalDefinition
+                            .IsIEnumerableOrIEnumerableOfT() == true
                             && localFunction.ContainsYield())
                         {
                             return Success(SyntaxKind.YieldBreakStatement, parent);
@@ -207,7 +207,7 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
                         if (jumpKind != SyntaxKind.None)
                             return Success(jumpKind, parent);
 
-                        if (!(semanticModel.GetSymbol(anonymousFunction, cancellationToken) is IMethodSymbol methodSymbol))
+                        if (semanticModel.GetSymbol(anonymousFunction, cancellationToken) is not IMethodSymbol methodSymbol)
                             return Fail(parent);
 
                         if (methodSymbol.ReturnsVoid)
@@ -225,7 +225,7 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
                     {
                         ifStatement = (IfStatementSyntax)parent;
 
-                        if (ifStatement.Parent is ElseClauseSyntax elseClause)
+                        if (ifStatement.IsParentKind(SyntaxKind.ElseClause))
                         {
                             if (ifStatement.Else != null)
                                 return Fail(parent);
@@ -345,11 +345,11 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
         {
             switch (statement)
             {
-                case BreakStatementSyntax breakStatement:
+                case BreakStatementSyntax _:
                     {
                         return SyntaxKind.BreakStatement;
                     }
-                case ContinueStatementSyntax continueStatement:
+                case ContinueStatementSyntax _:
                     {
                         return SyntaxKind.ContinueStatement;
                     }
@@ -391,7 +391,7 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
 
         internal static bool IsFixableRecursively(IfStatementSyntax ifStatement, SyntaxKind jumpKind)
         {
-            if (!(ifStatement.Statement is BlockSyntax block))
+            if (ifStatement.Statement is not BlockSyntax block)
                 return false;
 
             SyntaxList<StatementSyntax> statements = block.Statements;
@@ -420,7 +420,7 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
             if (ifStatement.Condition?.IsMissing != false)
                 return false;
 
-            if (!(ifStatement.Statement is BlockSyntax block))
+            if (ifStatement.Statement is not BlockSyntax block)
                 return false;
 
             SyntaxList<StatementSyntax> statements = block.Statements;
@@ -429,7 +429,7 @@ namespace Roslynator.CSharp.Analysis.ReduceIfNesting
                 return false;
 
             return statements.Count > 1
-                || GetJumpKind(statements.First()) == SyntaxKind.None;
+                || GetJumpKind(statements[0]) == SyntaxKind.None;
         }
     }
 }

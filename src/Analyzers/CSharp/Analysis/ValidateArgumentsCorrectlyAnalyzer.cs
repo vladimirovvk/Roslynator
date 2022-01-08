@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,24 +12,29 @@ using Roslynator.CSharp.SyntaxWalkers;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class ValidateArgumentsCorrectlyAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class ValidateArgumentsCorrectlyAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.ValidateArgumentsCorrectly); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.ValidateArgumentsCorrectly);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeMethodDeclaration(f), SyntaxKind.MethodDeclaration);
         }
 
-        public static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
@@ -43,7 +48,7 @@ namespace Roslynator.CSharp.Analysis
             if (parameterList == null)
                 return;
 
-            if (parameterList.Parameters.Count == 0)
+            if (!parameterList.Parameters.Any())
                 return;
 
             SyntaxList<StatementSyntax> statements = body.Statements;
@@ -76,13 +81,13 @@ namespace Roslynator.CSharp.Analysis
 
             context.CancellationToken.ThrowIfCancellationRequested();
 
-            ContainsYieldWalker walker = ContainsYieldWalker.Cache.GetInstance();
+            ContainsYieldWalker walker = ContainsYieldWalker.GetInstance();
 
             walker.VisitBlock(body);
 
             YieldStatementSyntax yieldStatement = walker.YieldStatement;
 
-            ContainsYieldWalker.Cache.Free(walker);
+            ContainsYieldWalker.Free(walker);
 
             if (yieldStatement == null)
                 return;
@@ -90,8 +95,9 @@ namespace Roslynator.CSharp.Analysis
             if (yieldStatement.SpanStart < statements[index].Span.End)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.ValidateArgumentsCorrectly,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.ValidateArgumentsCorrectly,
                 Location.Create(body.SyntaxTree, new TextSpan(statements[index + 1].SpanStart, 0)));
         }
 

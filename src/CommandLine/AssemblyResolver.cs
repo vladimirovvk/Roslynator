@@ -1,6 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using static Roslynator.Logger;
 
@@ -10,13 +12,14 @@ namespace Roslynator.CommandLine
     {
         static AssemblyResolver()
         {
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => CurrentDomain_AssemblyResolve(sender, args);
         }
 
         internal static void Register()
         {
         }
 
+        [SuppressMessage("Redundancy", "RCS1163:Unused parameter.")]
         private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {
             var assemblyName = new AssemblyName(args.Name);
@@ -24,7 +27,7 @@ namespace Roslynator.CommandLine
             if (assemblyName.Name.EndsWith(".resources"))
                 return null;
 
-            WriteLine($"Resolve assembly '{args.Name}'", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+            WriteLine($"Resolve assembly '{args.Name}'", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
             switch (assemblyName.Name)
             {
@@ -50,7 +53,14 @@ namespace Roslynator.CommandLine
                     }
             }
 
-            WriteLine($"Unable to resolve assembly '{args.Name}'.", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+            Debug.Assert(
+                (!assemblyName.Name.StartsWith("Microsoft.")
+                    || assemblyName.Name.StartsWith("Microsoft.VisualStudio.")
+                    || string.Equals(assemblyName.Name, "Microsoft.DiaSymReader", StringComparison.Ordinal))
+                    && !assemblyName.Name.StartsWith("System."),
+                assemblyName.ToString());
+
+            WriteLine($"Unable to resolve assembly '{assemblyName}'.", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
             return null;
 

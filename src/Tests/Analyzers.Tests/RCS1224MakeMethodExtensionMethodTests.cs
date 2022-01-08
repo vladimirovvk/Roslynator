@@ -1,24 +1,19 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1224MakeMethodExtensionMethodTests : AbstractCSharpFixVerifier
+    public class RCS1224MakeMethodExtensionMethodTests : AbstractCSharpDiagnosticVerifier<MakeMethodExtensionMethodAnalyzer, MemberDeclarationCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.MakeMethodExtensionMethod;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new MakeMethodExtensionMethodAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new MemberDeclarationCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.MakeMethodExtensionMethod;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MakeMethodExtensionMethod)]
-        public async Task Test_Accessibility_ImplictlyInternal()
+        public async Task Test_Accessibility_ImplicitlyInternal()
         {
             await VerifyDiagnosticAndFixAsync(@"
 static class FooExtensions
@@ -250,7 +245,7 @@ public static class FooExtensions
 {
         public static unsafe void M(int* p) { }
 }
-");
+", options: Options.WithAllowUnsafe(true));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MakeMethodExtensionMethod)]

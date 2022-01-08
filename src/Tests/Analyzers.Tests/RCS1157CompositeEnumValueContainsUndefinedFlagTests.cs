@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1157CompositeEnumValueContainsUndefinedFlagTests : AbstractCSharpFixVerifier
+    public class RCS1157CompositeEnumValueContainsUndefinedFlagTests : AbstractCSharpDiagnosticVerifier<EnumSymbolAnalyzer, CompositeEnumValueContainsUndefinedFlagCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.CompositeEnumValueContainsUndefinedFlag;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new EnumSymbolAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new CompositeEnumValueContainsUndefinedFlagCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.CompositeEnumValueContainsUndefinedFlag;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.CompositeEnumValueContainsUndefinedFlag)]
         public async Task Test()

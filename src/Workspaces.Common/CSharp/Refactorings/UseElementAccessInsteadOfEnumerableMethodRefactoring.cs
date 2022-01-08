@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +17,7 @@ namespace Roslynator.CSharp.Refactorings
         public static Task<Document> UseElementAccessInsteadOfElementAtAsync(
             Document document,
             InvocationExpressionSyntax invocation,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ArgumentListSyntax argumentList = invocation.ArgumentList;
 
@@ -51,7 +51,7 @@ namespace Roslynator.CSharp.Refactorings
         public static Task<Document> UseElementAccessInsteadOfFirstAsync(
             Document document,
             InvocationExpressionSyntax invocation,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ArgumentListSyntax argumentList = invocation.ArgumentList;
 
@@ -86,7 +86,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             InvocationExpressionSyntax invocation,
             string propertyName,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ArgumentListSyntax argumentList = invocation.ArgumentList;
 

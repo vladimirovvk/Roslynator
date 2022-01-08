@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,19 +14,19 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(StatementCodeFixProvider))]
     [Shared]
-    public class StatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class StatementCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.EmptySwitchBlock,
-                    CompilerDiagnosticIdentifiers.NoEnclosingLoopOutOfWhichToBreakOrContinue);
+                    CompilerDiagnosticIdentifiers.CS1522_EmptySwitchBlock,
+                    CompilerDiagnosticIdentifiers.CS0139_NoEnclosingLoopOutOfWhichToBreakOrContinue);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -37,23 +37,23 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.EmptySwitchBlock:
+                    case CompilerDiagnosticIdentifiers.CS1522_EmptySwitchBlock:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveEmptySwitchStatement))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveEmptySwitchStatement, context.Document, root.SyntaxTree))
                                 break;
 
-                            if (!(statement is SwitchStatementSyntax switchStatement))
+                            if (statement is not SwitchStatementSyntax switchStatement)
                                 break;
 
                             CodeFixRegistrator.RemoveStatement(context, diagnostic, switchStatement);
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.NoEnclosingLoopOutOfWhichToBreakOrContinue:
+                    case CompilerDiagnosticIdentifiers.CS0139_NoEnclosingLoopOutOfWhichToBreakOrContinue:
                         {
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveJumpStatement))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveJumpStatement, context.Document, root.SyntaxTree))
                                 CodeFixRegistrator.RemoveStatement(context, diagnostic, statement);
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceBreakWithContinue)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceBreakWithContinue, context.Document, root.SyntaxTree)
                                 && statement.Kind() == SyntaxKind.BreakStatement)
                             {
                                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -65,7 +65,7 @@ namespace Roslynator.CSharp.CodeFixes
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Replace 'break' with 'return'",
-                                            cancellationToken =>
+                                            ct =>
                                             {
                                                 var breakStatement = (BreakStatementSyntax)statement;
                                                 SyntaxToken breakKeyword = breakStatement.BreakKeyword;
@@ -75,7 +75,7 @@ namespace Roslynator.CSharp.CodeFixes
                                                     null,
                                                     breakStatement.SemicolonToken);
 
-                                                return context.Document.ReplaceNodeAsync(statement, newStatement, cancellationToken);
+                                                return context.Document.ReplaceNodeAsync(statement, newStatement, ct);
                                             },
                                             GetEquivalenceKey(diagnostic, CodeFixIdentifiers.ReplaceBreakWithContinue));
 
@@ -84,10 +84,10 @@ namespace Roslynator.CSharp.CodeFixes
                                 }
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveJumpStatement))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveJumpStatement, context.Document, root.SyntaxTree))
                                 CodeFixRegistrator.RemoveStatement(context, diagnostic, statement);
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceBreakWithContinue)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceBreakWithContinue, context.Document, root.SyntaxTree)
                                 && statement.Kind() == SyntaxKind.BreakStatement)
                             {
                                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -98,7 +98,7 @@ namespace Roslynator.CSharp.CodeFixes
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Replace 'break' with 'return'",
-                                            cancellationToken =>
+                                            ct =>
                                             {
                                                 var breakStatement = (BreakStatementSyntax)statement;
                                                 SyntaxToken breakKeyword = breakStatement.BreakKeyword;
@@ -108,7 +108,7 @@ namespace Roslynator.CSharp.CodeFixes
                                                     null,
                                                     breakStatement.SemicolonToken);
 
-                                                return context.Document.ReplaceNodeAsync(statement, newStatement, cancellationToken);
+                                                return context.Document.ReplaceNodeAsync(statement, newStatement, ct);
                                             },
                                             GetEquivalenceKey(diagnostic, CodeFixIdentifiers.ReplaceBreakWithContinue));
 

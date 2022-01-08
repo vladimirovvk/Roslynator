@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -9,18 +9,23 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class ImplementExceptionConstructorsAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class ImplementExceptionConstructorsAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.ImplementExceptionConstructors); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.ImplementExceptionConstructors);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
             context.RegisterCompilationStartAction(startContext =>
@@ -34,7 +39,7 @@ namespace Roslynator.CSharp.Analysis
             });
         }
 
-        public static void AnalyzeNamedType(SymbolAnalysisContext context, INamedTypeSymbol exceptionSymbol)
+        private static void AnalyzeNamedType(SymbolAnalysisContext context, INamedTypeSymbol exceptionSymbol)
         {
             var symbol = (INamedTypeSymbol)context.Symbol;
 
@@ -63,7 +68,7 @@ namespace Roslynator.CSharp.Analysis
 
             var classDeclaration = (ClassDeclarationSyntax)symbol.GetSyntax(context.CancellationToken);
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.ImplementExceptionConstructors, classDeclaration.Identifier);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.ImplementExceptionConstructors, classDeclaration.Identifier);
         }
 
         private static bool IsSerializationConstructor(IMethodSymbol methodSymbol)

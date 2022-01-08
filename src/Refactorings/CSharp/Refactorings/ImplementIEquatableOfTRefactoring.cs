@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -50,7 +50,7 @@ namespace Roslynator.CSharp.Refactorings
             foreach (INamedTypeSymbol interfaceSymbol in classSymbol.AllInterfaces)
             {
                 if (interfaceSymbol.HasMetadataName(MetadataNames.System_IEquatable_T)
-                    && interfaceSymbol.TypeArguments.Single().Equals(classSymbol))
+                    && SymbolEqualityComparer.Default.Equals(interfaceSymbol.TypeArguments.Single(), classSymbol))
                 {
                     return;
                 }
@@ -66,7 +66,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 GetTitle(equatableSymbol, semanticModel, classDeclaration.SpanStart),
                 ct => RefactorAsync(context.Document, classDeclaration, classSymbol, equatableSymbol, semanticModel, ct),
-                RefactoringIdentifiers.ImplementIEquatableOfT);
+                RefactoringDescriptors.ImplementIEquatableOfT);
         }
 
         public static async Task ComputeRefactoringAsync(RefactoringContext context, StructDeclarationSyntax structDeclaration)
@@ -101,7 +101,7 @@ namespace Roslynator.CSharp.Refactorings
             foreach (INamedTypeSymbol interfaceSymbol in typeSymbol.AllInterfaces)
             {
                 if (interfaceSymbol.HasMetadataName(MetadataNames.System_IEquatable_T)
-                    && interfaceSymbol.TypeArguments.Single().Equals(typeSymbol))
+                    && SymbolEqualityComparer.Default.Equals(interfaceSymbol.TypeArguments.Single(), typeSymbol))
                 {
                     return;
                 }
@@ -117,12 +117,12 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 GetTitle(equatableSymbol, semanticModel, structDeclaration.SpanStart),
                 ct => RefactorAsync(context.Document, structDeclaration, typeSymbol, equatableSymbol, semanticModel, ct),
-                RefactoringIdentifiers.ImplementIEquatableOfT);
+                RefactoringDescriptors.ImplementIEquatableOfT);
         }
 
         private static string GetTitle(INamedTypeSymbol equatableSymbol, SemanticModel semanticModel, int position)
         {
-            return $"Implement {SymbolDisplay.ToMinimalDisplayString(equatableSymbol, semanticModel, position, SymbolDisplayFormats.Default)}";
+            return $"Implement {SymbolDisplay.ToMinimalDisplayString(equatableSymbol, semanticModel, position, SymbolDisplayFormats.DisplayName)}";
         }
 
         private static Task<Document> RefactorAsync(

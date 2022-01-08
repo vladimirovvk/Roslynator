@@ -359,7 +359,7 @@ namespace Roslynator.CSharp.Refactorings.ExpandLinqMethodOperation
             }
 
             if (methodSymbol.Name == "All")
-                condition = Negator.LogicallyNegate(condition, semanticModel, cancellationToken);
+                condition = SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(condition, semanticModel, cancellationToken);
 
             IfStatementSyntax ifStatement = IfStatement(
                 condition,
@@ -397,7 +397,7 @@ namespace Roslynator.CSharp.Refactorings.ExpandLinqMethodOperation
             {
                 var expressionBody = (ArrowExpressionClauseSyntax)parent;
 
-                (SyntaxNode node, BlockSyntax body) = ExpandExpressionBodyRefactoring.Refactor(expressionBody, semanticModel, cancellationToken);
+                (SyntaxNode node, BlockSyntax body) = ConvertExpressionBodyToBlockBodyRefactoring.Refactor(expressionBody, semanticModel, cancellationToken);
 
                 returnStatement = (ReturnStatementSyntax)body.Statements.Single();
 

@@ -1,18 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.CodeFixes.Tests
 {
-    public class CS1012TooManyCharactersInCharacterLiteralTests : AbstractCSharpCompilerDiagnosticFixVerifier
+    public class CS1012TooManyCharactersInCharacterLiteralTests : AbstractCSharpCompilerDiagnosticFixVerifier<LiteralExpressionCodeFixProvider>
     {
-        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.TooManyCharactersInCharacterLiteral;
+        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.CS1012_TooManyCharactersInCharacterLiteral;
 
-        public override CodeFixProvider FixProvider { get; } = new LiteralExpressionCodeFixProvider();
-
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.TooManyCharactersInCharacterLiteral)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1012_TooManyCharactersInCharacterLiteral)]
         public async Task Test()
         {
             await VerifyFixAsync(@"

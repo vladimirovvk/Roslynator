@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -9,100 +9,164 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CodeFixes;
+using Roslynator.CSharp.Refactorings;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SimpleNameCodeFixProvider))]
     [Shared]
-    public class SimpleNameCodeFixProvider : BaseCodeFixProvider
+    public sealed class SimpleNameCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.CannotConvertMethodGroupToNonDelegateType,
-                    CompilerDiagnosticIdentifiers.TypeOrNamespaceNameCouldNotBeFound,
-                    CompilerDiagnosticIdentifiers.NameIsNotValidInGivenContext);
+                    CompilerDiagnosticIdentifiers.CS0428_CannotConvertMethodGroupToNonDelegateType,
+                    CompilerDiagnosticIdentifiers.CS0246_TypeOrNamespaceNameCouldNotBeFound,
+                    CompilerDiagnosticIdentifiers.CS0119_NameIsNotValidInGivenContext);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
-            if (!TryFindFirstAncestorOrSelf(root, context.Span, out SimpleNameSyntax simpleName))
+            if (!TryFindNode(root, context.Span, out SyntaxNode node))
                 return;
 
-            foreach (Diagnostic diagnostic in context.Diagnostics)
+            if (node is not SimpleNameSyntax simpleName)
+                return;
+
+            Document document = context.Document;
+            Diagnostic diagnostic = context.Diagnostics[0];
+            string diagnosticId = diagnostic.Id;
+
+            if (diagnosticId == CompilerDiagnosticIdentifiers.CS0428_CannotConvertMethodGroupToNonDelegateType
+                || diagnosticId == CompilerDiagnosticIdentifiers.CS0119_NameIsNotValidInGivenContext)
             {
-                switch (diagnostic.Id)
+                if (!IsEnabled(diagnosticId, CodeFixIdentifiers.AddArgumentList, document, root.SyntaxTree))
+                    return;
+
+                if (!simpleName.IsParentKind(SyntaxKind.SimpleMemberAccessExpression))
+                    return;
+
+                var memberAccess = (MemberAccessExpressionSyntax)simpleName.Parent;
+
+                CodeAction codeAction = CodeAction.Create(
+                    "Add argument list",
+                    ct =>
+                    {
+                        InvocationExpressionSyntax invocationExpression = InvocationExpression(
+                            memberAccess.WithoutTrailingTrivia(),
+                            ArgumentList().WithTrailingTrivia(memberAccess.GetTrailingTrivia()));
+
+                        return document.ReplaceNodeAsync(memberAccess, invocationExpression, ct);
+                    },
+                    GetEquivalenceKey(diagnostic));
+
+                context.RegisterCodeFix(codeAction, diagnostic);
+            }
+            else if (diagnosticId == CompilerDiagnosticIdentifiers.CS0246_TypeOrNamespaceNameCouldNotBeFound)
+            {
+                if (IsEnabled(diagnosticId, CodeFixIdentifiers.ChangeArrayType, document, root.SyntaxTree)
+                    && (simpleName.Parent is ArrayTypeSyntax arrayType)
+                    && (arrayType.Parent is ArrayCreationExpressionSyntax arrayCreation)
+                    && object.ReferenceEquals(simpleName, arrayType.ElementType))
                 {
-                    case CompilerDiagnosticIdentifiers.CannotConvertMethodGroupToNonDelegateType:
-                    case CompilerDiagnosticIdentifiers.NameIsNotValidInGivenContext:
+                    ExpressionSyntax expression = arrayCreation.Initializer?.Expressions.FirstOrDefault();
+
+                    if (expression != null)
+                    {
+                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                        ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(expression, context.CancellationToken);
+
+                        if (typeSymbol?.SupportsExplicitDeclaration() == true)
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddArgumentList))
-                                break;
-
-                            if (!simpleName.IsParentKind(SyntaxKind.SimpleMemberAccessExpression))
-                                break;
-
-                            var memberAccess = (MemberAccessExpressionSyntax)simpleName.Parent;
+                            TypeSyntax newType = typeSymbol.ToTypeSyntax()
+                                .WithSimplifierAnnotation()
+                                .WithTriviaFrom(simpleName);
 
                             CodeAction codeAction = CodeAction.Create(
-                                "Add argument list",
-                                cancellationToken =>
-                                {
-                                    InvocationExpressionSyntax invocationExpression = InvocationExpression(
-                                        memberAccess.WithoutTrailingTrivia(),
-                                        ArgumentList().WithTrailingTrivia(memberAccess.GetTrailingTrivia()));
-
-                                    return context.Document.ReplaceNodeAsync(memberAccess, invocationExpression, cancellationToken);
-                                },
+                                $"Change element type to '{SymbolDisplay.ToMinimalDisplayString(typeSymbol, semanticModel, simpleName.SpanStart, SymbolDisplayFormats.DisplayName)}'",
+                                ct => document.ReplaceNodeAsync(simpleName, newType, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
-                            break;
+                            return;
                         }
-                    case CompilerDiagnosticIdentifiers.TypeOrNamespaceNameCouldNotBeFound:
-                        {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeArrayType))
-                                break;
+                    }
+                }
 
-                            if (!(simpleName.Parent is ArrayTypeSyntax arrayType))
-                                break;
+                if (IsEnabled(diagnosticId, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression, document, root.SyntaxTree))
+                {
+                    ExpressionSyntax expression = GetReturnExpression(simpleName);
 
-                            if (!(arrayType.Parent is ArrayCreationExpressionSyntax arrayCreation))
-                                break;
+                    if (expression != null)
+                    {
+                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                            if (!object.ReferenceEquals(simpleName, arrayType.ElementType))
-                                break;
-
-                            ExpressionSyntax expression = arrayCreation.Initializer?.Expressions.FirstOrDefault();
-
-                            if (expression == null)
-                                break;
-
-                            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-                            ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(expression, context.CancellationToken);
-
-                            if (typeSymbol?.SupportsExplicitDeclaration() != true)
-                                break;
-
-                            TypeSyntax newType = typeSymbol.ToMinimalTypeSyntax(semanticModel, simpleName.SpanStart);
-
-                            CodeAction codeAction = CodeAction.Create(
-                                $"Change element type to '{SymbolDisplay.ToMinimalDisplayString(typeSymbol, semanticModel, simpleName.SpanStart, SymbolDisplayFormats.Default)}'",
-                                cancellationToken => context.Document.ReplaceNodeAsync(simpleName, newType.WithTriviaFrom(simpleName), cancellationToken),
-                                GetEquivalenceKey(diagnostic));
-
-                            context.RegisterCodeFix(codeAction, diagnostic);
-                            break;
-                        }
+                        ChangeMemberTypeRefactoring.ComputeCodeFix(context, diagnostic, expression, semanticModel);
+                    }
                 }
             }
+        }
+
+        private static ExpressionSyntax GetReturnExpression(SyntaxNode node)
+        {
+            switch (node.Parent)
+            {
+                case MethodDeclarationSyntax methodDeclaration:
+                    {
+                        if (object.ReferenceEquals(node, methodDeclaration.ReturnType))
+                        {
+                            ExpressionSyntax expression = methodDeclaration.ExpressionBody?.Expression;
+
+                            if (expression != null)
+                                return expression;
+
+                            StatementSyntax statement = methodDeclaration.Body?.SingleNonBlockStatementOrDefault();
+
+                            return (statement as ReturnStatementSyntax)?.Expression;
+                        }
+
+                        break;
+                    }
+                case LocalFunctionStatementSyntax localFunction:
+                    {
+                        if (object.ReferenceEquals(node, localFunction.ReturnType))
+                        {
+                            ExpressionSyntax expression = localFunction.ExpressionBody?.Expression;
+
+                            if (expression != null)
+                                return expression;
+
+                            StatementSyntax statement = localFunction.Body?.SingleNonBlockStatementOrDefault();
+
+                            return (statement as ReturnStatementSyntax)?.Expression;
+                        }
+
+                        break;
+                    }
+                case VariableDeclarationSyntax variableDeclaration:
+                    {
+                        if (object.ReferenceEquals(node, variableDeclaration.Type)
+                            && node.Parent.IsParentKind(SyntaxKind.FieldDeclaration))
+                        {
+                            return variableDeclaration
+                                .Variables
+                                .SingleOrDefault(shouldThrow: false)?
+                                .Initializer?
+                                .Value;
+                        }
+
+                        break;
+                    }
+            }
+
+            return null;
         }
     }
 }

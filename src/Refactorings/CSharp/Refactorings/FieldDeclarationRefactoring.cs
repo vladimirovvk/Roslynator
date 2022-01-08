@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,16 +15,16 @@ namespace Roslynator.CSharp.Refactorings
         {
             if (fieldDeclaration.Modifiers.Contains(SyntaxKind.ConstKeyword))
             {
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.ReplaceConstantWithField)
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.UseReadOnlyFieldInsteadOfConstant)
                     && fieldDeclaration.Span.Contains(context.Span))
                 {
                     context.RegisterRefactoring(
                         "Replace constant with field",
-                        cancellationToken => ReplaceConstantWithFieldRefactoring.RefactorAsync(context.Document, fieldDeclaration, cancellationToken),
-                        RefactoringIdentifiers.ReplaceConstantWithField);
+                        ct => UseReadOnlyFieldInsteadOfConstantRefactoring.RefactorAsync(context.Document, fieldDeclaration, ct),
+                        RefactoringDescriptors.UseReadOnlyFieldInsteadOfConstant);
                 }
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.InlineConstant)
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.InlineConstantDeclaration)
                     && !fieldDeclaration.ContainsDiagnostics)
                 {
                     VariableDeclaratorSyntax variableDeclarator = fieldDeclaration
@@ -36,12 +36,12 @@ namespace Roslynator.CSharp.Refactorings
                     {
                         context.RegisterRefactoring(
                             "Inline constant",
-                            cancellationToken => InlineConstantRefactoring.RefactorAsync(context.Document, fieldDeclaration, variableDeclarator, cancellationToken),
-                            RefactoringIdentifiers.InlineConstant);
+                            ct => InlineConstantDeclarationRefactoring.RefactorAsync(context.Document, fieldDeclaration, variableDeclarator, ct),
+                            RefactoringDescriptors.InlineConstantDeclaration);
                     }
                 }
             }
-            else if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseConstantInsteadOfField)
+            else if (context.IsRefactoringEnabled(RefactoringDescriptors.UseConstantInsteadOfReadOnlyField)
                 && context.Span.IsEmptyAndContainedInSpanOrBetweenSpans(fieldDeclaration))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -50,12 +50,12 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         "Use constant instead of field",
-                        cancellationToken => UseConstantInsteadOfFieldRefactoring.RefactorAsync(context.Document, fieldDeclaration, cancellationToken),
-                        RefactoringIdentifiers.UseConstantInsteadOfField);
+                        ct => UseConstantInsteadOfReadOnlyFieldRefactoring.RefactorAsync(context.Document, fieldDeclaration, ct),
+                        RefactoringDescriptors.UseConstantInsteadOfReadOnlyField);
                 }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.InitializeFieldFromConstructor))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.InitializeFieldFromConstructor))
                 InitializeFieldFromConstructorRefactoring.ComputeRefactoring(context, fieldDeclaration);
         }
     }

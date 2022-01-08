@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -109,7 +109,7 @@ namespace Roslynator.Documentation
                     {
                         builder.AddPunctuation(",");
 
-                        if (additionalOptions.HasOption(SymbolDisplayAdditionalOptions.FormatBaseList))
+                        if (additionalOptions.HasOption(SymbolDisplayAdditionalOptions.WrapBaseTypes))
                         {
                             builder.AddLineBreak();
                             builder.AddIndentation();
@@ -139,7 +139,7 @@ namespace Roslynator.Documentation
                         {
                             builder.AddPunctuation(",");
 
-                            if (additionalOptions.HasOption(SymbolDisplayAdditionalOptions.FormatBaseList))
+                            if (additionalOptions.HasOption(SymbolDisplayAdditionalOptions.WrapBaseTypes))
                             {
                                 builder.AddLineBreak();
                                 builder.AddIndentation();
@@ -158,7 +158,7 @@ namespace Roslynator.Documentation
 
                 if (whereIndex != -1)
                 {
-                    if (!additionalOptions.HasOption(SymbolDisplayAdditionalOptions.FormatConstraints)
+                    if (!additionalOptions.HasOption(SymbolDisplayAdditionalOptions.WrapConstraints)
                         || (baseListCount == 1 && constraintCount == 1))
                     {
                         builder.AddSpace();
@@ -176,7 +176,7 @@ namespace Roslynator.Documentation
                 for (int i = whereIndex; i < parts.Length; i++)
                 {
                     if (parts[i].IsKeyword("where")
-                        && additionalOptions.HasOption(SymbolDisplayAdditionalOptions.FormatConstraints)
+                        && additionalOptions.HasOption(SymbolDisplayAdditionalOptions.WrapConstraints)
                         && (baseListCount > 1 || constraintCount > 1))
                     {
                         builder.AddLineBreak();
@@ -197,7 +197,7 @@ namespace Roslynator.Documentation
                 builder.AddRange(parts);
             }
 
-            bool hasEventAccessorList = false;
+            var hasEventAccessorList = false;
 
             if (additionalOptions.HasOption(SymbolDisplayAdditionalOptions.IncludeAccessorAttributes))
             {
@@ -208,7 +208,7 @@ namespace Roslynator.Documentation
                     IMethodSymbol getMethod = propertySymbol.GetMethod;
                     if (getMethod != null)
                     {
-                        builder = builder ?? parts.ToBuilder();
+                        builder ??= parts.ToBuilder();
 
                         AddAccessorAttributes(builder, getMethod, format, additionalOptions, shouldDisplayAttribute: shouldDisplayAttribute);
                     }
@@ -216,7 +216,7 @@ namespace Roslynator.Documentation
                     IMethodSymbol setMethod = propertySymbol.SetMethod;
                     if (setMethod != null)
                     {
-                        builder = builder ?? parts.ToBuilder();
+                        builder ??= parts.ToBuilder();
 
                         AddAccessorAttributes(builder, setMethod, format, additionalOptions, shouldDisplayAttribute: shouldDisplayAttribute);
                     }
@@ -233,7 +233,7 @@ namespace Roslynator.Documentation
                     {
                         hasEventAccessorList = true;
 
-                        builder = builder ?? parts.ToBuilder();
+                        builder ??= parts.ToBuilder();
 
                         AddEventAccessorAttributes(builder, addAttributes, removeAttributes, format, additionalOptions);
                     }
@@ -245,7 +245,7 @@ namespace Roslynator.Documentation
             if (additionalOptions.HasOption(SymbolDisplayAdditionalOptions.IncludeParameterAttributes)
                 && parameters.Any(f => GetAttributes(f, shouldDisplayAttribute).Any()))
             {
-                builder = builder ?? parts.ToBuilder();
+                builder ??= parts.ToBuilder();
 
                 AddParameterAttributes(builder, symbol, parameters, format, additionalOptions, shouldDisplayAttribute);
             }
@@ -253,7 +253,7 @@ namespace Roslynator.Documentation
             if (additionalOptions.HasOption(SymbolDisplayAdditionalOptions.FormatParameters)
                 && parameters.Length > 1)
             {
-                builder = builder ?? parts.ToBuilder();
+                builder ??= parts.ToBuilder();
 
                 FormatParameters(symbol, builder, DefinitionListFormat.Default.IndentChars);
             }
@@ -405,8 +405,8 @@ namespace Roslynator.Documentation
 
             void AddAttributeArguments()
             {
-                bool hasConstructorArgument = false;
-                bool hasNamedArgument = false;
+                var hasConstructorArgument = false;
+                var hasNamedArgument = false;
 
                 AppendConstructorArguments();
                 AppendNamedArguments();
@@ -582,7 +582,7 @@ namespace Roslynator.Documentation
                         }
                 }
 
-                SymbolDisplayPartKind GetSymbolDisplayPart(SpecialType specialType)
+                static SymbolDisplayPartKind GetSymbolDisplayPart(SpecialType specialType)
                 {
                     switch (specialType)
                     {
@@ -644,7 +644,7 @@ namespace Roslynator.Documentation
                         case ",":
                             {
                                 if (((angleBracketsDepth == 0 && parenthesesDepth == 1 && bracesDepth == 0 && bracketsDepth == 0)
-                                        || (angleBracketsDepth == 0 && parenthesesDepth == 0 && bracesDepth == 0 && bracketsDepth == 1))
+                                    || (angleBracketsDepth == 0 && parenthesesDepth == 0 && bracesDepth == 0 && bracketsDepth == 1))
                                     && i < parts.Count - 1)
                                 {
                                     SymbolDisplayPart nextPart = parts[i + 1];
@@ -866,7 +866,7 @@ namespace Roslynator.Documentation
                         case ",":
                             {
                                 if (((angleBracketsDepth == 0 && parenthesesDepth == 1 && bracesDepth == 0 && bracketsDepth == 0)
-                                        || (angleBracketsDepth == 0 && parenthesesDepth == 0 && bracesDepth == 0 && bracketsDepth == 1))
+                                    || (angleBracketsDepth == 0 && parenthesesDepth == 0 && bracesDepth == 0 && bracketsDepth == 1))
                                     && i < parts.Count - 1)
                                 {
                                     SymbolDisplayPart nextPart = parts[i + 1];
@@ -954,9 +954,7 @@ namespace Roslynator.Documentation
             int bracketsDepth = 0;
             int angleBracketsDepth = 0;
 
-            int i = 0;
-
-            while (i < parts.Count)
+            for (int i = 0; i < parts.Count; i++)
             {
                 SymbolDisplayPart part = parts[i];
 
@@ -1030,8 +1028,6 @@ namespace Roslynator.Documentation
                             }
                     }
                 }
-
-                i++;
             }
 
             return -1;
@@ -1060,7 +1056,7 @@ namespace Roslynator.Documentation
 
             parts.AddRange(symbol.ToDisplayParts(format2));
 
-            if (!(symbol is INamedTypeSymbol typeSymbol))
+            if (symbol is not INamedTypeSymbol typeSymbol)
                 return;
 
             if (removeAttributeSuffix)

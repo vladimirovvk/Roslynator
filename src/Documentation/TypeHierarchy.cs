@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -112,7 +112,7 @@ namespace Roslynator.Documentation
                         rootInterfaces.Add(Interfaces[i]);
                 }
 
-                FillHierarchyItems(rootInterfaces, interfaceRoot, FillHierarchyItem);
+                FillHierarchyItems(rootInterfaces, interfaceRoot, (f, g) => FillHierarchyItem(f, g));
             }
 
             return interfaceRoot;
@@ -123,7 +123,7 @@ namespace Roslynator.Documentation
                 {
                     foreach (TypeHierarchyItem interfaceItem in Interfaces)
                     {
-                        if (interfaceItem.Symbol == interfaceSymbol2)
+                        if (SymbolEqualityComparer.Default.Equals(interfaceItem.Symbol, interfaceSymbol2))
                             return false;
                     }
                 }
@@ -138,13 +138,13 @@ namespace Roslynator.Documentation
                 item = new TypeHierarchyItem(symbol) { Parent = parent };
 
                 TypeHierarchyItem[] derivedInterfaces = Interfaces
-                    .Where(f => f.Symbol.Interfaces.Any(i => i.OriginalDefinition == symbol.OriginalDefinition))
+                    .Where(f => f.Symbol.Interfaces.Any(i => MetadataNameEqualityComparer<INamedTypeSymbol>.Instance.Equals(i.OriginalDefinition, symbol.OriginalDefinition)))
                     .ToArray();
 
                 if (derivedInterfaces.Length > 0)
                 {
                     Array.Reverse(derivedInterfaces);
-                    FillHierarchyItems(derivedInterfaces, item, FillHierarchyItem);
+                    FillHierarchyItems(derivedInterfaces, item, (f, g) => FillHierarchyItem(f, g));
                 }
 
                 return item;
@@ -154,6 +154,7 @@ namespace Roslynator.Documentation
         public static TypeHierarchy Create(
             IEnumerable<IAssemblySymbol> assemblies,
             SymbolFilterOptions filter = null,
+            INamedTypeSymbol root = null,
             IComparer<INamedTypeSymbol> comparer = null)
         {
             Func<INamedTypeSymbol, bool> predicate = null;
@@ -163,23 +164,26 @@ namespace Roslynator.Documentation
 
             IEnumerable<INamedTypeSymbol> types = assemblies.SelectMany(a => a.GetTypes(predicate));
 
-            return Create(types, comparer);
+            return Create(types, root, comparer);
         }
 
-        public static TypeHierarchy Create(IEnumerable<INamedTypeSymbol> types, IComparer<INamedTypeSymbol> comparer = null)
+        public static TypeHierarchy Create(IEnumerable<INamedTypeSymbol> types, INamedTypeSymbol root = null, IComparer<INamedTypeSymbol> comparer = null)
         {
             if (comparer == null)
                 comparer = SymbolDefinitionComparer.SystemFirst.TypeComparer;
 
-            INamedTypeSymbol objectType = FindObjectType();
+            if (root == null)
+            {
+                root = FindObjectType();
 
-            if (objectType == null)
-                throw new InvalidOperationException("Object type not found.");
+                if (root == null)
+                    throw new InvalidOperationException("Object type not found.");
+            }
 
             Dictionary<INamedTypeSymbol, TypeHierarchyItem> allItems = types
-                .ToDictionary(f => f, f => new TypeHierarchyItem(f));
+                .ToDictionary(f => f, f => new TypeHierarchyItem(f), MetadataNameEqualityComparer<INamedTypeSymbol>.Instance);
 
-            allItems[objectType] = new TypeHierarchyItem(objectType, isExternal: true);
+            allItems[root] = new TypeHierarchyItem(root, isExternal: true);
 
             foreach (INamedTypeSymbol type in types)
             {
@@ -194,14 +198,19 @@ namespace Roslynator.Documentation
                 }
             }
 
-            TypeHierarchyItem root = FillHierarchyItem(allItems[objectType], null);
+            TypeHierarchyItem rootItem = FillHierarchyItem(allItems[root], null);
 
-            ImmutableArray<TypeHierarchyItem> interfaces = allItems
-                .Select(f => f.Value)
-                .OrderBy(f => f.Symbol, comparer)
-                .ToImmutableArray();
+            ImmutableArray<TypeHierarchyItem> interfaces = ImmutableArray<TypeHierarchyItem>.Empty;
 
-            return new TypeHierarchy(root, interfaces);
+            if (root.SpecialType == SpecialType.System_Object)
+            {
+                interfaces = allItems
+                    .Select(f => f.Value)
+                    .OrderBy(f => f.Symbol, comparer)
+                    .ToImmutableArray();
+            }
+
+            return new TypeHierarchy(rootItem, interfaces);
 
             TypeHierarchyItem FillHierarchyItem(TypeHierarchyItem item, TypeHierarchyItem parent)
             {
@@ -213,36 +222,38 @@ namespace Roslynator.Documentation
 
                 TypeHierarchyItem[] derivedTypes = allItems
                     .Select(f => f.Value)
-                    .Where(f => f.Symbol.BaseType?.OriginalDefinition == symbol.OriginalDefinition)
+                    .Where(f => MetadataNameEqualityComparer<INamedTypeSymbol>.Instance.Equals(f.Symbol.BaseType?.OriginalDefinition, symbol.OriginalDefinition))
                     .ToArray();
 
                 if (derivedTypes.Length > 0)
                 {
                     if (symbol.SpecialType == SpecialType.System_Object)
                     {
-                        Array.Sort(derivedTypes, (x, y) =>
-                        {
-                            if (x.Symbol.IsStatic)
+                        Array.Sort(
+                            derivedTypes,
+                            (x, y) =>
                             {
-                                if (!y.Symbol.IsStatic)
+                                if (x.Symbol.IsStatic)
                                 {
-                                    return -1;
+                                    if (!y.Symbol.IsStatic)
+                                    {
+                                        return -1;
+                                    }
                                 }
-                            }
-                            else if (y.Symbol.IsStatic)
-                            {
-                                return 1;
-                            }
+                                else if (y.Symbol.IsStatic)
+                                {
+                                    return 1;
+                                }
 
-                            return Compare(x, y);
-                        });
+                                return Compare(x, y);
+                            });
                     }
                     else
                     {
-                        Array.Sort(derivedTypes, Compare);
+                        Array.Sort(derivedTypes, (x, y) => Compare(x, y));
                     }
 
-                    FillHierarchyItems(derivedTypes, item, FillHierarchyItem);
+                    FillHierarchyItems(derivedTypes, item, (f, g) => FillHierarchyItem(f, g));
                 }
 
                 return item;
@@ -260,8 +271,8 @@ namespace Roslynator.Documentation
                             return t;
 
                         t = t.BaseType;
-                    }
-                    while (t != null);
+
+                    } while (t != null);
                 }
 
                 return null;

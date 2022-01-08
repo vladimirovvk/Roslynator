@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -8,13 +8,12 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Roslynator.CSharp.Helpers;
 
 namespace Roslynator.CSharp.Refactorings.InlineDefinition
 {
     internal class InlineMethodAnalyzer : InlineAnalyzer<InvocationExpressionSyntax, MethodDeclarationSyntax, IMethodSymbol>
     {
-        public static InlineMethodAnalyzer Instance { get; } = new InlineMethodAnalyzer();
+        public static InlineMethodAnalyzer Instance { get; } = new();
 
         protected override bool ValidateNode(InvocationExpressionSyntax node, TextSpan span)
         {
@@ -43,7 +42,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            if (!(semanticModel.GetSymbol(node, cancellationToken) is IMethodSymbol methodSymbol))
+            if (semanticModel.GetSymbol(node, cancellationToken) is not IMethodSymbol methodSymbol)
                 return null;
 
             if (methodSymbol.Language != LanguageNames.CSharp)
@@ -58,7 +57,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
 
                 INamedTypeSymbol enclosingType = semanticModel.GetEnclosingNamedType(node.SpanStart, cancellationToken);
 
-                if (methodSymbol.ContainingType?.Equals(enclosingType) == true)
+                if (SymbolEqualityComparer.Default.Equals(methodSymbol.ContainingType, enclosingType))
                 {
                     ExpressionSyntax expression = node.Expression;
 
@@ -119,28 +118,28 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
                 {
                     var parameterInfo = new ParameterInfo(parameterSymbol, argument.Expression);
 
-                    (parameterInfos ?? (parameterInfos = new List<ParameterInfo>())).Add(parameterInfo);
+                    (parameterInfos ??= new List<ParameterInfo>()).Add(parameterInfo);
                 }
                 else
                 {
-                    return default(ImmutableArray<ParameterInfo>);
+                    return default;
                 }
             }
 
             foreach (IParameterSymbol parameterSymbol in parameters)
             {
                 if (parameterInfos == null
-                    || parameterInfos.FindIndex(f => f.ParameterSymbol.Equals(parameterSymbol)) == -1)
+                    || parameterInfos.FindIndex(f => SymbolEqualityComparer.Default.Equals(f.ParameterSymbol, parameterSymbol)) == -1)
                 {
                     if (parameterSymbol.HasExplicitDefaultValue)
                     {
                         var parameterInfo = new ParameterInfo(parameterSymbol, null);
 
-                        (parameterInfos ?? (parameterInfos = new List<ParameterInfo>())).Add(parameterInfo);
+                        (parameterInfos ??= new List<ParameterInfo>()).Add(parameterInfo);
                     }
                     else
                     {
-                        return default(ImmutableArray<ParameterInfo>);
+                        return default;
                     }
                 }
             }
@@ -161,7 +160,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
 
                 var parameterInfo = new ParameterInfo(symbol.ReducedFrom.Parameters[0], expression.TrimTrivia(), isThis: true);
 
-                (parameterInfos ?? (parameterInfos = new List<ParameterInfo>())).Add(parameterInfo);
+                (parameterInfos ??= new List<ParameterInfo>()).Add(parameterInfo);
             }
 
             return (parameterInfos != null)
@@ -209,9 +208,9 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
             return new InlineMethodRefactoring(document, node, nodeEnclosingType, symbol, declaration, parameterInfos, nodeSemanticModel, declarationSemanticModel, cancellationToken);
         }
 
-        protected override string GetEquivalenceKey()
+        protected override RefactoringDescriptor GetDescriptor()
         {
-            return RefactoringIdentifiers.InlineMethod;
+            return RefactoringDescriptors.InlineMethod;
         }
     }
 }

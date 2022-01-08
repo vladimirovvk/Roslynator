@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,26 +11,30 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantSealedModifierAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantSealedModifierAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveRedundantSealedModifier); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveRedundantSealedModifier);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSymbolAction(AnalyzeMethod, SymbolKind.Method);
-            context.RegisterSymbolAction(AnalyzeProperty, SymbolKind.Property);
+            context.RegisterSymbolAction(f => AnalyzeMethod(f), SymbolKind.Method);
+            context.RegisterSymbolAction(f => AnalyzeProperty(f), SymbolKind.Property);
         }
 
-        public static void AnalyzeMethod(SymbolAnalysisContext context)
+        private static void AnalyzeMethod(SymbolAnalysisContext context)
         {
             ISymbol symbol = context.Symbol;
 
@@ -40,7 +44,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, symbol);
         }
 
-        public static void AnalyzeProperty(SymbolAnalysisContext context)
+        private static void AnalyzeProperty(SymbolAnalysisContext context)
         {
             Analyze(context, context.Symbol);
         }
@@ -60,7 +64,7 @@ namespace Roslynator.CSharp.Analysis
 
             SyntaxNode node = symbol.GetSyntax(context.CancellationToken);
 
-            Debug.Assert(node.IsKind(SyntaxKind.MethodDeclaration, SyntaxKind.PropertyDeclaration, SyntaxKind.IndexerDeclaration), node.Kind().ToString());
+            SyntaxDebug.Assert(node.IsKind(SyntaxKind.MethodDeclaration, SyntaxKind.PropertyDeclaration, SyntaxKind.IndexerDeclaration), node);
 
             ModifierListInfo info = SyntaxInfo.ModifierListInfo(node);
 
@@ -71,7 +75,7 @@ namespace Roslynator.CSharp.Analysis
 
             SyntaxToken sealedKeyword = info.Modifiers.Find(SyntaxKind.SealedKeyword);
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantSealedModifier, sealedKeyword);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantSealedModifier, sealedKeyword);
         }
     }
 }

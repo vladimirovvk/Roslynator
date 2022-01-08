@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -48,7 +48,7 @@ namespace Roslynator.CSharp.Syntax
             {
                 return (Success)
                     ? TextSpan.FromBounds(Directive.SpanStart, EndDirective.Span.End)
-                    : default(TextSpan);
+                    : default;
             }
         }
 
@@ -61,7 +61,7 @@ namespace Roslynator.CSharp.Syntax
             {
                 return (Success)
                     ? TextSpan.FromBounds(Directive.FullSpan.Start, EndDirective.FullSpan.End)
-                    : default(TextSpan);
+                    : default;
             }
         }
 

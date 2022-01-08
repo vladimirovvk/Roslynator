@@ -1,6 +1,5 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
@@ -14,24 +13,29 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class JoinStringExpressionsAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class JoinStringExpressionsAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.JoinStringExpressions); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.JoinStringExpressions);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeAddExpression, SyntaxKind.AddExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeAddExpression(f), SyntaxKind.AddExpression);
         }
 
-        public static void AnalyzeAddExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeAddExpression(SyntaxNodeAnalysisContext context)
         {
             SyntaxNode node = context.Node;
 
@@ -48,8 +52,9 @@ namespace Roslynator.CSharp.Analysis
 
             ExpressionSyntax firstExpression = null;
             ExpressionSyntax lastExpression = null;
-            bool isLiteral = false;
-            bool isVerbatim = false;
+            var isLiteral = false;
+            var isVerbatim = false;
+            int startLine = -1;
 
             foreach (ExpressionSyntax expression in addExpression.AsChain().Reverse())
             {
@@ -68,6 +73,9 @@ namespace Roslynator.CSharp.Analysis
                                 firstExpression = expression;
                                 isLiteral = true;
                                 isVerbatim = isVerbatim2;
+
+                                if (isVerbatim)
+                                    startLine = expression.SyntaxTree.GetLineSpan(expression.GetSpan()).StartLine();
                             }
                             else if (!isLiteral
                                 || isVerbatim != isVerbatim2
@@ -82,6 +90,21 @@ namespace Roslynator.CSharp.Analysis
                             else
                             {
                                 lastExpression = expression;
+
+                                if (isVerbatim)
+                                {
+                                    FileLinePositionSpan lineSpan = expression.SyntaxTree.GetLineSpan(expression.GetSpan());
+
+                                    if (startLine != lineSpan.EndLine())
+                                    {
+                                        firstExpression = null;
+                                        lastExpression = null;
+                                    }
+                                    else
+                                    {
+                                        startLine = lineSpan.StartLine();
+                                    }
+                                }
                             }
 
                             break;
@@ -97,6 +120,9 @@ namespace Roslynator.CSharp.Analysis
                                 firstExpression = expression;
                                 isLiteral = false;
                                 isVerbatim = isVerbatim2;
+
+                                if (isVerbatim)
+                                    startLine = expression.SyntaxTree.GetLineSpan(expression.GetSpan()).StartLine();
                             }
                             else if (isLiteral
                                 || isVerbatim != isVerbatim2
@@ -111,6 +137,21 @@ namespace Roslynator.CSharp.Analysis
                             else
                             {
                                 lastExpression = expression;
+
+                                if (isVerbatim)
+                                {
+                                    FileLinePositionSpan lineSpan = expression.SyntaxTree.GetLineSpan(expression.GetSpan());
+
+                                    if (startLine != lineSpan.EndLine())
+                                    {
+                                        firstExpression = null;
+                                        lastExpression = null;
+                                    }
+                                    else
+                                    {
+                                        startLine = lineSpan.StartLine();
+                                    }
+                                }
                             }
 
                             break;
@@ -152,8 +193,9 @@ namespace Roslynator.CSharp.Analysis
             if (isVerbatim
                 || tree.IsSingleLineSpan(span, cancellationToken))
             {
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.JoinStringExpressions,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.JoinStringExpressions,
                     Location.Create(tree, span));
             }
         }
@@ -167,12 +209,8 @@ namespace Roslynator.CSharp.Analysis
 
         private static bool CheckHexadecimalEscapeSequence(InterpolatedStringExpressionSyntax interpolatedString)
         {
-            InterpolatedStringContentSyntax content = interpolatedString.Contents.LastOrDefault();
-
-            if (content.IsKind(SyntaxKind.InterpolatedStringText))
+            if (interpolatedString.Contents.LastOrDefault() is InterpolatedStringTextSyntax interpolatedStringText)
             {
-                var interpolatedStringText = (InterpolatedStringTextSyntax)content;
-
                 string text = interpolatedStringText.TextToken.Text;
 
                 return CheckHexadecimalEscapeSequence(text, 0, text.Length);

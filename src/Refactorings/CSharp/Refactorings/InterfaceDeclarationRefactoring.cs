@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CSharp.Refactorings.SortMemberDeclarations;
@@ -9,13 +9,13 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context, InterfaceDeclarationSyntax interfaceDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddTypeParameter))
-                AddTypeParameterRefactoring.ComputeRefactoring(context, interfaceDeclaration);
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddGenericParameterToDeclaration))
+                AddGenericParameterToDeclarationRefactoring.ComputeRefactoring(context, interfaceDeclaration);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ExtractTypeDeclarationToNewFile))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ExtractTypeDeclarationToNewFile))
                 ExtractTypeDeclarationToNewFileRefactoring.ComputeRefactorings(context, interfaceDeclaration);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SortMemberDeclarations)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.SortMemberDeclarations)
                 && interfaceDeclaration.BracesSpan().Contains(context.Span))
             {
                 SortMemberDeclarationsRefactoring.ComputeRefactoring(context, interfaceDeclaration);

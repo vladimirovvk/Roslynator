@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,14 +15,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RemoveRedundantCastCodeFixProvider))]
     [Shared]
-    public class RemoveRedundantCastCodeFixProvider : BaseCodeFixProvider
+    public sealed class RemoveRedundantCastCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.RemoveRedundantCast); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -35,7 +35,7 @@ namespace Roslynator.CSharp.CodeFixes
                     {
                         CodeAction codeAction = CodeAction.Create(
                             "Remove redundant cast",
-                            cancellationToken => RemoveRedundantCastRefactoring.RefactorAsync(context.Document, (CastExpressionSyntax)node, cancellationToken),
+                            ct => RemoveRedundantCastRefactoring.RefactorAsync(context.Document, (CastExpressionSyntax)node, ct),
                             GetEquivalenceKey(DiagnosticIdentifiers.RemoveRedundantCast));
 
                         context.RegisterCodeFix(codeAction, context.Diagnostics);
@@ -45,7 +45,7 @@ namespace Roslynator.CSharp.CodeFixes
                     {
                         CodeAction codeAction = CodeAction.Create(
                             "Remove redundant cast",
-                            cancellationToken => RemoveRedundantCastRefactoring.RefactorAsync(context.Document, (InvocationExpressionSyntax)node, cancellationToken),
+                            ct => RemoveRedundantCastRefactoring.RefactorAsync(context.Document, (InvocationExpressionSyntax)node, ct),
                             GetEquivalenceKey(DiagnosticIdentifiers.RemoveRedundantCast));
 
                         context.RegisterCodeFix(codeAction, context.Diagnostics);

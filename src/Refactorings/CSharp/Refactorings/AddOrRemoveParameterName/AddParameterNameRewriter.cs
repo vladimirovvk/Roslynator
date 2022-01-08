@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Threading;
@@ -11,7 +11,7 @@ namespace Roslynator.CSharp.Refactorings.AddOrRemoveParameterName
 {
     internal class AddParameterNameRewriter : CSharpSyntaxRewriter
     {
-        private static readonly SymbolDisplayFormat _symbolDisplayFormat = new SymbolDisplayFormat(
+        private static readonly SymbolDisplayFormat _symbolDisplayFormat = new(
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers,
             parameterOptions: SymbolDisplayParameterOptions.IncludeName);
 
@@ -39,7 +39,7 @@ namespace Roslynator.CSharp.Refactorings.AddOrRemoveParameterName
         private static ArgumentSyntax AddParameterName(
             ArgumentSyntax argument,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (argument.NameColon?.IsMissing != false)
             {
@@ -50,11 +50,13 @@ namespace Roslynator.CSharp.Refactorings.AddOrRemoveParameterName
 
                 if (parameterSymbol != null)
                 {
-                    return argument
+                    ArgumentSyntax newArgument = argument.WithoutLeadingTrivia();
+
+                    return newArgument
                         .WithNameColon(
                             NameColon(parameterSymbol.ToDisplayString(_symbolDisplayFormat))
                                 .WithTrailingTrivia(Space))
-                        .WithTriviaFrom(argument);
+                        .WithLeadingTrivia(argument.GetLeadingTrivia());
                 }
             }
 

@@ -1,6 +1,5 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,24 +10,28 @@ using Roslynator.CSharp.Analysis.RemoveRedundantStatement;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantStatementAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantStatementAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveRedundantStatement); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveRedundantStatement);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeContinueStatement, SyntaxKind.ContinueStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeReturnStatement, SyntaxKind.ReturnStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeYieldBreakStatement, SyntaxKind.YieldBreakStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeContinueStatement(f), SyntaxKind.ContinueStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeReturnStatement(f), SyntaxKind.ReturnStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeYieldBreakStatement(f), SyntaxKind.YieldBreakStatement);
         }
 
         private static void AnalyzeContinueStatement(SyntaxNodeAnalysisContext context)
@@ -41,7 +44,7 @@ namespace Roslynator.CSharp.Analysis
             if (!RemoveRedundantStatementAnalysis.IsFixable(continueStatement))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantStatement, continueStatement);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantStatement, continueStatement);
         }
 
         private static void AnalyzeReturnStatement(SyntaxNodeAnalysisContext context)
@@ -54,7 +57,7 @@ namespace Roslynator.CSharp.Analysis
             if (!RemoveRedundantStatementAnalysis.IsFixable(returnStatement))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantStatement, returnStatement);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantStatement, returnStatement);
         }
 
         private static void AnalyzeYieldBreakStatement(SyntaxNodeAnalysisContext context)
@@ -67,7 +70,7 @@ namespace Roslynator.CSharp.Analysis
             if (!RemoveRedundantStatementAnalysis.IsFixable(yieldBreakStatement))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantStatement, yieldBreakStatement);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantStatement, yieldBreakStatement);
         }
     }
 }

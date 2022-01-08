@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,51 +10,64 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveUnnecessaryBracesAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveUnnecessaryBracesAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.RemoveUnnecessaryBraces,
-                    DiagnosticDescriptors.RemoveUnnecessaryBracesFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.RemoveUnnecessaryBraces,
+                        DiagnosticRules.RemoveUnnecessaryBracesFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveUnnecessaryBraces))
-                    return;
-
-                startContext.RegisterSyntaxNodeAction(AnalyzerSwitchSection, SyntaxKind.SwitchSection);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveUnnecessaryBraces.IsEffective(c))
+                        AnalyzerSwitchSection(c);
+                },
+                SyntaxKind.SwitchSection);
         }
 
         public static void AnalyzerSwitchSection(SyntaxNodeAnalysisContext context)
         {
             var switchSection = (SwitchSectionSyntax)context.Node;
 
-            StatementSyntax statement = switchSection.Statements.SingleOrDefault(shouldThrow: false);
-
-            if (!statement.IsKind(SyntaxKind.Block))
+            if (switchSection.Statements.SingleOrDefault(shouldThrow: false) is not BlockSyntax block)
                 return;
-
-            var block = (BlockSyntax)statement;
 
             SyntaxList<StatementSyntax> statements = block.Statements;
 
-            StatementSyntax firstStatement = statements.FirstOrDefault();
+            SyntaxList<StatementSyntax>.Enumerator en = statements.GetEnumerator();
 
-            if (firstStatement == null)
+            if (!en.MoveNext())
                 return;
+
+            do
+            {
+                if (en.Current.IsKind(SyntaxKind.LocalDeclarationStatement))
+                {
+                    var localDeclaration = (LocalDeclarationStatementSyntax)en.Current;
+
+                    if (localDeclaration.UsingKeyword.IsKind(SyntaxKind.UsingKeyword))
+                        return;
+                }
+
+            } while (en.MoveNext());
 
             SyntaxToken openBrace = block.OpenBraceToken;
 
@@ -64,12 +77,10 @@ namespace Roslynator.CSharp.Analysis
             if (!AnalyzeTrivia(openBrace.TrailingTrivia))
                 return;
 
-            if (!AnalyzeTrivia(firstStatement.GetLeadingTrivia()))
+            if (!AnalyzeTrivia(statements[0].GetLeadingTrivia()))
                 return;
 
-            StatementSyntax lastStatement = statements.Last();
-
-            if (!AnalyzeTrivia(lastStatement.GetTrailingTrivia()))
+            if (!AnalyzeTrivia(statements.Last().GetTrailingTrivia()))
                 return;
 
             SyntaxToken closeBrace = block.CloseBraceToken;
@@ -80,10 +91,10 @@ namespace Roslynator.CSharp.Analysis
             if (!AnalyzeTrivia(closeBrace.TrailingTrivia))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveUnnecessaryBraces, openBrace);
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveUnnecessaryBracesFadeOut, closeBrace);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveUnnecessaryBraces, openBrace);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveUnnecessaryBracesFadeOut, closeBrace);
 
-            bool AnalyzeTrivia(SyntaxTriviaList trivia)
+            static bool AnalyzeTrivia(SyntaxTriviaList trivia)
             {
                 return trivia.All(f => f.IsKind(SyntaxKind.WhitespaceTrivia, SyntaxKind.EndOfLineTrivia, SyntaxKind.SingleLineCommentTrivia));
             }

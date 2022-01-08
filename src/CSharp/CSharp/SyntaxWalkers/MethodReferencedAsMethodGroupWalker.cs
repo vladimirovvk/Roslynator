@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -11,6 +11,9 @@ namespace Roslynator.CSharp.SyntaxWalkers
 {
     internal class MethodReferencedAsMethodGroupWalker : CSharpSyntaxNodeWalker
     {
+        [ThreadStatic]
+        private static MethodReferencedAsMethodGroupWalker _cachedInstance;
+
         public bool Result { get; set; }
 
         public IMethodSymbol Symbol { get; set; }
@@ -27,12 +30,12 @@ namespace Roslynator.CSharp.SyntaxWalkers
 
             if (string.Equals(Symbol.Name, node.Identifier.ValueText, StringComparison.Ordinal)
                 && !IsInvoked(node)
-                && SemanticModel.GetSymbol(node, CancellationToken)?.Equals(Symbol) == true)
+                && SymbolEqualityComparer.Default.Equals(SemanticModel.GetSymbol(node, CancellationToken), Symbol))
             {
                 Result = true;
             }
 
-            bool IsInvoked(IdentifierNameSyntax identifierName)
+            static bool IsInvoked(IdentifierNameSyntax identifierName)
             {
                 SyntaxNode parent = identifierName.Parent;
 
@@ -84,62 +87,56 @@ namespace Roslynator.CSharp.SyntaxWalkers
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            bool result = false;
+            var result = false;
 
             MethodReferencedAsMethodGroupWalker walker = null;
 
             try
             {
-                walker = Cache.GetInstance();
-
-                Debug.Assert(walker.Symbol == null, "");
-                Debug.Assert(walker.SemanticModel == null, "");
+                walker = GetInstance();
 
                 walker.Symbol = methodSymbol;
                 walker.SemanticModel = semanticModel;
                 walker.CancellationToken = cancellationToken;
 
                 walker.Visit(node);
+
+                result = walker.Result;
             }
             finally
             {
                 if (walker != null)
-                {
-                    result = walker.Result;
-                    Cache.Free(walker);
-                }
+                    Free(walker);
             }
 
             return result;
         }
 
-        private static class Cache
+        private static MethodReferencedAsMethodGroupWalker GetInstance()
         {
-            [ThreadStatic]
-            private static MethodReferencedAsMethodGroupWalker _cachedInstance;
+            MethodReferencedAsMethodGroupWalker walker = _cachedInstance;
 
-            public static MethodReferencedAsMethodGroupWalker GetInstance()
+            if (walker != null)
             {
-                MethodReferencedAsMethodGroupWalker walker = _cachedInstance;
+                Debug.Assert(walker.Symbol == null);
+                Debug.Assert(walker.SemanticModel == null);
+                Debug.Assert(walker.CancellationToken == default);
 
-                if (walker != null)
-                {
-                    _cachedInstance = null;
-                    return walker;
-                }
-
-                return new MethodReferencedAsMethodGroupWalker();
+                _cachedInstance = null;
+                return walker;
             }
 
-            public static void Free(MethodReferencedAsMethodGroupWalker walker)
-            {
-                walker.Result = false;
-                walker.Symbol = null;
-                walker.SemanticModel = null;
-                walker.CancellationToken = default;
+            return new MethodReferencedAsMethodGroupWalker();
+        }
 
-                _cachedInstance = walker;
-            }
+        private static void Free(MethodReferencedAsMethodGroupWalker walker)
+        {
+            walker.Result = false;
+            walker.Symbol = null;
+            walker.SemanticModel = null;
+            walker.CancellationToken = default;
+
+            _cachedInstance = walker;
         }
     }
 }

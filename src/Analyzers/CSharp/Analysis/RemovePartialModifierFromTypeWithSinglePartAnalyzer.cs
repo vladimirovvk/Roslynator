@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,51 +10,68 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemovePartialModifierFromTypeWithSinglePartAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemovePartialModifierFromTypeWithSinglePartAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+        private static readonly MetadataName _componentBaseName = MetadataName.Parse("Microsoft.AspNetCore.Components.ComponentBase");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemovePartialModifierFromTypeWithSinglePart); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemovePartialModifierFromTypeWithSinglePart);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+            context.RegisterSyntaxNodeAction(
+                f => AnalyzeTypeDeclaration(f),
+                SyntaxKind.ClassDeclaration,
+                SyntaxKind.StructDeclaration,
+                SyntaxKind.RecordDeclaration,
+                SyntaxKind.InterfaceDeclaration);
         }
 
-        public static void AnalyzeNamedType(SymbolAnalysisContext context)
+        private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
         {
-            var symbol = (INamedTypeSymbol)context.Symbol;
+            var typeDeclaration = (TypeDeclarationSyntax)context.Node;
 
-            if (!symbol.TypeKind.Is(TypeKind.Class, TypeKind.Struct, TypeKind.Interface))
+            if (!typeDeclaration.Modifiers.Contains(SyntaxKind.PartialKeyword))
                 return;
 
-            SyntaxReference syntaxReference = symbol.DeclaringSyntaxReferences.SingleOrDefault(shouldThrow: false);
+            INamedTypeSymbol symbol = context.SemanticModel.GetDeclaredSymbol(typeDeclaration, context.CancellationToken);
 
-            if (syntaxReference == null)
+            if (symbol?.DeclaringSyntaxReferences.SingleOrDefault(shouldThrow: false) == null)
                 return;
 
-            if (!(syntaxReference.GetSyntax(context.CancellationToken) is MemberDeclarationSyntax memberDeclaration))
+            if (symbol.InheritsFrom(_componentBaseName))
                 return;
 
-            SyntaxToken partialKeyword = SyntaxInfo.ModifierListInfo(memberDeclaration).Modifiers.Find(SyntaxKind.PartialKeyword);
-
-            if (!partialKeyword.IsKind(SyntaxKind.PartialKeyword))
-                return;
-
-            if (SyntaxInfo.MemberDeclarationListInfo(memberDeclaration)
-                .Members
-                .Any(member => member.Kind() == SyntaxKind.MethodDeclaration && ((MethodDeclarationSyntax)member).Modifiers.Contains(SyntaxKind.PartialKeyword)))
+            foreach (MemberDeclarationSyntax member in typeDeclaration.Members)
             {
-                return;
+                if (member.IsKind(SyntaxKind.MethodDeclaration))
+                {
+                    var method = (MethodDeclarationSyntax)member;
+
+                    if (method.Modifiers.Contains(SyntaxKind.PartialKeyword)
+                        && method.BodyOrExpressionBody() == null
+                        && method.ContainsUnbalancedIfElseDirectives(method.Span))
+                    {
+                        return;
+                    }
+                }
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemovePartialModifierFromTypeWithSinglePart, partialKeyword);
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.RemovePartialModifierFromTypeWithSinglePart,
+                typeDeclaration.Modifiers.Find(SyntaxKind.PartialKeyword));
         }
     }
 }

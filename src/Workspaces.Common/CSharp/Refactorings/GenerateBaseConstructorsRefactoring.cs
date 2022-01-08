@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,7 +20,7 @@ namespace Roslynator.CSharp.Refactorings
             ClassDeclarationSyntax classDeclaration,
             IMethodSymbol[] constructorSymbols,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxList<MemberDeclarationSyntax> members = classDeclaration.Members;
 
@@ -41,6 +41,34 @@ namespace Roslynator.CSharp.Refactorings
                 .WithMembers(members.InsertRange(insertIndex, constructors));
 
             return document.ReplaceNodeAsync(classDeclaration, newClassDeclaration, cancellationToken);
+        }
+
+        public static Task<Document> RefactorAsync(
+            Document document,
+            RecordDeclarationSyntax recordDeclaration,
+            IMethodSymbol[] constructorSymbols,
+            SemanticModel semanticModel,
+            CancellationToken cancellationToken = default)
+        {
+            SyntaxList<MemberDeclarationSyntax> members = recordDeclaration.Members;
+
+            string recordName = recordDeclaration.Identifier.ValueText;
+
+            bool isSealedClass = recordDeclaration.Modifiers.Contains(SyntaxKind.SealedKeyword);
+
+            int insertIndex = MemberDeclarationInserter.Default.GetInsertIndex(members, SyntaxKind.ConstructorDeclaration);
+
+            int position = (insertIndex == 0)
+                ? recordDeclaration.OpenBraceToken.FullSpan.End
+                : members[insertIndex - 1].FullSpan.End;
+
+            IEnumerable<ConstructorDeclarationSyntax> constructors = constructorSymbols
+                .Select(symbol => CreateConstructor(symbol, recordName, isSealedClass, semanticModel, position));
+
+            RecordDeclarationSyntax newRecordDeclaration = recordDeclaration
+                .WithMembers(members.InsertRange(insertIndex, constructors));
+
+            return document.ReplaceNodeAsync(recordDeclaration, newRecordDeclaration, cancellationToken);
         }
 
         private static ConstructorDeclarationSyntax CreateConstructor(
@@ -68,7 +96,7 @@ namespace Roslynator.CSharp.Refactorings
                 parameters.Add(Parameter(
                     default(SyntaxList<AttributeListSyntax>),
                     CreateModifiers(parameterSymbol),
-                    parameterSymbol.Type.ToMinimalTypeSyntax(semanticModel, position),
+                    parameterSymbol.Type.ToTypeSyntax().WithSimplifierAnnotation(),
                     Identifier(parameterSymbol.Name),
                     @default));
 
@@ -109,7 +137,7 @@ namespace Roslynator.CSharp.Refactorings
             switch (parameterSymbol.RefKind)
             {
                 case RefKind.None:
-                    return default(SyntaxTokenList);
+                    return default;
                 case RefKind.Ref:
                     return TokenList(SyntaxKind.RefKeyword);
                 case RefKind.Out:

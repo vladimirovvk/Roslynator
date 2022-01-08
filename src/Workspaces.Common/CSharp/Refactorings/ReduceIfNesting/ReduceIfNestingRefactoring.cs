@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace Roslynator.CSharp.Refactorings.ReduceIfNesting
             IfStatementSyntax ifStatement,
             SyntaxKind jumpKind,
             bool recursive,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             StatementListInfo statementsInfo = SyntaxInfo.StatementListInfo(ifStatement);
 
@@ -24,7 +24,12 @@ namespace Roslynator.CSharp.Refactorings.ReduceIfNesting
 
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-            var rewriter = new ReduceIfStatementRewriter(jumpKind, recursive, semanticModel, cancellationToken);
+            var rewriter = new ReduceIfStatementRewriter(
+                jumpKind,
+                recursive,
+                SyntaxLogicalInverter.GetInstance(document),
+                semanticModel,
+                cancellationToken);
 
             SyntaxNode newNode = rewriter.Visit(node);
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,7 +42,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 $"Invert '{fromMethodName}'",
                 ct => RefactorAsync(context.Document, invocation, toMethodName, expression, ct),
-                RefactoringIdentifiers.InvertLinqMethodCall);
+                RefactoringDescriptors.InvertLinqMethodCall);
 
             return true;
         }
@@ -72,7 +72,7 @@ namespace Roslynator.CSharp.Refactorings
             InvocationExpressionSyntax invocationExpression,
             string memberName,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             var memberAccessExpression = (MemberAccessExpressionSyntax)invocationExpression.Expression;
 
@@ -82,7 +82,7 @@ namespace Roslynator.CSharp.Refactorings
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
             InvocationExpressionSyntax newNode = invocationExpression
-                .ReplaceNode(expression, SyntaxInverter.LogicallyInvert(expression, semanticModel, cancellationToken))
+                .ReplaceNode(expression, SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(expression, semanticModel, cancellationToken))
                 .WithExpression(newMemberAccessExpression);
 
             return await document.ReplaceNodeAsync(invocationExpression, newNode, cancellationToken).ConfigureAwait(false);

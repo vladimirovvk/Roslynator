@@ -1,12 +1,15 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace Roslynator.CSharp
 {
+    /// <summary>
+    /// Defines how a syntax representing a default value of a type should look like.
+    /// </summary>
     [Flags]
-    internal enum DefaultSyntaxOptions
+    public enum DefaultSyntaxOptions
     {
         /// <summary>
         /// No option specified.

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -29,7 +29,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SyntaxTokenList Modifiers
         {
-            get { return Statement?.Modifiers ?? default(SyntaxTokenList); }
+            get { return Statement?.Modifiers ?? default; }
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SeparatedSyntaxList<VariableDeclaratorSyntax> Variables
         {
-            get { return Statement?.Declaration.Variables ?? default(SeparatedSyntaxList<VariableDeclaratorSyntax>); }
+            get { return Statement?.Declaration.Variables ?? default; }
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SyntaxToken SemicolonToken
         {
-            get { return Statement?.SemicolonToken ?? default(SyntaxToken); }
+            get { return Statement?.SemicolonToken ?? default; }
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Roslynator.CSharp.Syntax
             if (node?.Kind() != SyntaxKind.VariableDeclarator)
                 return default;
 
-            if (!(node?.Parent is VariableDeclarationSyntax declaration))
+            if (node?.Parent is not VariableDeclarationSyntax declaration)
                 return default;
 
             TypeSyntax type = declaration.Type;
@@ -120,7 +120,7 @@ namespace Roslynator.CSharp.Syntax
             if (!Check(type, allowMissing))
                 return default;
 
-            if (!(declaration.Parent is LocalDeclarationStatementSyntax localDeclarationStatement))
+            if (declaration.Parent is not LocalDeclarationStatementSyntax localDeclarationStatement)
                 return default;
 
             return new LocalDeclarationStatementInfo(localDeclarationStatement);

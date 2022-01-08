@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1190JoinStringExpressionsTests : AbstractCSharpFixVerifier
+    public class RCS1190JoinStringExpressionsTests : AbstractCSharpDiagnosticVerifier<JoinStringExpressionsAnalyzer, BinaryExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.JoinStringExpressions;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new JoinStringExpressionsAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new BinaryExpressionCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.JoinStringExpressions;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.JoinStringExpressions)]
         public async Task Test_Literal_Regular()
@@ -255,6 +250,22 @@ class C
     {
         s = ""a""
             + ""b"";
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.JoinStringExpressions)]
+        public async Task TestNoDiagnostic_Verbatim_Multiline()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+    void M(string s)
+    {
+        s = @""a
+            b"" + @""c""
+            + @""d"";
     }
 }
 ");

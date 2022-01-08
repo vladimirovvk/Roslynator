@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -178,6 +178,9 @@ namespace Roslynator.CSharp.Syntax
                     return new ModifierListInfo(node, ((OperatorDeclarationSyntax)node).Modifiers);
                 case SyntaxKind.PropertyDeclaration:
                     return new ModifierListInfo(node, ((PropertyDeclarationSyntax)node).Modifiers);
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return new ModifierListInfo(node, ((RecordDeclarationSyntax)node).Modifiers);
                 case SyntaxKind.StructDeclaration:
                     return new ModifierListInfo(node, ((StructDeclarationSyntax)node).Modifiers);
                 case SyntaxKind.IncompleteMember:
@@ -381,7 +384,7 @@ namespace Roslynator.CSharp.Syntax
             if (accessibility == newAccessibility)
                 return this;
 
-            comparer = comparer ?? ModifierKindComparer.Default;
+            comparer ??= ModifierKindComparer.Default;
 
             SyntaxNode declaration = Parent;
 
@@ -594,6 +597,13 @@ namespace Roslynator.CSharp.Syntax
                         PropertyDeclarationSyntax newNode = propertyDeclaration.WithModifiers(modifiers);
                         return new ModifierListInfo(newNode, newNode.Modifiers);
                     }
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var recordDeclaration = (RecordDeclarationSyntax)Parent;
+                        RecordDeclarationSyntax newNode = recordDeclaration.WithModifiers(modifiers);
+                        return new ModifierListInfo(newNode, newNode.Modifiers);
+                    }
                 case SyntaxKind.StructDeclaration:
                     {
                         var structDeclaration = (StructDeclarationSyntax)Parent;
@@ -748,6 +758,11 @@ namespace Roslynator.CSharp.Syntax
                     case SyntaxKind.AsyncKeyword:
                         {
                             filter |= ModifierFilter.Async;
+                            break;
+                        }
+                    case SyntaxKind.ExternKeyword:
+                        {
+                            filter |= ModifierFilter.Extern;
                             break;
                         }
                     default:

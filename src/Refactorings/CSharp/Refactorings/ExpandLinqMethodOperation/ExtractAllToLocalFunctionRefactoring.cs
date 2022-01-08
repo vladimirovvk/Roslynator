@@ -28,7 +28,7 @@ namespace Roslynator.CSharp.Refactorings.ExpandLinqMethodOperation
 
         protected override ExpressionSyntax GetCondition(ExpressionSyntax expression)
         {
-            return Negator.LogicallyNegate(expression, SemanticModel);
+            return SyntaxLogicalInverter.GetInstance(Document).LogicallyInvert(expression, SemanticModel);
         }
 
         protected override ReturnStatementSyntax GetFirstReturnStatement()

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,29 +12,34 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class SimplifyNullCheckAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class SimplifyNullCheckAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.UseCoalesceExpressionInsteadOfConditionalExpression,
-                    DiagnosticDescriptors.UseConditionalAccessInsteadOfConditionalExpression);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.UseCoalesceExpressionInsteadOfConditionalExpression,
+                        DiagnosticRules.UseConditionalAccessInsteadOfConditionalExpression);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeConditionalExpression, SyntaxKind.ConditionalExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeConditionalExpression(f), SyntaxKind.ConditionalExpression);
         }
 
-        public static void AnalyzeConditionalExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeConditionalExpression(SyntaxNodeAnalysisContext context)
         {
             if (context.Node.SpanContainsDirectives())
                 return;
@@ -60,13 +65,14 @@ namespace Roslynator.CSharp.Analysis
 
             if (CSharpFactory.AreEquivalent(nullCheck.Expression, whenNotNull))
             {
-                if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.UseCoalesceExpressionInsteadOfConditionalExpression)
+                if (DiagnosticRules.UseCoalesceExpressionInsteadOfConditionalExpression.IsEffective(context)
                     && semanticModel
                         .GetTypeSymbol(nullCheck.Expression, cancellationToken)?
                         .IsReferenceTypeOrNullableType() == true)
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context,
-                        DiagnosticDescriptors.UseCoalesceExpressionInsteadOfConditionalExpression,
+                    DiagnosticHelpers.ReportDiagnostic(
+                        context,
+                        DiagnosticRules.UseCoalesceExpressionInsteadOfConditionalExpression,
                         conditionalExpression);
                 }
             }
@@ -105,11 +111,11 @@ namespace Roslynator.CSharp.Analysis
                         {
                             if (memberAccessExpression == whenNotNull)
                             {
-                                if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.UseCoalesceExpressionInsteadOfConditionalExpression))
+                                if (DiagnosticRules.UseCoalesceExpressionInsteadOfConditionalExpression.IsEffective(context))
                                 {
                                     DiagnosticHelpers.ReportDiagnostic(
                                         context,
-                                        DiagnosticDescriptors.UseCoalesceExpressionInsteadOfConditionalExpression,
+                                        DiagnosticRules.UseCoalesceExpressionInsteadOfConditionalExpression,
                                         conditionalExpression);
                                 }
                             }
@@ -121,7 +127,7 @@ namespace Roslynator.CSharp.Analysis
                     }
                 }
             }
-            else if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.UseConditionalAccessInsteadOfConditionalExpression)
+            else if (DiagnosticRules.UseConditionalAccessInsteadOfConditionalExpression.IsEffective(context)
                 && ((CSharpCompilation)context.Compilation).LanguageVersion >= LanguageVersion.CSharp6
                 && whenNotNull.IsKind(SyntaxKind.CastExpression)
                 && whenNull.IsKind(SyntaxKind.NullLiteralExpression, SyntaxKind.DefaultLiteralExpression))
@@ -142,10 +148,12 @@ namespace Roslynator.CSharp.Analysis
                     {
                         ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(nullCheck.Expression, cancellationToken);
 
-                        if (typeSymbol?.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+                        if (typeSymbol?.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+                            && !conditionalExpression.IsInExpressionTree(semanticModel, cancellationToken))
                         {
-                            DiagnosticHelpers.ReportDiagnostic(context,
-                                DiagnosticDescriptors.UseConditionalAccessInsteadOfConditionalExpression,
+                            DiagnosticHelpers.ReportDiagnostic(
+                                context,
+                                DiagnosticRules.UseConditionalAccessInsteadOfConditionalExpression,
                                 conditionalExpression);
                         }
                     }
@@ -161,23 +169,48 @@ namespace Roslynator.CSharp.Analysis
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.UseConditionalAccessInsteadOfConditionalExpression)
+            if (DiagnosticRules.UseConditionalAccessInsteadOfConditionalExpression.IsEffective(context)
                 && ((CSharpCompilation)context.Compilation).LanguageVersion >= LanguageVersion.CSharp6)
             {
                 ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(whenNotNull, cancellationToken);
 
                 if (typeSymbol?.IsErrorType() == false
                     && (typeSymbol.IsReferenceType || typeSymbol.IsValueType)
-                    && semanticModel.IsDefaultValue(typeSymbol, whenNull, cancellationToken)
-                    && !CSharpUtility.ContainsOutArgumentWithLocal(whenNotNull, semanticModel, cancellationToken)
+                    && (semanticModel.IsDefaultValue(typeSymbol, whenNull, cancellationToken)
+                        || IsDefaultOfNullableStruct(typeSymbol, whenNull, semanticModel, cancellationToken))
+                    && !CSharpUtility.ContainsOutArgumentWithLocalOrParameter(whenNotNull, semanticModel, cancellationToken)
                     && !conditionalExpressionInfo.ConditionalExpression.IsInExpressionTree(semanticModel, cancellationToken))
                 {
                     DiagnosticHelpers.ReportDiagnostic(
                         context,
-                        DiagnosticDescriptors.UseConditionalAccessInsteadOfConditionalExpression,
+                        DiagnosticRules.UseConditionalAccessInsteadOfConditionalExpression,
                         conditionalExpressionInfo.ConditionalExpression);
                 }
             }
+        }
+
+        private static bool IsDefaultOfNullableStruct(
+            ITypeSymbol typeSymbol,
+            ExpressionSyntax whenNull,
+            SemanticModel semanticModel,
+            CancellationToken cancellationToken)
+        {
+            if (typeSymbol.IsValueType
+                && !typeSymbol.IsNullableType()
+                && whenNull.IsKind(SyntaxKind.DefaultExpression))
+            {
+                var defaultExpression = (DefaultExpressionSyntax)whenNull;
+
+                TypeSyntax type = defaultExpression.Type;
+
+                if (type.IsKind(SyntaxKind.NullableType)
+                    && semanticModel.GetTypeSymbol(type, cancellationToken)?.IsNullableOf(typeSymbol) == true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

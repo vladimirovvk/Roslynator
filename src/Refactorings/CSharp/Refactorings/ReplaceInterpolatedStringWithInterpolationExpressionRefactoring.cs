@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -19,7 +19,7 @@ namespace Roslynator.CSharp.Refactorings
         public static Task<Document> RefactorAsync(
             Document document,
             InterpolatedStringExpressionSyntax interpolatedString,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             var interpolation = (InterpolationSyntax)interpolatedString.Contents[0];
 

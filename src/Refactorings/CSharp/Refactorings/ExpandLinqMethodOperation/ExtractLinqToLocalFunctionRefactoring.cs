@@ -132,9 +132,7 @@ namespace Roslynator.CSharp.Refactorings.ExpandLinqMethodOperation
 
             SyntaxNode declaration = null;
 
-            ArrowExpressionClauseSyntax expressionBody = null;
-
-            int position = -1;
+            int position;
 
             if (ContainingBody is BlockSyntax body)
             {
@@ -142,13 +140,13 @@ namespace Roslynator.CSharp.Refactorings.ExpandLinqMethodOperation
             }
             else
             {
-                expressionBody = (ArrowExpressionClauseSyntax)ContainingBody;
+                var expressionBody = (ArrowExpressionClauseSyntax)ContainingBody;
 
                 position = expressionBody.Expression.Span.End;
 
                 int offset = InvocationExpression.FullSpan.Start - expressionBody.Expression.FullSpan.Start;
 
-                (SyntaxNode node, BlockSyntax body) result = ExpandExpressionBodyRefactoring.Refactor(expressionBody, SemanticModel, cancellationToken);
+                (SyntaxNode node, BlockSyntax body) result = ConvertExpressionBodyToBlockBodyRefactoring.Refactor(expressionBody, SemanticModel, cancellationToken);
 
                 declaration = result.node;
                 body = result.body;
@@ -157,14 +155,12 @@ namespace Roslynator.CSharp.Refactorings.ExpandLinqMethodOperation
 
                 SyntaxToken returnKeyword = returnStatement.ReturnKeyword;
 
-                ExpressionSyntax returnExpression = returnStatement.Expression;
-
                 InvocationExpression = (InvocationExpressionSyntax)returnStatement.FindNode(
                     new TextSpan(offset + returnKeyword.Span.Length + returnStatement.FullSpan.Start, InvocationExpression.FullSpan.Length),
                     getInnermostNodeForTie: true);
             }
 
-            ExpressionSyntax condition = null;
+            ExpressionSyntax condition;
 
             if (analysis.Body is BlockSyntax block)
             {

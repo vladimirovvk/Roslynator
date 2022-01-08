@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -9,17 +9,17 @@ using Microsoft.CodeAnalysis.Text;
 namespace Roslynator.Text
 {
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal class SyntaxNodeTextBuilder
+    public class SyntaxNodeTextBuilder
     {
         public SyntaxNodeTextBuilder(SyntaxNode node)
             : this(node, new StringBuilder())
         {
         }
 
-        public SyntaxNodeTextBuilder(SyntaxNode node, StringBuilder sb)
+        public SyntaxNodeTextBuilder(SyntaxNode node, StringBuilder stringBuilder)
         {
             Node = node ?? throw new ArgumentNullException(nameof(node));
-            StringBuilder = sb ?? throw new ArgumentNullException(nameof(sb));
+            StringBuilder = stringBuilder ?? throw new ArgumentNullException(nameof(stringBuilder));
 
             FullSpan = Node.FullSpan;
             FullString = node.ToFullString();

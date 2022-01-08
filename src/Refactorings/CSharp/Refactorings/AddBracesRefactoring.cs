@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -15,16 +15,16 @@ namespace Roslynator.CSharp.Refactorings
         public static void ComputeRefactoring(RefactoringContext context, StatementSyntax statement)
         {
             if (context.IsAnyRefactoringEnabled(
-                    RefactoringIdentifiers.AddBraces,
-                    RefactoringIdentifiers.AddBracesToIfElse)
+                RefactoringDescriptors.AddBraces,
+                RefactoringDescriptors.AddBracesToIfElse)
                 && CanRefactor(context, statement))
             {
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddBraces))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.AddBraces))
                 {
                     RegisterRefactoring(context, statement);
                 }
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddBracesToIfElse))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.AddBracesToIfElse))
                 {
                     IfStatementSyntax topmostIf = GetTopmostIf(statement);
 
@@ -34,7 +34,7 @@ namespace Roslynator.CSharp.Refactorings
                         context.RegisterRefactoring(
                             "Add braces to if-else",
                             ct => AddBracesToIfElseRefactoring.RefactorAsync(context.Document, topmostIf, ct),
-                            RefactoringIdentifiers.AddBracesToIfElse);
+                            RefactoringDescriptors.AddBracesToIfElse);
                     }
                 }
             }
@@ -55,8 +55,8 @@ namespace Roslynator.CSharp.Refactorings
         {
             context.RegisterRefactoring(
                 "Add braces",
-                cancellationToken => RefactorAsync(context.Document, statement, cancellationToken),
-                RefactoringIdentifiers.AddBraces);
+                ct => RefactorAsync(context.Document, statement, ct),
+                RefactoringDescriptors.AddBraces);
         }
 
         private static bool CanRefactor(RefactoringContext context, StatementSyntax statement)
@@ -87,7 +87,7 @@ namespace Roslynator.CSharp.Refactorings
         public static Task<Document> RefactorAsync(
             Document document,
             StatementSyntax statement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             BlockSyntax block = SyntaxFactory.Block(statement)
                 .WithFormatterAnnotation();

@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1228UnusedElementInDocumentationCommentTests : AbstractCSharpFixVerifier
+    public class RCS1228UnusedElementInDocumentationCommentTests : AbstractCSharpDiagnosticVerifier<SingleLineDocumentationCommentTriviaAnalyzer, XmlNodeCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UnusedElementInDocumentationComment;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new SingleLineDocumentationCommentTriviaAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new XmlNodeCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UnusedElementInDocumentationComment;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
         public async Task Test_FirstElement()
@@ -109,25 +104,6 @@ class C
     void M()
     {
     }
-}
-");
-        }
-
-        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
-        public async Task Test_CodeElement()
-        {
-            await VerifyDiagnosticAndFixAsync(@"
-class C
-{
-    /// <summary></summary>
-    /// [|<code></code>|]
-    void M() => M();
-}
-", @"
-class C
-{
-    /// <summary></summary>
-    void M() => M();
 }
 ");
         }
@@ -332,6 +308,18 @@ class C
     }
 }
 ");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedElementInDocumentationComment)]
+        public async Task TestNoDiagnostic_Record()
+        {
+            await VerifyNoDiagnosticAsync(@"
+/// <summary>
+/// x
+/// </summary>
+/// <param name=""Bar"">bar</param>
+public record Foo(string Bar);
+", options: Options.AddAllowedCompilerDiagnosticId("CS0518"));
         }
     }
 }

@@ -1,119 +1,141 @@
+﻿
+# `roslynator list-symbols`
 
-# `list-symbols` Command
+Lists symbols from the specified project or solution\.
 
-List symbols from the specified project or solution.
+[Home](README.md) &#x2022; [Synopsis](#Synopsis) &#x2022; [Arguments](#Arguments) &#x2022; [Options](#Options)
 
 ## Synopsis
 
 ```
 roslynator list-symbols <PROJECT|SOLUTION>
-[--depth]
-[--empty-line-between-members]
-[--file-log]
-[--file-log-verbosity]
-[--format]
-[--group-by-assembly]
-[--ignored-attributes]
-[--ignored-parts]
-[--ignored-projects]
-[--ignored-symbols]
-[--documentation]
-[--indent-chars]
-[--language]
-[--layout]
-[--msbuild-path]
-[-o|--output]
-[--projects]
-[-p|--properties]
-[--references]
-[-v|--verbosity]
-[--visibility]
+    --depth <DEPTH>
+    --documentation
+    --empty-line-between-members
+    --external-assemblies <ASSEMBLY_FILE>
+    --file-log <FILE_PATH>
+    --file-log-verbosity <LEVEL>
+    --group-by-assembly
+-h, --help
+    --hierarchy-root <FULLY_QUALIFIED_METADATA_NAME>
+    --ignored-attributes <FULLY_QUALIFIED_METADATA_NAME>
+    --ignored-parts <IGNORED_PARTS>
+    --ignored-projects <PROJECT_NAME>
+    --ignored-symbols <FULLY_QUALIFIED_METADATA_NAME>
+    --indent-chars <INDENT_CHARS>
+    --language <LANGUAGE>
+    --layout
+-m, --msbuild-path <DIRECTORY_PATH>
+-o, --output <FILE_PATH>
+    --projects <PROJECT_NAME>
+-p, --properties <NAME=VALUE>
+-v, --verbosity <LEVEL>
+    --visibility <VISIBILITY>
+    --wrap-list
 ```
 
 ## Arguments
 
-**`PROJECT|SOLUTION`**
+**`<PROJECT|SOLUTION>`**
 
-The project or solution to analyze.
+Path to one or more project/solution files\.
 
-### Optional Options
+## Options
 
-**`[--depth]`** `{member|type|namespace}`
+##### `--depth <DEPTH>`
 
-Defines a depth of a list of symbols. Allowed values are member, type or namespace. Default value is member.
+Defines a depth of a list of symbols\. Allowed values are member \(default\), type or namespace\.
 
-**`[--empty-line-between-members]`**
+##### `--documentation`
 
-Indicates whether an empty line should be added between two member definitions.
+Indicates whether a documentation should be included\.
 
-**`[--format]`**
+##### `--empty-line-between-members`
 
-Specifies parts of a symbol definition that should be formatted. Allowed values are attributes, parameters, base-list and constraints.
+Indicates whether an empty line should be added between two member definitions\.
 
-**`[--group-by-assembly]`**
+##### `--external-assemblies <ASSEMBLY_FILE>`
 
-Indicates whether symbols should be grouped by assembly.
+Defines file name/path to external assemblies that should be included\.
 
-**`[--ignored-attributes]`** `<FULLY_QUALIFIED_METADATA_NAME>`
+##### `--file-log <FILE_PATH>`
 
-Defines a list of attributes that should be ignored.
+Path to a file that should store output\.
 
-**`--ignored-parts`** <PROJECT_NAME>
+##### `--file-log-verbosity <LEVEL>`
 
-Defines parts of a symbol definition that should be excluded. Allowed values are containing-namespace, attributes, assembly-attributes, attribute-arguments, accessibility, modifiers, parameter-name, parameter-default-value, base-type, base-interfaces, constraints, trailing-semicolon, trailing-comma.
+Verbosity of the file log\. Allowed values are q\[uiet\], m\[inimal\], n\[ormal\], d\[etailed\] and diag\[nostic\]\.
 
-**`--ignored-projects`** <PROJECT_NAME>
+##### `--group-by-assembly`
 
-Defines projects that should be skipped.
+Indicates whether symbols should be grouped by assembly\.
 
-**`[--ignored-symbols]`** `<FULLY_QUALIFIED_METADATA_NAME>`
+##### `-h, --help`
 
-Defines a list of symbols that should be ignored. Namespace of types can be specified.
+Show command line help\.
 
-**`[--documentation]`**
+##### `--hierarchy-root <FULLY_QUALIFIED_METADATA_NAME>`
 
-Indicates whether a documentation should be included.
+Defines symbol that should be used as a root of a type hierarchy\.
 
-**`[--indent-chars]`** `<INDENT_CHARS>`
+##### `--ignored-attributes <FULLY_QUALIFIED_METADATA_NAME>`
 
-Defines characters that should be used for indentation. Default value is four spaces.
+Defines a list of attributes that should be ignored\.
 
-**`--language`** `{cs[harp]|v[isual-]b[asic])}`
+##### `--ignored-parts <IGNORED_PARTS>`
 
-Defines project language.
+Defines parts of a symbol definition that should be excluded\. Allowed values are assemblies, containing\-namespace, containing\-namespace\-in\-type\-hierarchy, attributes, assembly\-attributes, attribute\-arguments, accessibility, modifiers, parameter\-name, parameter\-default\-value, base\-type, base\-interfaces, constraints, trailing\-semicolon, trailing\-comma\.
 
-**`--layout`** `{namespace-list|namespace-hierarchy|type-hierarchy}`
+##### `--ignored-projects <PROJECT_NAME>`
 
-Defines layout of a list of symbol definitions. Allowed values are namespace-list, namespace-hierarchy or type-hierarchy. Default value is namespace-list.
+Defines projects that should not be analyzed\.
 
-**`--msbuild-path`** <MSBUILD_PATH>
+##### `--ignored-symbols <FULLY_QUALIFIED_METADATA_NAME>`
 
-Defines a path to MSBuild. This option must be specified if there are multiple locations of MSBuild (usually multiple installations of Visual Studio).
+Defines a list of symbols that should be ignored\. Namespace of types can be specified\.
 
-**`[-o|--output]`** `<OUTPUT_PATH>`
+##### `--indent-chars <INDENT_CHARS>`
 
-Defines path to file(s) that will store a list of symbol definitions.
+Defines characters that should be used for indentation\. Default value is two spaces\.
 
-**`--projects`** <PROJECT_NAME>
+##### `--language <LANGUAGE>`
 
-Defines projects that should be analyzed.
+Defines project language\. Allowed values are cs\[harp\] or v\[isual\-\]b\[asic\]
 
-**`-p|--properties`** `<NAME=VALUE>`
+##### `--layout`
 
-Defines one or more MSBuild properties.
+Defines layout of a list of symbol definitions\. Allowed values are namespace\-list \(default\), namespace\-hierarchy or type\-hierarchy\.
 
-**`--references`** <ASSEMBLY_FILE>
+##### `-m, --msbuild-path <DIRECTORY_PATH>`
 
-Defines file name/path to assemblies that should be included.
+Defines a path to MSBuild directory\.
 
-**`-v|--verbosity`** `{q[uiet]|m[inimal]|n[ormal]|d[etailed]|diag[nostic]}`
+##### `-o, --output <FILE_PATH>`
 
-Defines the amount of information to display in the log.
+Defines path to file\(s\) that will store a list of symbol definitions\.
 
-**`[--visibility]`** `{public|internal|private}`
+##### `--projects <PROJECT_NAME>`
 
-Defines a visibility of a type or a member. Default value is `public`.
+Defines projects that should be analyzed\.
 
-## See Also
+##### `-p, --properties <NAME=VALUE>`
 
-* [Roslynator Command-Line Interface](README.md)
+Defines one or more MSBuild properties\.
+
+##### `-v, --verbosity <LEVEL>`
+
+Verbosity of the log\. Allowed values are q\[uiet\], m\[inimal\], n\[ormal\], d\[etailed\] and diag\[nostic\]\.
+
+##### `--visibility <VISIBILITY>`
+
+Defines one or more visibility of a type or a member\. Allowed values are public, internal or private\.
+
+##### `--wrap-list`
+
+Specifies syntax lists that should be wrapped\. Allowed values are attributes, parameters, base\-types and constraints\.
+
+## Redirected/Piped Input
+
+Redirected/piped input will be used as a list of project/solution paths separated with newlines.
+
+*\(Generated with [DotMarkdown](https://github.com/JosefPihrt/DotMarkdown)\)*

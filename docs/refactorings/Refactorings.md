@@ -169,6 +169,43 @@ switch (dayOfWeek)
 * **Syntax**: argument list
 ![Add parameter name to argument](../../images/refactorings/AddParameterNameToArgument.png)
 
+#### Add parameter to interface member \(RR0213\)
+
+* **Syntax**: method declaration, indexer declaration
+* **Span**: method name or 'this' keyword
+
+#### Before
+
+```csharp
+interface IFoo
+{
+    void Bar(object p);
+}
+
+class Foo : IFoo
+{
+    public void Bar(object p, object p2)
+    {
+    }
+}
+```
+
+#### After
+
+```csharp
+interface IFoo
+{
+    void Bar(object p, object p2);
+}
+
+class Foo : IFoo
+{
+    public void Bar(object p, object p2)
+    {
+    }
+}
+```
+
 #### Add tag to documentation comment \(RR0208\)
 
 * **Syntax**: selected word\(s\) in documentation comment
@@ -294,7 +331,7 @@ List<object> items = new List<object>();
 
 #### Change 'var' to explicit type \(RR0023\)
 
-* **Syntax**: variable declaration, foreach statetement
+* **Syntax**: variable declaration, foreach statement
 * **Span**: type
 ![Change 'var' to explicit type](../../images/refactorings/ChangeVarToExplicitType.png)
 
@@ -309,10 +346,10 @@ List<object> items = new List<object>();
 * **Span**: parameter identifier
 ![Check parameter for null](../../images/refactorings/CheckParameterForNull.png)
 
-#### Collapse to initalizer \(RR0026\)
+#### Collapse to initializer \(RR0026\)
 
 * **Syntax**: object creation followed with assignment\(s\)
-![Collapse to initalizer](../../images/refactorings/CollapseToInitializer.png)
+![Collapse to initializer](../../images/refactorings/CollapseToInitializer.png)
 
 #### Comment out member \(RR0027\)
 
@@ -325,6 +362,73 @@ List<object> items = new List<object>();
 * **Syntax**: do statement, fixed statement, for statement, foreach statement, checked statement, if statement, lock statement, switch statement, try statement, unchecked statement, unsafe statement, using statement, while statement
 * **Span**: opening or closing brace
 ![Comment out statement](../../images/refactorings/CommentOutStatement.png)
+
+#### Convert "" to string\.Empty \(RR0171\)
+
+* **Syntax**: empty string literal
+![Convert "" to string.Empty](../../images/refactorings/ConvertEmptyStringToStringEmpty.png)
+
+#### Convert '\(yield\) return' to 'if' \(RR0143\)
+
+* **Syntax**: return statement, yield return statement
+* **Span**: selected statement, yield keyword or return keyword
+![Convert '(yield) return' to 'if'](../../images/refactorings/ReplaceReturnStatementWithIfElse.png)
+
+#### Convert ?: to if\-else \(RR0120\)
+
+* **Syntax**: ?: operator that is part of local declaration, assignment or \(yield\) return statement
+
+#### Before
+
+```csharp
+string s = (x) ? "a" : "b";
+```
+
+#### After
+
+```csharp
+string s;
+if (x)
+{
+    s = "a";
+}
+else
+{
+    s = "b";
+}
+```
+
+- - -
+
+#### Before
+
+```csharp
+string s = (x) ? "a" : (y) ? "b" : "c";
+```
+
+#### After
+
+```csharp
+string s;
+if (x)
+{
+    s = "a";
+}
+else if (y)
+{
+    s = "b";
+}
+else
+{
+    s = "c";
+}
+```
+
+#### Convert block body to expression\-body \(RR0169\)
+
+* **Syntax**: method, property, indexer, operator
+* **Span**: body or accessor list
+![Convert block body to expression-body](../../images/refactorings/ConvertBlockBodyToExpressionBody.png)
 
 #### Convert comment to documentation comment \(RR0192\)
 
@@ -349,6 +453,202 @@ public class Foo
 {
 }
 ```
+
+#### Convert 'do' to 'while' \(RR0123\)
+
+* **Syntax**: do statement
+* **Span**: do keyword
+
+#### Before
+
+```csharp
+do
+{
+} while (condition);
+```
+
+#### After
+
+```csharp
+while (condition)
+{
+}
+```
+
+#### Convert expression\-body to block body \(RR0037\)
+
+* **Syntax**: expression body
+![Convert expression-body to block body](../../images/refactorings/ConvertExpressionBodyToBlockBody.png)
+
+#### Convert 'for' to 'foreach' \(RR0130\)
+
+* **Syntax**: for statement
+![Convert 'for' to 'foreach'](../../images/refactorings/ConvertForToForEach.png)
+
+#### Convert 'for' to 'while' \(RR0131\)
+
+* **Syntax**: for statement
+* **Span**: for keyword or selected for statement
+![Convert 'for' to 'while'](../../images/refactorings/ConvertForToWhile.png)
+
+#### Convert 'foreach' to 'for' \(RR0129\)
+
+* **Syntax**: foreach statement
+![Convert 'foreach' to 'for'](../../images/refactorings/ConvertForEachToFor.png)
+
+#### Convert 'foreach' to 'for' and reverse loop \(RR0188\)
+
+* **Syntax**: foreach statement
+
+#### Before
+
+```csharp
+foreach (object item in items)
+{
+    yield return item;
+}
+```
+
+#### After
+
+```csharp
+for (int i = items.Count - 1; i >= 0; i--)
+{
+    yield return items[i];
+}
+```
+
+#### Convert 'HasFlag' call to bitwise operation \(RR0164\)
+
+* **Syntax**: Enum\.HasFlag method invocation
+![Convert 'HasFlag' call to bitwise operation](../../images/refactorings/ConvertHasFlagCallToBitwiseOperation.png)
+
+#### Convert hexadecimal literal to decimal literal \(RR0132\)
+
+* **Syntax**: hexadecimal literal
+![Convert hexadecimal literal to decimal literal](../../images/refactorings/ConvertHexadecimalLiteralToDecimalLiteral.png)
+
+#### Convert 'if' to ?: \(RR0166\)
+
+* **Syntax**: if statement
+* **Span**: top if keyword or selected if statement
+![Convert 'if' to ?:](../../images/refactorings/ConvertIfToConditionalOperator.png)
+
+#### Convert 'if' to 'switch' \(RR0133\)
+
+* **Syntax**: if statement
+* **Span**: top if keyword or selected if statement
+
+#### Before
+
+```csharp
+var ch = stringReader.Read();
+
+if (ch == 10 || ch == 13)
+{
+    return;
+}
+else
+{
+    stringBuilder.Append(ch);
+}
+```
+
+#### After
+
+```csharp
+var ch = stringReader.Read();
+
+switch (ch)
+{
+    case 10:
+    case 13:
+        {
+            return;
+        }
+
+    default:
+        {
+            stringBuilder.Append(ch);
+            break;
+        }
+}
+```
+
+#### Convert interpolated string to concatenation \(RR0193\)
+
+* **Syntax**: interpolated string
+
+#### Before
+
+```csharp
+string s = $"a{b}c";
+```
+
+#### After
+
+```csharp
+string s = "a" + b + "c";
+```
+
+#### Convert interpolated string to string literal \(RR0136\)
+
+* **Syntax**: Interpolated string without any interpolation
+![Convert interpolated string to string literal](../../images/refactorings/ConvertInterpolatedStringToStringLiteral.png)
+
+#### Convert interpolated string to 'string\.Format' \(RR0201\)
+
+* **Syntax**: interpolated string
+
+#### Before
+
+```csharp
+$"name: {name,0:f}, value: {value}"
+```
+
+#### After
+
+```csharp
+string.Format("name: {0,0:f} value: {1}", name, value)
+```
+
+#### Convert lambda expression body to block body \(RR0039\)
+
+* **Syntax**: lambda expression's expression body
+* **Span**: body
+![Convert lambda expression body to block body](../../images/refactorings/ConvertLambdaExpressionBodyToBlockBody.png)
+
+#### Convert lambda expression body to expression\-body \(RR0154\)
+
+* **Syntax**: lambda expression with block body with single single\-line statement
+* **Span**: body
+![Convert lambda expression body to expression-body](../../images/refactorings/ConvertLambdaExpressionBodyToExpressionBody.png)
+
+#### Convert method group to lambda \(RR0137\)
+
+* **Syntax**: method group
+
+#### Before
+
+```csharp
+Func<object, object, object> func = Foo;
+```
+
+#### After
+
+```csharp
+Func<object, object, object> func = (f, g) => Foo(f, g)
+```
+
+#### Convert null literal to default expression \(RR0139\)
+
+* **Syntax**: argument
+![Convert null literal to default expression](../../images/refactorings/ConvertNullLiteralToDefaultExpression.png)
+
+#### Convert regular string literal to verbatim string literal \(RR0142\)
+
+* **Syntax**: regular string literal
+![Convert regular string literal to verbatim string literal](../../images/refactorings/ConvertRegularStringLiteralToVerbatimStringLiteral.png)
 
 #### Convert statements to if\-else \(RR0211\)
 
@@ -392,6 +692,96 @@ else
     return 0;
 }
 ```
+
+#### Convert 'string\.Format' to interpolated string \(RR0145\)
+
+* **Syntax**: string\.Format method
+![Convert 'string.Format' to interpolated string](../../images/refactorings/ConvertStringFormatToInterpolatedString.png)
+
+#### Convert 'switch' expression to 'switch' statement \(RR0214\)
+
+* **Syntax**: switch expression
+* **Span**: switch keyword
+
+#### Before
+
+```csharp
+return dayOfWeek switch
+{
+    DayOfWeek.Monday => 1,
+    DayOfWeek.Tuesday => 2,
+    DayOfWeek.Wednesday => 3,
+    DayOfWeek.Thursday => 4,
+    DayOfWeek.Friday => 5,
+    _ => throw new Exception(),
+};
+```
+
+#### After
+
+```csharp
+switch (dayOfWeek)
+{
+    case DayOfWeek.Monday:
+        return 1;
+    case DayOfWeek.Tuesday:
+        return 2;
+    case DayOfWeek.Wednesday:
+        return 3;
+    case DayOfWeek.Thursday:
+        return 4;
+    case DayOfWeek.Friday:
+        return 5;
+    default:
+        throw new Exception();
+}
+```
+
+#### Convert 'switch' to 'if' \(RR0147\)
+
+* **Syntax**: switch statement
+* **Span**: switch keyword
+![Convert 'switch' to 'if'](../../images/refactorings/ConvertSwitchToIf.png)
+
+#### Convert verbatim string literal to regular string literal \(RR0148\)
+
+* **Syntax**: verbatim string literal
+![Convert verbatim string literal to regular string literal](../../images/refactorings/ConvertVerbatimStringLiteralToRegularStringLiteral.png)
+
+#### Convert verbatim string literal to regular string literals \(RR0149\)
+
+* **Syntax**: multiline verbatim string literal
+![Convert verbatim string literal to regular string literals](../../images/refactorings/ConvertVerbatimStringLiteralToRegularStringLiterals.png)
+
+#### Convert 'while' statement to 'do' statement \(RR0150\)
+
+* **Syntax**: while statement
+* **Span**: while keyword
+
+#### Before
+
+```csharp
+while (condition)
+{
+}
+```
+
+#### After
+
+```csharp
+if (condition)
+{
+  do
+  {
+  } while (condition);
+}
+```
+
+#### Convert 'while' statement to 'for' statement \(RR0151\)
+
+* **Syntax**: while statement
+* **Span**: while keyword or selected statement\(s\)
+![Convert 'while' statement to 'for' statement](../../images/refactorings/ConvertWhileToFor.png)
 
 #### Copy documentation comment from base member \(RR0029\)
 
@@ -486,21 +876,10 @@ switch (s)
 * **Syntax**: event field declaration
 ![Expand event](../../images/refactorings/ExpandEvent.png)
 
-#### Expand expression body \(RR0037\)
-
-* **Syntax**: expression body
-![Expand expression body](../../images/refactorings/ExpandExpressionBody.png)
-
 #### Expand initializer \(RR0038\)
 
 * **Syntax**: initializer
 ![Expand initializer](../../images/refactorings/ExpandInitializer.png)
-
-#### Expand lambda expression body \(RR0039\)
-
-* **Syntax**: lambda expression
-* **Span**: body
-![Expand lambda expression body](../../images/refactorings/ExpandLambdaExpressionBody.png)
 
 #### Expand property \(RR0040\)
 
@@ -609,69 +988,6 @@ if (y)
 ![Format accessor braces](../../images/refactorings/FormatAccessorBracesOnMultipleLines.png)
 
 ![Format accessor braces](../../images/refactorings/FormatAccessorBracesOnSingleLine.png)
-
-#### Format argument list \(RR0048\)
-
-* **Syntax**: argument list
-![Format argument list](../../images/refactorings/FormatEachArgumentOnSeparateLine.png)
-
-![Format argument list](../../images/refactorings/FormatAllArgumentsOnSingleLine.png)
-
-#### Format binary expression \(RR0049\)
-
-* **Syntax**: logical and/or expression, bitwise and/or expression
-![Format binary expression](../../images/refactorings/FormatBinaryExpression.png)
-
-#### Format conditional expression \(RR0050\)
-
-* **Syntax**: conditional expression
-![Format conditional expression](../../images/refactorings/FormatConditionalExpressionOnMultipleLines.png)
-
-![Format conditional expression](../../images/refactorings/FormatConditionalExpressionOnSingleLine.png)
-
-#### Format constraint clauses \(RR0187\)
-
-* **Syntax**: type parameter constraint clause
-
-#### Before
-
-```csharp
-private void Foo<T1, T2, T3>() where T1 : class where T2 : class where T3 : class
-{
-}
-```
-
-#### After
-
-```csharp
-private void Foo<T1, T2, T3>()
-    where T1 : class
-    where T2 : class
-    where T3 : class
-{
-}
-```
-
-#### Format expression chain \(RR0051\)
-
-* **Syntax**: expression chain
-![Format expression chain](../../images/refactorings/FormatExpressionChainOnMultipleLines.png)
-
-![Format expression chain](../../images/refactorings/FormatExpressionChainOnSingleLine.png)
-
-#### Format initializer \(RR0052\)
-
-* **Syntax**: initializer
-![Format initializer](../../images/refactorings/FormatInitializerOnMultipleLines.png)
-
-![Format initializer](../../images/refactorings/FormatInitializerOnSingleLine.png)
-
-#### Format parameter list \(RR0053\)
-
-* **Syntax**: parameter list
-![Format parameter list](../../images/refactorings/FormatEachParameterOnSeparateLine.png)
-
-![Format parameter list](../../images/refactorings/FormatAllParametersOnSingleLine.png)
 
 #### Generate base constructors \(RR0054\)
 
@@ -875,7 +1191,7 @@ class C<T> : IEnumerable<T>
 #### Initialize field from constructor \(RR0197\)
 
 * **Syntax**: field declaration
-* **Span**: idenifier
+* **Span**: identifier
 
 #### Before
 
@@ -1114,7 +1430,7 @@ if (condition1)
 #### Before
 
 ```csharp
-if (items.Any(predicate)
+if (items.Any(predicate))
 {
 }
 ```
@@ -1122,7 +1438,7 @@ if (items.Any(predicate)
 #### After
 
 ```csharp
-if (items.All(!predicate)
+if (items.All(!predicate))
 {
 }
 ```
@@ -1132,7 +1448,7 @@ if (items.All(!predicate)
 #### Before
 
 ```csharp
-if (items.All(predicate)
+if (items.All(predicate))
 {
 }
 ```
@@ -1140,7 +1456,7 @@ if (items.All(predicate)
 #### After
 
 ```csharp
-if (items.Any(!predicate)
+if (items.Any(!predicate))
 {
 }
 ```
@@ -1219,22 +1535,19 @@ int i = 0;
 * **Syntax**: selected attribute lists
 ![Merge attributes](../../images/refactorings/MergeAttributes.png)
 
-#### Merge if statements \(RR0075\)
+#### Merge 'if' statements \(RR0075\)
 
-* **Syntax**: selected if statements
+* **Syntax**: selected 'if' statements
 
 #### Before
 
 ```csharp
-bool condition1 = false;
-bool condition2 = false;
-
-if (condition1)
+if (x)
 {
     return false;
 }
 
-if (condition2)
+if (y)
 {
     return false;
 }
@@ -1245,10 +1558,7 @@ return true;
 #### After
 
 ```csharp
-bool condition1 = false;
-bool condition2 = false;
-
-if (condition1 || condition2)
+if (x || y)
 {
     return false;
 }
@@ -1560,62 +1870,6 @@ public enum Foo
 * **Syntax**: property identifier
 ![Rename property according to type name](../../images/refactorings/RenamePropertyAccordingToTypeName.png)
 
-#### Replace \(yield\) return statement with if\-else \(RR0143\)
-
-* **Syntax**: return statement, yield return statement
-* **Span**: selected statement, yield keyword or return keyword
-![Replace (yield) return statement with if-else](../../images/refactorings/ReplaceReturnStatementWithIfElse.png)
-
-#### Replace ?: with if\-else \(RR0120\)
-
-* **Syntax**: local declaration statement with conditional expression, assignment with conditional expression, return statement conditional expression, yield statement conditional expression
-
-#### Before
-
-```csharp
-string s = (x) ? "a" : "b";
-```
-
-#### After
-
-```csharp
-string s;
-if (x)
-{
-    s = "a";
-}
-else
-{
-    s = "b";
-}
-```
-
-- - -
-
-#### Before
-
-```csharp
-string s = (x) ? "a" : (y) ? "b" : "c";
-```
-
-#### After
-
-```csharp
-string s;
-if (x)
-{
-    s = "a";
-}
-else if (y)
-{
-    s = "b";
-}
-else
-{
-    s = "c";
-}
-```
-
 #### Replace as expression with cast expression \(RR0117\)
 
 * **Syntax**: as expression
@@ -1637,27 +1891,6 @@ else
 * **Syntax**: constant declaration
 ![Replace constant with field](../../images/refactorings/ReplaceConstantWithField.png)
 
-#### Replace do statement with while statement \(RR0123\)
-
-* **Syntax**: do statement
-* **Span**: do keyword
-
-#### Before
-
-```csharp
-do
-{
-} while (condition);
-```
-
-#### After
-
-```csharp
-while (condition)
-{
-}
-```
-
 #### Replace equals expression with string\.Equals \(RR0124\)
 
 * **Syntax**: equals expression, not equals expression
@@ -1676,185 +1909,17 @@ while (condition)
 * **Span**: operator
 ![Replace equals expression with string.IsNullOrWhiteSpace](../../images/refactorings/ReplaceEqualsExpressionWithStringIsNullOrWhiteSpace.png)
 
-#### Replace for statement with foreach statement \(RR0130\)
-
-* **Syntax**: for statement
-![Replace for statement with foreach statement](../../images/refactorings/ReplaceForWithForEach.png)
-
-#### Replace for statement with while statement \(RR0131\)
-
-* **Syntax**: for statement
-* **Span**: for keyword or selected for statement
-![Replace for statement with while statement](../../images/refactorings/ReplaceForWithWhile.png)
-
-#### Replace foreach statement with for statement \(RR0129\)
-
-* **Syntax**: foreach statement
-![Replace foreach statement with for statement](../../images/refactorings/ReplaceForEachWithFor.png)
-
-#### Replace foreach with enumerator \(RR0206\)
-
-* **Syntax**: foreach statement
-* **Span**: foreach keyword
-
-#### Before
-
-```csharp
-foreach (var item in items)
-{
-    yield return item;
-}
-```
-
-#### After
-
-```csharp
-using (var en = items.GetEnumerator())
-{
-    while (en.MoveNext())
-    {
-        yield return item;
-    }
-}
-```
-
-#### Replace foreach with for and reverse loop \(RR0188\)
-
-* **Syntax**: foreach statement
-
-#### Before
-
-```csharp
-foreach (object item in items)
-{
-    yield return item;
-}
-```
-
-#### After
-
-```csharp
-for (int i = items.Count - 1; i >= 0; i--)
-{
-    yield return items[i];
-}
-```
-
-#### Replace hexadecimal literal with decimal literal \(RR0132\)
-
-* **Syntax**: hexadecimal literal
-![Replace hexadecimal literal with decimal literal](../../images/refactorings/ReplaceHexadecimalLiteralWithDecimalLiteral.png)
-
-#### Replace if with switch \(RR0133\)
-
-* **Syntax**: if statement
-* **Span**: top if keyword or selected if statement
-
-#### Before
-
-```csharp
-var ch = stringReader.Read();
-
-if (ch == 10 || ch == 13)
-{
-    return;
-}
-else
-{
-    stringBuilder.Append(ch);
-}
-```
-
-#### After
-
-```csharp
-var ch = stringReader.Read();
-
-switch (ch)
-{
-    case 10:
-    case 13:
-        {
-            return;
-        }
-
-    default:
-        {
-            stringBuilder.Append(ch);
-            break;
-        }
-}
-```
-
-#### Replace interpolated string with concatenation \(RR0193\)
-
-* **Syntax**: interpolated string
-
-#### Before
-
-```csharp
-string s = $"a{b}c";
-```
-
-#### After
-
-```csharp
-string s = "a" + b + "c";
-```
-
 #### Replace interpolated string with interpolation expression \(RR0135\)
 
 * **Syntax**: interpolated string with single interpolation and no text
 * **Span**: interpolation
 ![Replace interpolated string with interpolation expression](../../images/refactorings/ReplaceInterpolatedStringWithInterpolationExpression.png)
 
-#### Replace interpolated string with string literal \(RR0136\)
-
-* **Syntax**: Interpolated string without any interpolation
-![Replace interpolated string with string literal](../../images/refactorings/ReplaceInterpolatedStringWithStringLiteral.png)
-
-#### Replace interpolated string with string\.Format \(RR0201\)
-
-* **Syntax**: interpolated string
-
-#### Before
-
-```csharp
-$"name: {name,0:f}, value: {value}"
-```
-
-#### After
-
-```csharp
-string.Format("name: {0,0:f} value: {1}", name, value)
-```
-
-#### Replace method group with lambda \(RR0137\)
-
-* **Syntax**: method group
-
-#### Before
-
-```csharp
-Func<object, object, object> func = Foo;
-```
-
-#### After
-
-```csharp
-Func<object, object, object> func = (f, g) => Foo(f, g)
-```
-
 #### Replace method with property \(RR0138\)
 
 * **Syntax**: method
 * **Span**: method header
 ![Replace method with property](../../images/refactorings/ReplaceMethodWithProperty.png)
-
-#### Replace null literal expression with default expression \(RR0139\)
-
-* **Syntax**: argument
-![Replace null literal expression with default expression](../../images/refactorings/ReplaceNullLiteralExpressionWithDefaultExpression.png)
 
 #### Replace object creation with default value \(RR0185\)
 
@@ -1897,75 +1962,16 @@ object[] arr = null;
 * **Span**: property header
 ![Replace property with method](../../images/refactorings/ReplacePropertyWithMethod.png)
 
-#### Replace regular string literal with verbatim string literal \(RR0142\)
-
-* **Syntax**: regular string literal
-![Replace regular string literal with verbatim string literal](../../images/refactorings/ReplaceRegularStringLiteralWithVerbatimStringLiteral.png)
-
-#### Replace string\.Format with interpolated string \(RR0145\)
-
-* **Syntax**: string\.Format method
-![Replace string.Format with interpolated string](../../images/refactorings/ReplaceStringFormatWithInterpolatedString.png)
-
-#### Replace switch with if \(RR0147\)
-
-* **Syntax**: switch statement
-* **Span**: switch keyword
-![Replace switch with if](../../images/refactorings/ReplaceSwitchWithIf.png)
-
-#### Replace verbatim string literal with regular string literal \(RR0148\)
-
-* **Syntax**: verbatim string literal
-![Replace verbatim string literal with regular string literal](../../images/refactorings/ReplaceVerbatimStringLiteralWithRegularStringLiteral.png)
-
-#### Replace verbatim string literal with regular string literals \(RR0149\)
-
-* **Syntax**: multiline verbatim string literal
-![Replace verbatim string literal with regular string literals](../../images/refactorings/ReplaceVerbatimStringLiteralWithRegularStringLiterals.png)
-
-#### Replace while statement with do statement \(RR0150\)
-
-* **Syntax**: while statement
-* **Span**: while keyword
-
-#### Before
-
-```csharp
-while (condition)
-{
-}
-```
-
-#### After
-
-```csharp
-do
-{
-} while (condition);
-```
-
-#### Replace while statement with for statement \(RR0151\)
-
-* **Syntax**: while statement
-* **Span**: while keyword or selected statement\(s\)
-![Replace while statement with for statement](../../images/refactorings/ReplaceWhileWithFor.png)
-
-#### Reverse for loop \(RR0152\)
+#### Reverse 'for' statement \(RR0152\)
 
 * **Syntax**: for statement
-![Reverse for loop](../../images/refactorings/ReverseForLoop.png)
+![Reverse 'for' statement](../../images/refactorings/ReverseForStatement.png)
 
 #### Simplify if \(RR0153\)
 
 * **Syntax**: if statement
 * **Span**: top if keyword or selected if statement
 ![Simplify if](../../images/refactorings/SimplifyIf.png)
-
-#### Simplify lambda expression \(RR0154\)
-
-* **Syntax**: lambda expression with block with single single\-line statement
-* **Span**: body
-![Simplify lambda expression](../../images/refactorings/SimplifyLambdaExpression.png)
 
 #### Sort case labels \(RR0207\)
 
@@ -2148,11 +2154,6 @@ string s = null;
 * **Syntax**: string\.Empty field
 ![Use "" instead of string.Empty](../../images/refactorings/UseEmptyStringLiteralInsteadOfStringEmpty.png)
 
-#### Use bitwise operation instead of calling 'HasFlag' \(RR0164\)
-
-* **Syntax**: Enum\.HasFlag method invocation
-![Use bitwise operation instead of calling 'HasFlag'](../../images/refactorings/UseBitwiseOperationInsteadOfCallingHasFlag.png)
-
 #### Use C\# 6\.0 dictionary initializer \(RR0191\)
 
 * **Syntax**: collection initializer
@@ -2175,12 +2176,6 @@ var dic = new Dictionary<int, string>() { [0] = "0" };
 * **Span**: top if keyword or selected if statement
 ![Use coalesce expression instead of if](../../images/refactorings/UseCoalesceExpressionInsteadOfIf.png)
 
-#### Use conditional expression instead of if \(RR0166\)
-
-* **Syntax**: if statement
-* **Span**: top if keyword or selected if statement
-![Use conditional expression instead of if](../../images/refactorings/UseConditionalExpressionInsteadOfIf.png)
-
 #### Use constant instead of field \(RR0128\)
 
 * **Syntax**: read\-only field
@@ -2192,11 +2187,31 @@ var dic = new Dictionary<int, string>() { [0] = "0" };
 * **Span**: method name
 ![Use element access instead of 'First/Last'ElementAt' method](../../images/refactorings/UseElementAccessInsteadOfEnumerableMethod.png)
 
-#### Use expression\-bodied member \(RR0169\)
+#### Use enumerator explicitly \(RR0206\)
 
-* **Syntax**: method, property, indexer, operator
-* **Span**: body or accessor list
-![Use expression-bodied member](../../images/refactorings/UseExpressionBodiedMember.png)
+* **Syntax**: foreach statement
+* **Span**: foreach keyword
+
+#### Before
+
+```csharp
+foreach (var item in items)
+{
+    yield return item;
+}
+```
+
+#### After
+
+```csharp
+using (var en = items.GetEnumerator())
+{
+    while (en.MoveNext())
+    {
+        yield return item;
+    }
+}
+```
 
 #### Use lambda expression instead of anonymous method \(RR0170\)
 
@@ -2209,15 +2224,165 @@ var dic = new Dictionary<int, string>() { [0] = "0" };
 * **Syntax**: yield return, yield break
 ![Use List\<T> instead of yield](../../images/refactorings/UseListInsteadOfYield.png)
 
-#### Use string\.Empty instead of "" \(RR0171\)
-
-* **Syntax**: empty string literal
-![Use string.Empty instead of ""](../../images/refactorings/UseStringEmptyInsteadOfEmptyStringLiteral.png)
-
 #### Use StringBuilder instead of concatenation \(RR0182\)
 
 * **Syntax**: string concatenation
 ![Use StringBuilder instead of concatenation](../../images/refactorings/UseStringBuilderInsteadOfConcatenation.png)
+
+#### Wrap arguments \(RR0048\)
+
+* **Syntax**: argument list
+
+#### Before
+
+```csharp
+M(x, y, z);
+```
+
+#### After
+
+```csharp
+M(
+    x,
+    y,
+    z);
+```
+
+- - -
+
+#### Before
+
+```csharp
+void M(
+    x,
+    y,
+    z);
+```
+
+#### After
+
+```csharp
+void M(x, y, z);
+```
+
+#### Wrap binary expression \(RR0049\)
+
+* **Syntax**: logical and/or expression, bitwise and/or expression
+
+#### Before
+
+```csharp
+if (x && y && z)
+{
+}
+```
+
+#### After
+
+```csharp
+if (x
+    && y
+    && z)
+{
+}
+```
+
+- - -
+
+#### Before
+
+```csharp
+if (x
+    && y
+    && z)
+{
+}
+```
+
+#### After
+
+```csharp
+if (x && y && z)
+{
+}
+```
+
+#### Wrap call chain \(RR0051\)
+
+* **Syntax**: call chain
+
+#### Before
+
+```csharp
+x.M().N().O()
+```
+
+#### After
+
+```csharp
+x
+    .M()
+    .N()
+    .O()
+```
+
+- - -
+
+#### Before
+
+```csharp
+x
+    .M()
+    .N()
+    .O()
+```
+
+#### After
+
+```csharp
+x.M().N().O()
+```
+
+#### Wrap conditional expression \(RR0050\)
+
+* **Syntax**: conditional expression
+
+#### Before
+
+```csharp
+x ? y : z
+```
+
+#### After
+
+```csharp
+x
+    ? y
+    : z
+```
+
+#### Wrap constraint clauses \(RR0187\)
+
+* **Syntax**: type parameter constraint clause
+
+#### Before
+
+```csharp
+private void Foo<T1, T2, T3>() where T1 : class where T2 : class where T3 : class
+{
+}
+```
+
+#### After
+
+```csharp
+private void Foo<T1, T2, T3>()
+    where T1 : class
+    where T2 : class
+    where T3 : class
+{
+}
+```
 
 #### Wrap in \#if directive \(RR0174\)
 
@@ -2248,6 +2413,90 @@ var dic = new Dictionary<int, string>() { [0] = "0" };
 
 * **Syntax**: local declaration of type that implements IDisposable
 ![Wrap in using statement](../../images/refactorings/WrapInUsingStatement.png)
+
+#### Wrap initializer expressions \(RR0052\)
+
+* **Syntax**: initializer
+
+#### Before
+
+```csharp
+var x = new string[] { "a", "b", "c" }
+```
+
+#### After
+
+```csharp
+var x = new string[]
+{
+    "a",
+    "b",
+    "c"
+}
+```
+
+- - -
+
+#### Before
+
+```csharp
+var x = new string[]
+{
+    "a",
+    "b",
+    "c"
+}
+```
+
+#### After
+
+```csharp
+var x = new string[] { "a", "b", "c" }
+```
+
+#### Wrap parameters \(RR0053\)
+
+* **Syntax**: parameter list
+
+#### Before
+
+```csharp
+void M(object x, object y, object z)
+{
+}
+```
+
+#### After
+
+```csharp
+void M(
+    object x,
+    object y,
+    object z)
+{
+}
+```
+
+- - -
+
+#### Before
+
+```csharp
+void M(
+    object x,
+    object y,
+    object z)
+{
+}
+```
+
+#### After
+
+```csharp
+void M(object x, object y, object z)
+{
+}
+```
 
 
 *\(Generated with [DotMarkdown](http://github.com/JosefPihrt/DotMarkdown)\)*

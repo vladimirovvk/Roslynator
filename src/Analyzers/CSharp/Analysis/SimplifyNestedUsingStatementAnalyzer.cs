@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,35 +11,40 @@ using Roslynator.CSharp;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class SimplifyNestedUsingStatementAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class SimplifyNestedUsingStatementAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.SimplifyNestedUsingStatement,
-                    DiagnosticDescriptors.SimplifyNestedUsingStatementFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.SimplifyNestedUsingStatement,
+                        DiagnosticRules.SimplifyNestedUsingStatementFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.SimplifyNestedUsingStatement))
-                    return;
-
-                startContext.RegisterSyntaxNodeAction(AnalyzeUsingStatement, SyntaxKind.UsingStatement);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.SimplifyNestedUsingStatement.IsEffective(c))
+                        AnalyzeUsingStatement(c);
+                },
+                SyntaxKind.UsingStatement);
         }
 
-        public static void AnalyzeUsingStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeUsingStatement(SyntaxNodeAnalysisContext context)
         {
             var usingStatement = (UsingStatementSyntax)context.Node;
 
@@ -57,9 +62,9 @@ namespace Roslynator.CSharp.Analysis
 
             var block = (BlockSyntax)usingStatement.Statement;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.SimplifyNestedUsingStatement, block);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.SimplifyNestedUsingStatement, block);
 
-            CSharpDiagnosticHelpers.ReportBraces(context, DiagnosticDescriptors.SimplifyNestedUsingStatementFadeOut, block);
+            CSharpDiagnosticHelpers.ReportBraces(context, DiagnosticRules.SimplifyNestedUsingStatementFadeOut, block);
         }
 
         public static bool ContainsEmbeddableUsingStatement(UsingStatementSyntax usingStatement)

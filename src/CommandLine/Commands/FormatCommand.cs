@@ -1,24 +1,23 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using Roslynator.CodeFixes;
 using Roslynator.Formatting;
 using Roslynator.Host.Mef;
 using static Roslynator.Logger;
 
 namespace Roslynator.CommandLine
 {
-    internal class FormatCommand : MSBuildWorkspaceCommand
+    internal class FormatCommand : MSBuildWorkspaceCommand<FormatCommandResult>
     {
         public FormatCommand(FormatCommandLineOptions options, in ProjectFilter projectFilter) : base(projectFilter)
         {
@@ -27,42 +26,17 @@ namespace Roslynator.CommandLine
 
         public FormatCommandLineOptions Options { get; }
 
-        public override async Task<CommandResult> ExecuteAsync(ProjectOrSolution projectOrSolution, CancellationToken cancellationToken = default)
+        public override async Task<FormatCommandResult> ExecuteAsync(ProjectOrSolution projectOrSolution, CancellationToken cancellationToken = default)
         {
-            ImmutableArray<string> supportedDiagnosticIds = Options
-                .GetSupportedDiagnostics()
-                .Select(f => f.Id)
-                .ToImmutableArray();
+            ImmutableArray<DocumentId> formattedDocuments;
 
-            if (supportedDiagnosticIds.Any())
-            {
-                var codeFixerOptions = new CodeFixerOptions(
-                    severityLevel: DiagnosticSeverity.Hidden,
-                    ignoreCompilerErrors: true,
-                    ignoreAnalyzerReferences: true,
-                    supportedDiagnosticIds: supportedDiagnosticIds,
-                    batchSize: 1000,
-                    format: true);
-
-                CultureInfo culture = (Options.Culture != null) ? CultureInfo.GetCultureInfo(Options.Culture) : null;
-
-                var projectFilter = new ProjectFilter(Options.Projects, Options.IgnoredProjects, Language);
-
-                return await FixCommand.FixAsync(
-                    projectOrSolution,
-                    RoslynatorAnalyzerAssemblies.AnalyzersAndCodeFixes,
-                    codeFixerOptions,
-                    projectFilter,
-                    culture,
-                    cancellationToken);
-            }
-            else if (projectOrSolution.IsProject)
+            if (projectOrSolution.IsProject)
             {
                 Project project = projectOrSolution.AsProject();
 
                 var options = new CodeFormatterOptions(includeGeneratedCode: Options.IncludeGeneratedCode);
 
-                await FormatProjectAsync(project, options, cancellationToken);
+                formattedDocuments = await FormatProjectAsync(project, options, cancellationToken);
             }
             else
             {
@@ -70,42 +44,44 @@ namespace Roslynator.CommandLine
 
                 var options = new CodeFormatterOptions(includeGeneratedCode: Options.IncludeGeneratedCode);
 
-                await FormatSolutionAsync(solution, options, cancellationToken);
+                formattedDocuments = await FormatSolutionAsync(solution, options, cancellationToken);
             }
 
-            return CommandResult.Success;
+            return new FormatCommandResult((formattedDocuments.Length > 0) ? CommandStatus.NotSuccess : CommandStatus.Success, formattedDocuments.Length);
         }
 
-        private async Task FormatSolutionAsync(Solution solution, CodeFormatterOptions options, CancellationToken cancellationToken)
+        private async Task<ImmutableArray<DocumentId>> FormatSolutionAsync(Solution solution, CodeFormatterOptions options, CancellationToken cancellationToken)
         {
             string solutionDirectory = Path.GetDirectoryName(solution.FilePath);
 
-            WriteLine($"Analyze solution '{solution.FilePath}'", ConsoleColor.Cyan, Verbosity.Minimal);
+            WriteLine($"Analyze solution '{solution.FilePath}'", ConsoleColors.Cyan, Verbosity.Minimal);
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             var changedDocuments = new ConcurrentBag<ImmutableArray<DocumentId>>();
 
-            Parallel.ForEach(FilterProjects(solution), project =>
-            {
-                WriteLine($"  Analyze '{project.Name}'", Verbosity.Minimal);
-
-                ISyntaxFactsService syntaxFacts = MefWorkspaceServices.Default.GetService<ISyntaxFactsService>(project.Language);
-
-                Project newProject = CodeFormatter.FormatProjectAsync(project, syntaxFacts, options, cancellationToken).Result;
-
-                ImmutableArray<DocumentId> formattedDocuments = CodeFormatter.GetFormattedDocumentsAsync(project, newProject, syntaxFacts).Result;
-
-                if (formattedDocuments.Any())
+            Parallel.ForEach(
+                FilterProjects(solution),
+                project =>
                 {
-                    changedDocuments.Add(formattedDocuments);
-                    LogHelpers.WriteFormattedDocuments(formattedDocuments, project, solutionDirectory);
-                }
+                    WriteLine($"  Analyze '{project.Name}'", Verbosity.Minimal);
 
-                WriteLine($"  Done analyzing '{project.Name}'", Verbosity.Normal);
-            });
+                    ISyntaxFactsService syntaxFacts = MefWorkspaceServices.Default.GetService<ISyntaxFactsService>(project.Language);
 
-            if (changedDocuments.Count > 0)
+                    Project newProject = CodeFormatter.FormatProjectAsync(project, syntaxFacts, options, cancellationToken).Result;
+
+                    ImmutableArray<DocumentId> formattedDocuments = CodeFormatter.GetFormattedDocumentsAsync(project, newProject, syntaxFacts).Result;
+
+                    if (formattedDocuments.Any())
+                    {
+                        changedDocuments.Add(formattedDocuments);
+                        LogHelpers.WriteFormattedDocuments(formattedDocuments, project, solutionDirectory);
+                    }
+
+                    WriteLine($"  Done analyzing '{project.Name}'", Verbosity.Normal);
+                });
+
+            if (!changedDocuments.IsEmpty)
             {
                 Solution newSolution = solution;
 
@@ -121,18 +97,22 @@ namespace Roslynator.CommandLine
                 if (!solution.Workspace.TryApplyChanges(newSolution))
                 {
                     Debug.Fail($"Cannot apply changes to solution '{solution.FilePath}'");
-                    WriteLine($"Cannot apply changes to solution '{solution.FilePath}'", ConsoleColor.Yellow, Verbosity.Diagnostic);
+                    WriteLine($"Cannot apply changes to solution '{solution.FilePath}'", ConsoleColors.Yellow, Verbosity.Diagnostic);
                 }
             }
 
-            WriteLine();
-            WriteLine($"{changedDocuments.Count} {((changedDocuments.Count == 1) ? "document" : "documents")} formatted", ConsoleColor.Green, Verbosity.Normal);
-            WriteLine();
+            int count = changedDocuments.Sum(f => f.Length);
 
+            WriteLine(Verbosity.Minimal);
+            WriteLine($"{count} {((count == 1) ? "document" : "documents")} formatted", ConsoleColors.Green, Verbosity.Minimal);
+
+            WriteLine(Verbosity.Minimal);
             WriteLine($"Done formatting solution '{solution.FilePath}' in {stopwatch.Elapsed:mm\\:ss\\.ff}", Verbosity.Minimal);
+
+            return changedDocuments.SelectMany(f => f).ToImmutableArray();
         }
 
-        private static async Task FormatProjectAsync(Project project, CodeFormatterOptions options, CancellationToken cancellationToken)
+        private static async Task<ImmutableArray<DocumentId>> FormatProjectAsync(Project project, CodeFormatterOptions options, CancellationToken cancellationToken)
         {
             Solution solution = project.Solution;
 
@@ -157,13 +137,24 @@ namespace Roslynator.CommandLine
                 if (!solution.Workspace.TryApplyChanges(newSolution))
                 {
                     Debug.Fail($"Cannot apply changes to solution '{newSolution.FilePath}'");
-                    WriteLine($"Cannot apply changes to solution '{newSolution.FilePath}'", ConsoleColor.Yellow, Verbosity.Diagnostic);
+                    WriteLine($"Cannot apply changes to solution '{newSolution.FilePath}'", ConsoleColors.Yellow, Verbosity.Diagnostic);
                 }
             }
 
-            WriteLine();
-            WriteLine($"{formattedDocuments.Length} {((formattedDocuments.Length == 1) ? "document" : "documents")} formatted", ConsoleColor.Green, Verbosity.Normal);
-            WriteLine();
+            WriteSummary(formattedDocuments.Length);
+
+            return formattedDocuments;
+        }
+
+        protected override void ProcessResults(IEnumerable<FormatCommandResult> results)
+        {
+            WriteSummary(results.Sum(f => f.Count));
+        }
+
+        private static void WriteSummary(int count)
+        {
+            WriteLine(Verbosity.Minimal);
+            WriteLine($"{count} {((count == 1) ? "document" : "documents")} formatted", ConsoleColors.Green, Verbosity.Minimal);
         }
 
         protected override void OperationCanceled(OperationCanceledException ex)

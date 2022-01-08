@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -15,9 +15,10 @@ namespace Roslynator.CSharp.Refactorings
             in SimpleMemberInvocationExpressionInfo invocationInfo,
             SemanticModel semanticModel)
         {
+            InvocationExpressionSyntax invocation = invocationInfo.InvocationExpression;
+
             if (invocation.IsParentKind(SyntaxKind.ExpressionStatement))
                 return;
-
 
             switch (invocationInfo.NameText)
             {
@@ -31,8 +32,8 @@ namespace Roslynator.CSharp.Refactorings
 
                         context.RegisterRefactoring(
                             "Use [] instead of calling 'First'",
-                            cancellationToken => UseElementAccessInsteadOfEnumerableMethodRefactoring.UseElementAccessInsteadOfFirstAsync(context.Document, invocationExpression, cancellationToken),
-                            RefactoringIdentifiers.UseElementAccessInsteadOfEnumerableMethod);
+                            ct => UseElementAccessInsteadOfEnumerableMethodRefactoring.UseElementAccessInsteadOfFirstAsync(context.Document, invocation, ct),
+                            RefactoringDescriptors.UseElementAccessInsteadOfLinqMethod);
 
                         break;
                     }
@@ -51,8 +52,8 @@ namespace Roslynator.CSharp.Refactorings
 
                         context.RegisterRefactoring(
                             "Use [] instead of calling 'Last'",
-                            cancellationToken => UseElementAccessInsteadOfEnumerableMethodRefactoring.UseElementAccessInsteadOfLastAsync(context.Document, invocationExpression, propertyName, cancellationToken),
-                            RefactoringIdentifiers.UseElementAccessInsteadOfEnumerableMethod);
+                            ct => UseElementAccessInsteadOfEnumerableMethodRefactoring.UseElementAccessInsteadOfLastAsync(context.Document, invocation, propertyName, ct),
+                            RefactoringDescriptors.UseElementAccessInsteadOfLinqMethod);
 
                         break;
                     }
@@ -66,8 +67,8 @@ namespace Roslynator.CSharp.Refactorings
 
                         context.RegisterRefactoring(
                             "Use [] instead of calling 'ElementAt'",
-                            cancellationToken => UseElementAccessInsteadOfEnumerableMethodRefactoring.UseElementAccessInsteadOfElementAtAsync(context.Document, invocationExpression, cancellationToken),
-                            RefactoringIdentifiers.UseElementAccessInsteadOfEnumerableMethod);
+                            ct => UseElementAccessInsteadOfEnumerableMethodRefactoring.UseElementAccessInsteadOfElementAtAsync(context.Document, invocation, ct),
+                            RefactoringDescriptors.UseElementAccessInsteadOfLinqMethod);
 
                         break;
                     }

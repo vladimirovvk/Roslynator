@@ -1,9 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Roslynator.Testing.CSharp;
 using Xunit;
-
-#pragma warning disable RCS1090
 
 namespace Roslynator.CSharp.Refactorings.Tests
 {
@@ -46,7 +45,7 @@ class C
         }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -222,7 +221,7 @@ class C
     void M2() => M();
     void M3() => M();
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, "Recursive"));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, "Recursive"));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -252,7 +251,7 @@ class C
         }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -280,7 +279,7 @@ class C
         }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -319,7 +318,7 @@ class C
 
     void M2() => M();
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -355,7 +354,7 @@ class C
 
     void M2() => M();
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -402,7 +401,7 @@ class C
     void M2() => M();
     void M3() => M();
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -440,7 +439,41 @@ class C
 
     void M2() => M();
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
+        public async Task Test_InvertIsPattern()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+    void M()
+    {
+        object x = null;
+
+        [||]if (x is string s)
+        {
+            return;
+        }
+
+        M();
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        object x = null;
+
+        if (x is not string s)
+        {
+            M();
+        }
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InvertIf)]
@@ -465,7 +498,7 @@ class C
         M();
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

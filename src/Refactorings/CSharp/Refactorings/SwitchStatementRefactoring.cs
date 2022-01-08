@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -10,26 +10,26 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, SwitchStatementSyntax switchStatement)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddMissingCases))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddMissingCasesToSwitchStatement))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                AddMissingCasesRefactoring.ComputeRefactoring(context, switchStatement, semanticModel);
+                AddMissingCasesToSwitchStatementRefactoring.ComputeRefactoring(context, switchStatement, semanticModel);
             }
 
             SelectedSwitchSectionsRefactoring.ComputeRefactorings(context, switchStatement);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ReplaceSwitchWithIf))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertSwitchToIf))
             {
                 if (context.Span.IsEmptyAndContainedInSpan(switchStatement.SwitchKeyword)
                     || context.Span.IsBetweenSpans(switchStatement))
                 {
-                    ReplaceSwitchWithIfElseRefactoring.ComputeRefactoring(context, switchStatement);
+                    ConvertSwitchToIfRefactoring.ComputeRefactoring(context, switchStatement);
                 }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.DuplicateSwitchSection))
-                DuplicateSwitchSectionRefactoring.ComputeRefactoring(context, switchStatement);
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.CopySwitchSection))
+                CopySwitchSectionRefactoring.ComputeRefactoring(context, switchStatement);
         }
     }
 }

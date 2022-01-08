@@ -1,5 +1,6 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -40,7 +41,7 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
 
         protected abstract string GetTitle();
 
-        protected abstract string GetEquivalenceKey();
+        protected abstract RefactoringDescriptor GetDescriptor();
 
         public static void ComputeRefactoring(RefactoringContext context, ParameterSyntax parameter)
         {
@@ -50,16 +51,16 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
             if (!IsValid(parameter))
                 return;
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceAndInitializeProperty))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceAndInitializeProperty))
             {
                 var propertyInfo = new IntroduceAndInitializePropertyInfo(parameter, context.SupportsCSharp6);
                 var refactoring = new IntroduceAndInitializePropertyRefactoring(propertyInfo);
                 refactoring.RegisterRefactoring(context);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceAndInitializeField))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceAndInitializeField))
             {
-                var fieldInfo = new IntroduceAndInitializeFieldInfo(parameter, context.Settings.PrefixFieldIdentifierWithUnderscore);
+                var fieldInfo = new IntroduceAndInitializeFieldInfo(parameter, context.PrefixFieldIdentifierWithUnderscore);
                 var refactoring = new IntroduceAndInitializeFieldRefactoring(fieldInfo);
                 refactoring.RegisterRefactoring(context);
             }
@@ -71,13 +72,13 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
                 return;
 
             ImmutableArray<ParameterSyntax> parameters = selection
-                .Where(IsValid)
+                .Where(f => IsValid(f))
                 .ToImmutableArray();
 
             if (!parameters.Any())
                 return;
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceAndInitializeProperty))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceAndInitializeProperty))
             {
                 IEnumerable<IntroduceAndInitializePropertyInfo> propertyInfos = parameters
                     .Select(parameter => new IntroduceAndInitializePropertyInfo(parameter, context.SupportsCSharp6));
@@ -86,10 +87,10 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
                 refactoring.RegisterRefactoring(context);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceAndInitializeField))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceAndInitializeField))
             {
                 IEnumerable<IntroduceAndInitializeFieldInfo> fieldInfos = parameters
-                    .Select(parameter => new IntroduceAndInitializeFieldInfo(parameter, context.Settings.PrefixFieldIdentifierWithUnderscore));
+                    .Select(parameter => new IntroduceAndInitializeFieldInfo(parameter, context.PrefixFieldIdentifierWithUnderscore));
 
                 var refactoring = new IntroduceAndInitializeFieldRefactoring(fieldInfos);
                 refactoring.RegisterRefactoring(context);
@@ -100,8 +101,8 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
         {
             context.RegisterRefactoring(
                 GetTitle(),
-                cancellationToken => RefactorAsync(context.Document, cancellationToken),
-                GetEquivalenceKey());
+                ct => RefactorAsync(context.Document, ct),
+                GetDescriptor());
         }
 
         protected string GetNames()
@@ -111,7 +112,7 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
 
         private async Task<Document> RefactorAsync(
             Document document,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ConstructorDeclarationSyntax constructor = Constructor;
 
@@ -167,15 +168,30 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
             if (parameter.Identifier.IsMissing)
                 return false;
 
-            SyntaxNode parent = parameter.Parent;
-
-            if (parent?.Kind() != SyntaxKind.ParameterList)
+            if (!parameter.IsParentKind(SyntaxKind.ParameterList))
                 return false;
 
-            parent = parent.Parent;
+            if (parameter.Parent.Parent is not ConstructorDeclarationSyntax constructorDeclaration)
+                return false;
 
-            return parent?.Kind() == SyntaxKind.ConstructorDeclaration
-                && !((ConstructorDeclarationSyntax)parent).Modifiers.Contains(SyntaxKind.StaticKeyword);
+            if (constructorDeclaration.Modifiers.Contains(SyntaxKind.StaticKeyword))
+                return false;
+
+            ArgumentListSyntax argumentList = constructorDeclaration.Initializer?.ArgumentList;
+
+            if (argumentList != null)
+            {
+                foreach (ArgumentSyntax argument in argumentList.Arguments)
+                {
+                    if (argument.Expression is IdentifierNameSyntax identifierName
+                        && string.Equals(parameter.Identifier.ValueText, identifierName.Identifier.ValueText, StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }

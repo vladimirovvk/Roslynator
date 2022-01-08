@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Refactorings>
   <Refactoring Id="RRX002" Identifier="ExpandLinqMethodOperation" Title="Expand LINQ method operation">
-    <Syntaxes>
+	<OptionKey>expand_linq_method_operation</OptionKey>
+	<Syntaxes>
       <Syntax>'Any/All/FirstOrDefault/Select/Where/OfType' LINQ method invocation</Syntax>
     </Syntaxes>
     <Span>method name</Span>

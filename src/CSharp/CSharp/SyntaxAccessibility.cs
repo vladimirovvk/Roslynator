@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,6 @@ namespace Roslynator.CSharp
         /// Returns a default accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public static Accessibility GetDefaultAccessibility(SyntaxNode declaration)
         {
             if (declaration == null)
@@ -49,6 +48,9 @@ namespace Roslynator.CSharp
                     return SyntaxAccessibility<ConversionOperatorDeclarationSyntax>.Instance.GetDefaultAccessibility((ConversionOperatorDeclarationSyntax)declaration);
                 case SyntaxKind.ClassDeclaration:
                     return SyntaxAccessibility<ClassDeclarationSyntax>.Instance.GetDefaultAccessibility((ClassDeclarationSyntax)declaration);
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return SyntaxAccessibility<RecordDeclarationSyntax>.Instance.GetDefaultAccessibility((RecordDeclarationSyntax)declaration);
                 case SyntaxKind.StructDeclaration:
                     return SyntaxAccessibility<StructDeclarationSyntax>.Instance.GetDefaultAccessibility((StructDeclarationSyntax)declaration);
                 case SyntaxKind.InterfaceDeclaration:
@@ -67,9 +69,11 @@ namespace Roslynator.CSharp
                 case SyntaxKind.RemoveAccessorDeclaration:
                 case SyntaxKind.UnknownAccessorDeclaration:
                     return SyntaxAccessibility<AccessorDeclarationSyntax>.Instance.GetDefaultAccessibility((AccessorDeclarationSyntax)declaration);
+                case SyntaxKind.IncompleteMember:
+                    return SyntaxAccessibility<IncompleteMemberSyntax>.Instance.GetDefaultAccessibility((IncompleteMemberSyntax)declaration);
             }
 
-            Debug.Fail(declaration.Kind().ToString());
+            SyntaxDebug.Fail(declaration);
 
             return Accessibility.NotApplicable;
         }
@@ -78,7 +82,6 @@ namespace Roslynator.CSharp
         /// Returns a default explicit accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public static Accessibility GetDefaultExplicitAccessibility(SyntaxNode declaration)
         {
             if (declaration == null)
@@ -108,6 +111,9 @@ namespace Roslynator.CSharp
                     return SyntaxAccessibility<ConversionOperatorDeclarationSyntax>.Instance.GetDefaultExplicitAccessibility((ConversionOperatorDeclarationSyntax)declaration);
                 case SyntaxKind.ClassDeclaration:
                     return SyntaxAccessibility<ClassDeclarationSyntax>.Instance.GetDefaultExplicitAccessibility((ClassDeclarationSyntax)declaration);
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return SyntaxAccessibility<RecordDeclarationSyntax>.Instance.GetDefaultExplicitAccessibility((RecordDeclarationSyntax)declaration);
                 case SyntaxKind.StructDeclaration:
                     return SyntaxAccessibility<StructDeclarationSyntax>.Instance.GetDefaultExplicitAccessibility((StructDeclarationSyntax)declaration);
                 case SyntaxKind.InterfaceDeclaration:
@@ -126,9 +132,11 @@ namespace Roslynator.CSharp
                 case SyntaxKind.RemoveAccessorDeclaration:
                 case SyntaxKind.UnknownAccessorDeclaration:
                     return SyntaxAccessibility<AccessorDeclarationSyntax>.Instance.GetDefaultExplicitAccessibility((AccessorDeclarationSyntax)declaration);
+                case SyntaxKind.IncompleteMember:
+                    return SyntaxAccessibility<IncompleteMemberSyntax>.Instance.GetDefaultExplicitAccessibility((IncompleteMemberSyntax)declaration);
             }
 
-            Debug.Fail(declaration.Kind().ToString());
+            SyntaxDebug.Fail(declaration);
 
             return Accessibility.NotApplicable;
         }
@@ -137,7 +145,6 @@ namespace Roslynator.CSharp
         /// Returns an accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public static Accessibility GetAccessibility(SyntaxNode declaration)
         {
             if (declaration == null)
@@ -167,6 +174,9 @@ namespace Roslynator.CSharp
                     return SyntaxAccessibility<ConversionOperatorDeclarationSyntax>.Instance.GetAccessibility((ConversionOperatorDeclarationSyntax)declaration);
                 case SyntaxKind.ClassDeclaration:
                     return SyntaxAccessibility<ClassDeclarationSyntax>.Instance.GetAccessibility((ClassDeclarationSyntax)declaration);
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return SyntaxAccessibility<RecordDeclarationSyntax>.Instance.GetAccessibility((RecordDeclarationSyntax)declaration);
                 case SyntaxKind.StructDeclaration:
                     return SyntaxAccessibility<StructDeclarationSyntax>.Instance.GetAccessibility((StructDeclarationSyntax)declaration);
                 case SyntaxKind.InterfaceDeclaration:
@@ -185,9 +195,11 @@ namespace Roslynator.CSharp
                 case SyntaxKind.RemoveAccessorDeclaration:
                 case SyntaxKind.UnknownAccessorDeclaration:
                     return SyntaxAccessibility<AccessorDeclarationSyntax>.Instance.GetAccessibility((AccessorDeclarationSyntax)declaration);
+                case SyntaxKind.IncompleteMember:
+                    return SyntaxAccessibility<IncompleteMemberSyntax>.Instance.GetAccessibility((IncompleteMemberSyntax)declaration);
             }
 
-            Debug.Fail(declaration.Kind().ToString());
+            SyntaxDebug.Fail(declaration);
 
             return Accessibility.NotApplicable;
         }
@@ -196,7 +208,6 @@ namespace Roslynator.CSharp
         /// Returns an explicit accessibility of the specified declaration.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public static Accessibility GetExplicitAccessibility(SyntaxNode declaration)
         {
             if (declaration == null)
@@ -226,6 +237,9 @@ namespace Roslynator.CSharp
                     return SyntaxAccessibility<ConversionOperatorDeclarationSyntax>.Instance.GetExplicitAccessibility((ConversionOperatorDeclarationSyntax)declaration);
                 case SyntaxKind.ClassDeclaration:
                     return SyntaxAccessibility<ClassDeclarationSyntax>.Instance.GetExplicitAccessibility((ClassDeclarationSyntax)declaration);
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return SyntaxAccessibility<RecordDeclarationSyntax>.Instance.GetExplicitAccessibility((RecordDeclarationSyntax)declaration);
                 case SyntaxKind.StructDeclaration:
                     return SyntaxAccessibility<StructDeclarationSyntax>.Instance.GetExplicitAccessibility((StructDeclarationSyntax)declaration);
                 case SyntaxKind.InterfaceDeclaration:
@@ -244,9 +258,11 @@ namespace Roslynator.CSharp
                 case SyntaxKind.RemoveAccessorDeclaration:
                 case SyntaxKind.UnknownAccessorDeclaration:
                     return SyntaxAccessibility<AccessorDeclarationSyntax>.Instance.GetExplicitAccessibility((AccessorDeclarationSyntax)declaration);
+                case SyntaxKind.IncompleteMember:
+                    return SyntaxAccessibility<IncompleteMemberSyntax>.Instance.GetExplicitAccessibility((IncompleteMemberSyntax)declaration);
             }
 
-            Debug.Fail(declaration.Kind().ToString());
+            SyntaxDebug.Fail(declaration);
 
             return Accessibility.NotApplicable;
         }
@@ -255,7 +271,6 @@ namespace Roslynator.CSharp
         /// Returns an explicit accessibility of the specified modifiers.
         /// </summary>
         /// <param name="modifiers"></param>
-        /// <returns></returns>
         public static Accessibility GetExplicitAccessibility(SyntaxTokenList modifiers)
         {
             int count = modifiers.Count;
@@ -313,7 +328,6 @@ namespace Roslynator.CSharp
         /// Return true if the specified declaration is publicly visible.
         /// </summary>
         /// <param name="declaration"></param>
-        /// <returns></returns>
         public static bool IsPubliclyVisible(MemberDeclarationSyntax declaration)
         {
             if (declaration == null)
@@ -340,7 +354,7 @@ namespace Roslynator.CSharp
                 if (parent is ICompilationUnitSyntax)
                     return true;
 
-                Debug.Assert(parent is MemberDeclarationSyntax, parent.Kind().ToString());
+                SyntaxDebug.Assert(parent is MemberDeclarationSyntax, parent);
 
                 declaration = parent as MemberDeclarationSyntax;
 
@@ -354,7 +368,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <typeparam name="TNode"></typeparam>
         /// <param name="node"></param>
-        /// <returns></returns>
         public static TNode WithoutExplicitAccessibility<TNode>(TNode node) where TNode : SyntaxNode
         {
             return WithExplicitAccessibility(node, Accessibility.NotApplicable);
@@ -367,7 +380,6 @@ namespace Roslynator.CSharp
         /// <param name="node"></param>
         /// <param name="newAccessibility"></param>
         /// <param name="comparer"></param>
-        /// <returns></returns>
         public static TNode WithExplicitAccessibility<TNode>(
             TNode node,
             Accessibility newAccessibility,
@@ -392,7 +404,6 @@ namespace Roslynator.CSharp
         /// <param name="node"></param>
         /// <param name="accessibility"></param>
         /// <param name="ignoreOverride">Ignore "override" modifier.</param>
-        /// <returns></returns>
         public static bool IsValidAccessibility(SyntaxNode node, Accessibility accessibility, bool ignoreOverride = false)
         {
             if (node == null)
@@ -406,6 +417,7 @@ namespace Roslynator.CSharp
                         return accessibility.Is(Accessibility.Public, Accessibility.Internal);
                     }
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
                     {
                         if (accessibility.ContainsProtected())
                             return false;
@@ -418,7 +430,9 @@ namespace Roslynator.CSharp
             {
                 case SyntaxKind.ClassDeclaration:
                 case SyntaxKind.InterfaceDeclaration:
+                case SyntaxKind.RecordDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
                 case SyntaxKind.EnumDeclaration:
                     {
                         return true;
@@ -429,8 +443,8 @@ namespace Roslynator.CSharp
 
                         ModifierFilter filter = SyntaxInfo.ModifierListInfo(eventDeclaration).GetFilter();
 
-                        return (ignoreOverride || !filter.Any(ModifierFilter.Override))
-                            && (accessibility != Accessibility.Private || !filter.Any(ModifierFilter.AbstractVirtualOverride))
+                        return (ignoreOverride || !filter.HasAnyFlag(ModifierFilter.Override))
+                            && (accessibility != Accessibility.Private || !filter.HasAnyFlag(ModifierFilter.AbstractVirtualOverride))
                             && CheckProtectedInStaticOrSealedClass(node)
                             && CheckAccessorAccessibility(eventDeclaration.AccessorList);
                     }
@@ -440,8 +454,8 @@ namespace Roslynator.CSharp
 
                         ModifierFilter filter = SyntaxInfo.ModifierListInfo(indexerDeclaration).GetFilter();
 
-                        return (ignoreOverride || !filter.Any(ModifierFilter.Override))
-                            && (accessibility != Accessibility.Private || !filter.Any(ModifierFilter.AbstractVirtualOverride))
+                        return (ignoreOverride || !filter.HasAnyFlag(ModifierFilter.Override))
+                            && (accessibility != Accessibility.Private || !filter.HasAnyFlag(ModifierFilter.AbstractVirtualOverride))
                             && CheckProtectedInStaticOrSealedClass(node)
                             && CheckAccessorAccessibility(indexerDeclaration.AccessorList);
                     }
@@ -451,8 +465,8 @@ namespace Roslynator.CSharp
 
                         ModifierFilter filter = SyntaxInfo.ModifierListInfo(propertyDeclaration).GetFilter();
 
-                        return (ignoreOverride || !filter.Any(ModifierFilter.Override))
-                            && (accessibility != Accessibility.Private || !filter.Any(ModifierFilter.AbstractVirtualOverride))
+                        return (ignoreOverride || !filter.HasAnyFlag(ModifierFilter.Override))
+                            && (accessibility != Accessibility.Private || !filter.HasAnyFlag(ModifierFilter.AbstractVirtualOverride))
                             && CheckProtectedInStaticOrSealedClass(node)
                             && CheckAccessorAccessibility(propertyDeclaration.AccessorList);
                     }
@@ -462,8 +476,8 @@ namespace Roslynator.CSharp
 
                         ModifierFilter filter = SyntaxInfo.ModifierListInfo(methodDeclaration).GetFilter();
 
-                        return (ignoreOverride || !filter.Any(ModifierFilter.Override))
-                            && (accessibility != Accessibility.Private || !filter.Any(ModifierFilter.AbstractVirtualOverride))
+                        return (ignoreOverride || !filter.HasAnyFlag(ModifierFilter.Override))
+                            && (accessibility != Accessibility.Private || !filter.HasAnyFlag(ModifierFilter.AbstractVirtualOverride))
                             && CheckProtectedInStaticOrSealedClass(node);
                     }
                 case SyntaxKind.EventFieldDeclaration:
@@ -472,8 +486,8 @@ namespace Roslynator.CSharp
 
                         ModifierFilter filter = SyntaxInfo.ModifierListInfo(eventFieldDeclaration).GetFilter();
 
-                        return (ignoreOverride || !filter.Any(ModifierFilter.Override))
-                            && (accessibility != Accessibility.Private || !filter.Any(ModifierFilter.AbstractVirtualOverride))
+                        return (ignoreOverride || !filter.HasAnyFlag(ModifierFilter.Override))
+                            && (accessibility != Accessibility.Private || !filter.HasAnyFlag(ModifierFilter.AbstractVirtualOverride))
                             && CheckProtectedInStaticOrSealedClass(node);
                     }
                 case SyntaxKind.ConstructorDeclaration:
@@ -492,11 +506,12 @@ namespace Roslynator.CSharp
                 case SyntaxKind.SetAccessorDeclaration:
                 case SyntaxKind.AddAccessorDeclaration:
                 case SyntaxKind.RemoveAccessorDeclaration:
+                case SyntaxKind.InitAccessorDeclaration:
                 case SyntaxKind.UnknownAccessorDeclaration:
                     {
                         var memberDeclaration = node.Parent?.Parent as MemberDeclarationSyntax;
 
-                        Debug.Assert(memberDeclaration != null, node.ToString());
+                        SyntaxDebug.Assert(memberDeclaration != null, node);
 
                         if (memberDeclaration != null)
                         {
@@ -514,7 +529,7 @@ namespace Roslynator.CSharp
                     }
                 default:
                     {
-                        Debug.Fail(node.Kind().ToString());
+                        SyntaxDebug.Fail(node);
                         return false;
                     }
             }

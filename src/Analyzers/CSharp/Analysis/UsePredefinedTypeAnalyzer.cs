@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,28 +10,32 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UsePredefinedTypeAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UsePredefinedTypeAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UsePredefinedType); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UsePredefinedType);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeQualifiedName, SyntaxKind.QualifiedName);
-            context.RegisterSyntaxNodeAction(AnalyzeIdentifierName, SyntaxKind.IdentifierName);
-            context.RegisterSyntaxNodeAction(AnalyzeXmlCrefAttribute, SyntaxKind.XmlCrefAttribute);
-            context.RegisterSyntaxNodeAction(AnalyzeSimpleMemberAccessExpression, SyntaxKind.SimpleMemberAccessExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeQualifiedName(f), SyntaxKind.QualifiedName);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIdentifierName(f), SyntaxKind.IdentifierName);
+            context.RegisterSyntaxNodeAction(f => AnalyzeXmlCrefAttribute(f), SyntaxKind.XmlCrefAttribute);
+            context.RegisterSyntaxNodeAction(f => AnalyzeSimpleMemberAccessExpression(f), SyntaxKind.SimpleMemberAccessExpression);
         }
 
-        public static void AnalyzeIdentifierName(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIdentifierName(SyntaxNodeAnalysisContext context)
         {
             var identifierName = (IdentifierNameSyntax)context.Node;
 
@@ -55,7 +59,7 @@ namespace Roslynator.CSharp.Analysis
             if (IsArgumentExpressionOfNameOfExpression(context, identifierName))
                 return;
 
-            if (!(context.SemanticModel.GetSymbol(identifierName, context.CancellationToken) is ITypeSymbol typeSymbol))
+            if (context.SemanticModel.GetSymbol(identifierName, context.CancellationToken) is not ITypeSymbol typeSymbol)
                 return;
 
             if (!CSharpFacts.IsPredefinedType(typeSymbol.SpecialType))
@@ -69,7 +73,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, identifierName);
         }
 
-        public static void AnalyzeXmlCrefAttribute(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeXmlCrefAttribute(SyntaxNodeAnalysisContext context)
         {
             var xmlCrefAttribute = (XmlCrefAttributeSyntax)context.Node;
 
@@ -99,13 +103,13 @@ namespace Roslynator.CSharp.Analysis
 
         private static void Analyze(SyntaxNodeAnalysisContext context, CrefSyntax cref, NameMemberCrefSyntax nameMemberCref)
         {
-            if (!(nameMemberCref.Name is IdentifierNameSyntax identifierName))
+            if (nameMemberCref.Name is not IdentifierNameSyntax identifierName)
                 return;
 
             if (!SupportsPredefinedType(identifierName))
                 return;
 
-            if (!(context.SemanticModel.GetSymbol(identifierName, context.CancellationToken) is ITypeSymbol typeSymbol))
+            if (context.SemanticModel.GetSymbol(identifierName, context.CancellationToken) is not ITypeSymbol typeSymbol)
                 return;
 
             if (!CSharpFacts.IsPredefinedType(typeSymbol.SpecialType))
@@ -119,14 +123,14 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, cref);
         }
 
-        public static void AnalyzeQualifiedName(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeQualifiedName(SyntaxNodeAnalysisContext context)
         {
             var qualifiedName = (QualifiedNameSyntax)context.Node;
 
             if (qualifiedName.IsParentKind(SyntaxKind.UsingDirective))
                 return;
 
-            if (!(qualifiedName.Right is IdentifierNameSyntax identifierName))
+            if (qualifiedName.Right is not IdentifierNameSyntax identifierName)
                 return;
 
             if (!SupportsPredefinedType(identifierName))
@@ -135,7 +139,7 @@ namespace Roslynator.CSharp.Analysis
             if (IsArgumentExpressionOfNameOfExpression(context, qualifiedName))
                 return;
 
-            if (!(context.SemanticModel.GetSymbol(qualifiedName, context.CancellationToken) is ITypeSymbol typeSymbol))
+            if (context.SemanticModel.GetSymbol(qualifiedName, context.CancellationToken) is not ITypeSymbol typeSymbol)
                 return;
 
             if (!CSharpFacts.IsPredefinedType(typeSymbol.SpecialType))
@@ -144,7 +148,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, qualifiedName);
         }
 
-        public static void AnalyzeSimpleMemberAccessExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeSimpleMemberAccessExpression(SyntaxNodeAnalysisContext context)
         {
             var memberAccess = (MemberAccessExpressionSyntax)context.Node;
 
@@ -167,7 +171,7 @@ namespace Roslynator.CSharp.Analysis
             {
                 memberAccess = (MemberAccessExpressionSyntax)expression;
 
-                if (!(memberAccess.Name is IdentifierNameSyntax identifierName))
+                if (memberAccess.Name is not IdentifierNameSyntax identifierName)
                     return;
 
                 if (!SupportsPredefinedType(identifierName))
@@ -178,7 +182,7 @@ namespace Roslynator.CSharp.Analysis
                 return;
             }
 
-            if (!(context.SemanticModel.GetSymbol(expression, context.CancellationToken) is ITypeSymbol typeSymbol))
+            if (context.SemanticModel.GetSymbol(expression, context.CancellationToken) is not ITypeSymbol typeSymbol)
                 return;
 
             if (!CSharpFacts.IsPredefinedType(typeSymbol.SpecialType))
@@ -240,7 +244,7 @@ namespace Roslynator.CSharp.Analysis
 
         private static void ReportDiagnostic(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UsePredefinedType, node);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UsePredefinedType, node);
         }
     }
 }

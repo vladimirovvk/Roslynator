@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -62,7 +62,7 @@ namespace Roslynator.CSharp.Analysis
 
                 if (other.WalkDownParentheses().IsNumericLiteralExpression("0"))
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.OptimizeMethodCall, equalsExpression, "string.Compare");
+                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.OptimizeMethodCall, equalsExpression, "string.Compare");
                     return;
                 }
             }
@@ -73,7 +73,7 @@ namespace Roslynator.CSharp.Analysis
                 && optional.Value is int value
                 && value == (int)StringComparison.Ordinal)
             {
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.OptimizeMethodCall, invocationExpression, "string.Compare");
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.OptimizeMethodCall, invocationExpression, "string.Compare");
             }
         }
 
@@ -119,7 +119,7 @@ namespace Roslynator.CSharp.Analysis
             if (!ContainsFailMethod())
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.OptimizeMethodCall, invocationExpression, "Debug.Assert");
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.OptimizeMethodCall, invocationExpression, "Debug.Assert");
 
             bool ContainsFailMethod()
             {
@@ -193,14 +193,14 @@ namespace Roslynator.CSharp.Analysis
             if (!CSharpUtility.IsEmptyStringExpression(firstArgument.Expression, semanticModel, cancellationToken))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.OptimizeMethodCall, invocationExpression, "string.Join");
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.OptimizeMethodCall, invocationExpression, "string.Join");
         }
 
         public static void OptimizeDictionaryContainsKey(SyntaxNodeAnalysisContext context, in SimpleMemberInvocationExpressionInfo invocationInfo)
         {
             InvocationExpressionSyntax invocationExpression = invocationInfo.InvocationExpression;
 
-            bool isNegation = false;
+            var isNegation = false;
 
             IfStatementSyntax ifStatement = GetIfStatement();
 
@@ -214,7 +214,7 @@ namespace Roslynator.CSharp.Analysis
             if (!simpleAssignmentStatement.Success)
                 return;
 
-            if (!(simpleAssignmentStatement.Left is ElementAccessExpressionSyntax elementAccessExpression))
+            if (simpleAssignmentStatement.Left is not ElementAccessExpressionSyntax elementAccessExpression)
                 return;
 
             if (!CSharpFactory.AreEquivalent(invocationInfo.Expression, elementAccessExpression.Expression))
@@ -257,7 +257,7 @@ namespace Roslynator.CSharp.Analysis
             if (!IsDictionaryAdd(methodSymbol2))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.OptimizeMethodCall, ifStatement, "Dictionary<TKey, TValue>.ContainsKey");
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.OptimizeMethodCall, ifStatement, "Dictionary<TKey, TValue>.ContainsKey");
 
             IfStatementSyntax GetIfStatement()
             {
@@ -295,7 +295,7 @@ namespace Roslynator.CSharp.Analysis
                 return null;
             }
 
-            bool IsDictionaryContainsKey(IMethodSymbol symbol)
+            static bool IsDictionaryContainsKey(IMethodSymbol symbol)
             {
                 return symbol?.DeclaredAccessibility == Accessibility.Public
                     && !symbol.IsStatic
@@ -305,7 +305,7 @@ namespace Roslynator.CSharp.Analysis
                     && symbol.ContainingType.OriginalDefinition.HasMetadataName(MetadataNames.System_Collections_Generic_Dictionary_T2);
             }
 
-            bool IsDictionaryAdd(IMethodSymbol symbol)
+            static bool IsDictionaryAdd(IMethodSymbol symbol)
             {
                 return symbol?.DeclaredAccessibility == Accessibility.Public
                     && !symbol.IsStatic

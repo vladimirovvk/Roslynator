@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -11,14 +11,14 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class DeclareUsingDirectiveOnTopLevelRefactoring
     {
-        private static readonly SymbolDisplayFormat _symbolDisplayFormat = new SymbolDisplayFormat(
+        private static readonly SymbolDisplayFormat _symbolDisplayFormat = new(
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
 
         public static async Task<Document> RefactorAsync(
             Document document,
             NamespaceDeclarationSyntax namespaceDeclaration,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 

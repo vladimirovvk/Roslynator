@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Globalization;
@@ -15,7 +15,7 @@ namespace Roslynator.Documentation
         {
         }
 
-        public static MicrosoftDocsUrlProvider Instance { get; } = new MicrosoftDocsUrlProvider();
+        public static MicrosoftDocsUrlProvider Instance { get; } = new();
 
         public override string Name => "Microsoft Docs";
 
@@ -97,8 +97,8 @@ namespace Roslynator.Documentation
                         builder.Add(containingNamespace.Name);
 
                         containingNamespace = containingNamespace.ContainingNamespace;
-                    }
-                    while (containingNamespace?.IsGlobalNamespace == false);
+
+                    } while (containingNamespace?.IsGlobalNamespace == false);
                 }
             }
 

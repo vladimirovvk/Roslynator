@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -17,27 +17,27 @@ namespace Roslynator.CSharp.Refactorings
         public static void ComputeRefactorings(RefactoringContext context, MemberDeclarationSyntax member)
         {
             if (context.IsAnyRefactoringEnabled(
-                    RefactoringIdentifiers.SplitAttributes,
-                    RefactoringIdentifiers.MergeAttributes)
-                && !member.IsKind(SyntaxKind.NamespaceDeclaration)
+                RefactoringDescriptors.SplitAttributes,
+                RefactoringDescriptors.MergeAttributes)
+                && !member.IsKind(SyntaxKind.NamespaceDeclaration, SyntaxKind.FileScopedNamespaceDeclaration)
                 && SyntaxListSelection<AttributeListSyntax>.TryCreate(member.GetAttributeLists(), context.Span, out SyntaxListSelection<AttributeListSyntax> selectedAttributeLists))
             {
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.SplitAttributes)
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.SplitAttributes)
                     && selectedAttributeLists.Any(f => f.Attributes.Count > 1))
                 {
                     context.RegisterRefactoring(
                         "Split attributes",
                         ct => SplitAsync(context.Document, member, selectedAttributeLists.ToArray(), ct),
-                        RefactoringIdentifiers.SplitAttributes);
+                        RefactoringDescriptors.SplitAttributes);
                 }
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.MergeAttributes)
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.MergeAttributes)
                     && selectedAttributeLists.Count > 1)
                 {
                     context.RegisterRefactoring(
                         "Merge attributes",
                         ct => MergeAsync(context.Document, member, selectedAttributeLists.ToArray(), ct),
-                        RefactoringIdentifiers.MergeAttributes);
+                        RefactoringDescriptors.MergeAttributes);
                 }
             }
         }
@@ -46,7 +46,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             MemberDeclarationSyntax member,
             AttributeListSyntax[] attributeLists,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxList<AttributeListSyntax> lists = member.GetAttributeLists();
 
@@ -57,7 +57,7 @@ namespace Roslynator.CSharp.Refactorings
             for (int i = 0; i < index; i++)
                 newLists.Add(lists[i]);
 
-            newLists.AddRange(attributeLists.SelectMany(SyntaxRefactorings.SplitAttributeList).Select(f => f.WithFormatterAnnotation()));
+            newLists.AddRange(attributeLists.SelectMany(f => SyntaxRefactorings.SplitAttributeList(f)).Select(f => f.WithFormatterAnnotation()));
 
             for (int i = index + attributeLists.Length; i < lists.Count; i++)
                 newLists.Add(lists[i]);
@@ -72,7 +72,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             MemberDeclarationSyntax member,
             AttributeListSyntax[] attributeLists,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxList<AttributeListSyntax> lists = member.GetAttributeLists();
 
@@ -109,6 +109,9 @@ namespace Roslynator.CSharp.Refactorings
                     return ((ClassDeclarationSyntax)node).AttributeLists;
                 case SyntaxKind.TypeParameter:
                     return ((TypeParameterSyntax)node).AttributeLists;
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return ((RecordDeclarationSyntax)node).AttributeLists;
                 case SyntaxKind.StructDeclaration:
                     return ((StructDeclarationSyntax)node).AttributeLists;
                 case SyntaxKind.PropertyDeclaration:
@@ -146,8 +149,8 @@ namespace Roslynator.CSharp.Refactorings
                     return ((AccessorDeclarationSyntax)node).AttributeLists;
                 default:
                     {
-                        Debug.Assert(node.Kind() == SyntaxKind.GlobalStatement, node.Kind().ToString());
-                        return default(SyntaxList<AttributeListSyntax>);
+                        SyntaxDebug.Assert(node.Kind() == SyntaxKind.GlobalStatement, node);
+                        return default;
                     }
             }
         }
@@ -167,6 +170,9 @@ namespace Roslynator.CSharp.Refactorings
                     return ((ClassDeclarationSyntax)node).WithAttributeLists(attributeLists);
                 case SyntaxKind.TypeParameter:
                     return ((TypeParameterSyntax)node).WithAttributeLists(attributeLists);
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return ((RecordDeclarationSyntax)node).WithAttributeLists(attributeLists);
                 case SyntaxKind.StructDeclaration:
                     return ((StructDeclarationSyntax)node).WithAttributeLists(attributeLists);
                 case SyntaxKind.PropertyDeclaration:
@@ -204,7 +210,7 @@ namespace Roslynator.CSharp.Refactorings
                     return ((AccessorDeclarationSyntax)node).WithAttributeLists(attributeLists);
                 default:
                     {
-                        Debug.Fail(node.Kind().ToString());
+                        SyntaxDebug.Fail(node);
                         return node;
                     }
             }

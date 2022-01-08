@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,8 @@ namespace Roslynator.Documentation.Xml
             XmlWriter writer,
             SymbolFilterOptions filter = null,
             DefinitionListFormat format = null,
-            SymbolDocumentationProvider documentationProvider = null) : base(filter, format, documentationProvider)
+            SymbolDocumentationProvider documentationProvider = null,
+            INamedTypeSymbol hierarchyRoot = null) : base(filter, format, documentationProvider, hierarchyRoot)
         {
             _writer = writer;
         }
@@ -37,9 +38,10 @@ namespace Roslynator.Documentation.Xml
 
         protected override SymbolDisplayAdditionalOptions GetAdditionalOptions()
         {
-            return base.GetAdditionalOptions() & ~(SymbolDisplayAdditionalOptions.IncludeAccessorAttributes
-                | SymbolDisplayAdditionalOptions.IncludeParameterAttributes
-                | SymbolDisplayAdditionalOptions.IncludeTrailingSemicolon);
+            return base.GetAdditionalOptions()
+                & ~(SymbolDisplayAdditionalOptions.IncludeAccessorAttributes
+                    | SymbolDisplayAdditionalOptions.IncludeParameterAttributes
+                    | SymbolDisplayAdditionalOptions.IncludeTrailingSemicolon);
         }
 
         public override void WriteStartDocument()
@@ -268,7 +270,7 @@ namespace Roslynator.Documentation.Xml
 
         private void WriteParameters(ImmutableArray<IParameterSymbol> parameters)
         {
-            bool isOpen = false;
+            var isOpen = false;
 
             foreach (IParameterSymbol parameter in parameters)
             {
@@ -293,7 +295,7 @@ namespace Roslynator.Documentation.Xml
 
         private void WriteAccessors(IMethodSymbol accessor1, IMethodSymbol accessor2)
         {
-            bool isOpen = false;
+            var isOpen = false;
 
             if (ShouldWriteAccessor(accessor1))
             {
@@ -394,8 +396,8 @@ namespace Roslynator.Documentation.Xml
                     do
                     {
                         WriteDocumentation(en.Current);
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     _writer.WriteWhitespace(_writer.Settings.NewLineChars);
 

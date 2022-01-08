@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -32,6 +32,10 @@ namespace Roslynator.CSharp
                 case CSharpLanguageFeature.InferredTupleElementNames:
                 case CSharpLanguageFeature.PatternMatchingWithGenerics:
                     return SupportsLanguageVersion(document, LanguageVersion.CSharp7_1);
+                case CSharpLanguageFeature.NullCoalescingAssignmentOperator:
+                    return SupportsLanguageVersion(document, LanguageVersion.CSharp8);
+                case CSharpLanguageFeature.NotPattern:
+                    return SupportsLanguageVersion(document, LanguageVersion.CSharp9);
             }
 
             throw new ArgumentException($"Unknown enum value '{feature}'.", nameof(feature));
@@ -52,7 +56,7 @@ namespace Roslynator.CSharp
         internal static Task<Document> RemoveNodeAsync(
             this Document document,
             SyntaxNode node,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -69,11 +73,10 @@ namespace Roslynator.CSharp
         /// <param name="document"></param>
         /// <param name="member"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         internal static Task<Document> RemoveMemberAsync(
             this Document document,
             MemberDeclarationSyntax member,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -115,9 +118,16 @@ namespace Roslynator.CSharp
 
                         return document.ReplaceNodeAsync(interfaceDeclaration, SyntaxRefactorings.RemoveMember(interfaceDeclaration, member), cancellationToken);
                     }
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var recordDeclaration = (RecordDeclarationSyntax)parent;
+
+                        return document.ReplaceNodeAsync(recordDeclaration, SyntaxRefactorings.RemoveMember(recordDeclaration, member), cancellationToken);
+                    }
                 default:
                     {
-                        Debug.Assert(parent == null, parent.Kind().ToString());
+                        SyntaxDebug.Assert(parent == null, parent);
 
                         return document.RemoveNodeAsync(member, SyntaxRefactorings.DefaultRemoveOptions, cancellationToken);
                     }
@@ -127,7 +137,7 @@ namespace Roslynator.CSharp
         internal static Task<Document> RemoveStatementAsync(
             this Document document,
             StatementSyntax statement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -144,11 +154,10 @@ namespace Roslynator.CSharp
         /// <param name="document"></param>
         /// <param name="comments"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemoveCommentsAsync(
             this Document document,
             CommentFilter comments,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -168,12 +177,11 @@ namespace Roslynator.CSharp
         /// <param name="span"></param>
         /// <param name="comments"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemoveCommentsAsync(
             this Document document,
             TextSpan span,
             CommentFilter comments,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -192,11 +200,10 @@ namespace Roslynator.CSharp
         /// <param name="document"></param>
         /// <param name="span"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemoveTriviaAsync(
             this Document document,
             TextSpan span,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -214,11 +221,10 @@ namespace Roslynator.CSharp
         /// <param name="document"></param>
         /// <param name="directiveFilter"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemovePreprocessorDirectivesAsync(
             this Document document,
             PreprocessorDirectiveFilter directiveFilter,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -239,12 +245,11 @@ namespace Roslynator.CSharp
         /// <param name="span"></param>
         /// <param name="directiveFilter"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemovePreprocessorDirectivesAsync(
             this Document document,
             TextSpan span,
             PreprocessorDirectiveFilter directiveFilter,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -261,7 +266,7 @@ namespace Roslynator.CSharp
         internal static async Task<Document> RemovePreprocessorDirectivesAsync(
             this Document document,
             IEnumerable<DirectiveTriviaSyntax> directives,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -348,9 +353,11 @@ namespace Roslynator.CSharp
                         return (directiveFilter & PreprocessorDirectiveFilter.Shebang) != 0;
                     case SyntaxKind.LoadDirectiveTrivia:
                         return (directiveFilter & PreprocessorDirectiveFilter.Load) != 0;
+                    case SyntaxKind.NullableDirectiveTrivia:
+                        return (directiveFilter & PreprocessorDirectiveFilter.Nullable) != 0;
                 }
 
-                Debug.Fail(directive.Kind().ToString());
+                SyntaxDebug.Fail(directive);
                 return false;
             }
         }
@@ -361,11 +368,10 @@ namespace Roslynator.CSharp
         /// <param name="document"></param>
         /// <param name="region"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemoveRegionAsync(
             this Document document,
             RegionInfo region,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -384,9 +390,7 @@ namespace Roslynator.CSharp
                 lines[startLine].Start,
                 lines[endLine].EndIncludingLineBreak);
 
-            var textChange = new TextChange(span, "");
-
-            SourceText newSourceText = sourceText.WithChanges(textChange);
+            SourceText newSourceText = sourceText.WithChange(span, "");
 
             return document.WithText(newSourceText);
         }
@@ -394,7 +398,7 @@ namespace Roslynator.CSharp
         internal static Task<Document> RemoveSingleLineDocumentationComment(
             this Document document,
             DocumentationCommentTriviaSyntax documentationComment,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxNode node = documentationComment.ParentTrivia.Token.Parent;
             SyntaxNode newNode = SyntaxRefactorings.RemoveSingleLineDocumentationComment(node, documentationComment);
@@ -402,63 +406,129 @@ namespace Roslynator.CSharp
             return document.ReplaceNodeAsync(node, newNode, cancellationToken);
         }
 
-        internal static Task<Document> ReplaceStatementsAsync(
+        /// <summary>
+        /// Creates a new document with the specified statements replaced with new statements.
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="statementsInfo"></param>
+        /// <param name="newStatements"></param>
+        /// <param name="cancellationToken"></param>
+        public static Task<Document> ReplaceStatementsAsync(
             this Document document,
-            in StatementListInfo statementsInfo,
+            StatementListInfo statementsInfo,
             IEnumerable<StatementSyntax> newStatements,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return ReplaceStatementsAsync(document, statementsInfo, List(newStatements), cancellationToken);
         }
 
-        internal static Task<Document> ReplaceStatementsAsync(
+        /// <summary>
+        /// Creates a new document with the specified statements replaced with new statements.
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="statementsInfo"></param>
+        /// <param name="newStatements"></param>
+        /// <param name="cancellationToken"></param>
+        public static Task<Document> ReplaceStatementsAsync(
             this Document document,
-            in StatementListInfo statementsInfo,
+            StatementListInfo statementsInfo,
             SyntaxList<StatementSyntax> newStatements,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
             return document.ReplaceNodeAsync(statementsInfo.Parent, statementsInfo.WithStatements(newStatements).Parent, cancellationToken);
         }
 
-        internal static Task<Document> ReplaceMembersAsync(
+        internal static Task<Document> ReplaceStatementsAsync(
             this Document document,
-            in MemberDeclarationListInfo info,
+            StatementListInfo statementsInfo,
+            StatementListInfo newStatementsInfo,
+            CancellationToken cancellationToken = default)
+        {
+            return document.ReplaceNodeAsync(statementsInfo.Parent, newStatementsInfo.Parent, cancellationToken);
+        }
+
+        /// <summary>
+        /// Creates a new document with the specified members replaced with new members.
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="info"></param>
+        /// <param name="newMembers"></param>
+        /// <param name="cancellationToken"></param>
+        public static Task<Document> ReplaceMembersAsync(
+            this Document document,
+            MemberDeclarationListInfo info,
             IEnumerable<MemberDeclarationSyntax> newMembers,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
             return document.ReplaceNodeAsync(
                 info.Parent,
                 info.WithMembers(newMembers).Parent,
                 cancellationToken);
         }
 
-        internal static Task<Document> ReplaceMembersAsync(
+        /// <summary>
+        /// Creates a new document with the specified members replaced with new members.
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="info"></param>
+        /// <param name="newMembers"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static Task<Document> ReplaceMembersAsync(
             this Document document,
-            in MemberDeclarationListInfo info,
+            MemberDeclarationListInfo info,
             SyntaxList<MemberDeclarationSyntax> newMembers,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
             return document.ReplaceNodeAsync(
                 info.Parent,
                 info.WithMembers(newMembers).Parent,
                 cancellationToken);
         }
 
-        internal static Task<Document> ReplaceModifiersAsync(
+        /// <summary>
+        /// Creates a new document with the specified modifiers replaced with new modifiers.
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="modifiersInfo"></param>
+        /// <param name="newModifiers"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static Task<Document> ReplaceModifiersAsync(
             this Document document,
-            in ModifierListInfo modifiersInfo,
+            ModifierListInfo modifiersInfo,
             IEnumerable<SyntaxToken> newModifiers,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return ReplaceModifiersAsync(document, modifiersInfo, TokenList(newModifiers), cancellationToken);
         }
 
-        internal static Task<Document> ReplaceModifiersAsync(
+        /// <summary>
+        /// Creates a new document with the specified modifiers replaced with new modifiers.
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="modifiersInfo"></param>
+        /// <param name="newModifiers"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static Task<Document> ReplaceModifiersAsync(
             this Document document,
-            in ModifierListInfo modifiersInfo,
+            ModifierListInfo modifiersInfo,
             SyntaxTokenList newModifiers,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
             return document.ReplaceNodeAsync(modifiersInfo.Parent, modifiersInfo.WithModifiers(newModifiers).Parent, cancellationToken);
         }
     }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Text;
@@ -17,19 +17,38 @@ namespace Roslynator
         {
             StringBuilder sb = StringBuilderCache.GetInstance();
 
-            switch (diagnostic.Location.Kind)
+            FormatLocation(diagnostic.Location, baseDirectoryPath, ref sb);
+
+            sb.Append(GetSeverityText(diagnostic.Severity));
+            sb.Append(' ');
+            sb.Append(diagnostic.Id);
+            sb.Append(": ");
+
+            string message = diagnostic.GetMessage(formatProvider);
+
+            sb.Append(message);
+
+            return StringBuilderCache.GetStringAndFree(sb);
+        }
+
+        internal static void FormatLocation(
+            Location location,
+            string baseDirectoryPath,
+            ref StringBuilder sb)
+        {
+            switch (location.Kind)
             {
                 case LocationKind.SourceFile:
                 case LocationKind.XmlFile:
                 case LocationKind.ExternalFile:
                     {
-                        FileLinePositionSpan span = diagnostic.Location.GetMappedLineSpan();
+                        FileLinePositionSpan span = location.GetMappedLineSpan();
 
                         if (span.IsValid)
                         {
                             sb.Append(PathUtilities.TrimStart(span.Path, baseDirectoryPath));
 
-                            LinePosition linePosition = span.Span.Start;
+                            LinePosition linePosition = span.StartLinePosition;
 
                             sb.Append('(');
                             sb.Append(linePosition.Line + 1);
@@ -41,19 +60,6 @@ namespace Roslynator
                         break;
                     }
             }
-
-            string severity = GetSeverityText(diagnostic.Severity);
-
-            sb.Append(severity);
-            sb.Append(' ');
-            sb.Append(diagnostic.Id);
-            sb.Append(": ");
-
-            string message = diagnostic.GetMessage(formatProvider);
-
-            sb.Append(message);
-
-            return StringBuilderCache.GetStringAndFree(sb);
         }
 
         private static string GetSeverityText(DiagnosticSeverity diagnosticSeverity)

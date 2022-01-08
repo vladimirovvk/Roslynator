@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -14,9 +14,7 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class GenerateEnumValuesRefactoring
     {
-        internal const string EquivalenceKey = RefactoringIdentifiers.GenerateEnumValues;
-
-        internal static readonly string StartFromHighestExistingValueEquivalenceKey = Roslynator.EquivalenceKey.Join(EquivalenceKey, "StartFromHighestExistingValue");
+        internal static readonly string StartFromHighestExistingValueEquivalenceKey = EquivalenceKey.Create(RefactoringDescriptors.GenerateEnumValues, "StartFromHighestExistingValue");
 
         public static void ComputeRefactoring(
             RefactoringContext context,
@@ -40,7 +38,7 @@ namespace Roslynator.CSharp.Refactorings
             if (!optional.HasValue)
                 return;
 
-            if (!ConvertHelpers.CanConvert(optional.Value, enumSymbol.EnumUnderlyingType.SpecialType))
+            if (!ConvertHelpers.CanConvertFromUInt64(optional.Value, enumSymbol.EnumUnderlyingType.SpecialType))
                 return;
 
             Document document = context.Document;
@@ -48,7 +46,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 "Declare explicit values",
                 ct => RefactorAsync(document, enumDeclaration, enumSymbol, values, startFromHighestExistingValue: false, cancellationToken: ct),
-                EquivalenceKey);
+                RefactoringDescriptors.GenerateEnumValues);
 
             if (members.Any(f => f.EqualsValue != null))
             {
@@ -60,7 +58,8 @@ namespace Roslynator.CSharp.Refactorings
                     context.RegisterRefactoring(
                         $"Declare explicit values (starting from {optional2.Value})",
                         ct => RefactorAsync(document, enumDeclaration, enumSymbol, values, startFromHighestExistingValue: true, cancellationToken: ct),
-                        StartFromHighestExistingValueEquivalenceKey);
+                        RefactoringDescriptors.GenerateEnumValues,
+                        "StartFromHighestExistingValue");
                 }
             }
         }
@@ -84,7 +83,7 @@ namespace Roslynator.CSharp.Refactorings
                     Optional<ulong> optional = FlagsUtility<ulong>.Instance.GetUniquePowerOfTwo(valuesList, startFromHighestExistingValue);
 
                     if (optional.HasValue
-                        && ConvertHelpers.CanConvert(optional.Value, enumSymbol.EnumUnderlyingType.SpecialType))
+                        && ConvertHelpers.CanConvertFromUInt64(optional.Value, enumSymbol.EnumUnderlyingType.SpecialType))
                     {
                         valuesList.Add(optional.Value);
 

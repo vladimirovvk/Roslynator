@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -265,7 +265,7 @@ namespace Roslynator.Documentation
                     case RootDocumentationParts.Content:
                         {
                             IEnumerable<string> names = EnabledAndSortedRootParts
-                                .Where(HasContent)
+                                .Where(f => HasContent(f))
                                 .OrderBy(f => f, RootPartComparer)
                                 .Select(f => Resources.GetHeading(f));
 
@@ -359,7 +359,7 @@ namespace Roslynator.Documentation
                         case NamespaceDocumentationParts.Content:
                             {
                                 IEnumerable<string> names = EnabledAndSortedNamespaceParts
-                                    .Where(HasContent)
+                                    .Where(f => HasContent(f))
                                     .OrderBy(f => f, NamespacePartComparer)
                                     .Select(f => Resources.GetHeading(f));
 
@@ -615,7 +615,7 @@ namespace Roslynator.Documentation
                         case TypeDocumentationParts.Content:
                             {
                                 IEnumerable<string> names = EnabledAndSortedTypeParts
-                                    .Where(HasContent)
+                                    .Where(f => HasContent(f))
                                     .OrderBy(f => f, TypePartComparer)
                                     .Select(f => Resources.GetHeading(f));
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
@@ -18,7 +18,8 @@ namespace Roslynator.CodeGeneration.CSharp
                 UsingDirectives(
                     "System",
                     "Microsoft.CodeAnalysis"),
-                NamespaceDeclaration("Roslynator.CodeGeneration.CSharp",
+                NamespaceDeclaration(
+                    "Roslynator.CodeGeneration.CSharp",
                     ClassDeclaration(
                         default(SyntaxList<AttributeListSyntax>),
                         Modifiers.Internal_Static(),
@@ -41,10 +42,11 @@ namespace Roslynator.CodeGeneration.CSharp
                         SimpleMemberAccessExpression(
                             SimpleMemberAccessExpression(
                                 IdentifierName("x"),
-                                IdentifierName("ContainingType")), IdentifierName("Name")),
+                                IdentifierName("ContainingType")),
+                            IdentifierName("Name")),
                         GenerateSections().ToSyntaxList().Add(DefaultSwitchSection(Block(ThrowNewInvalidOperationException()))))));
 
-            IEnumerable<SwitchSectionSyntax> GenerateSections()
+            static IEnumerable<SwitchSectionSyntax> GenerateSections()
             {
                 foreach (INamedTypeSymbol typeSymbol in Symbols.SyntaxSymbols)
                 {
@@ -61,7 +63,7 @@ namespace Roslynator.CodeGeneration.CSharp
                     }
                 }
 
-                IEnumerable<SwitchSectionSyntax> GenerateSections2(INamedTypeSymbol typeSymbol)
+                static IEnumerable<SwitchSectionSyntax> GenerateSections2(INamedTypeSymbol typeSymbol)
                 {
                     int i = 0;
 

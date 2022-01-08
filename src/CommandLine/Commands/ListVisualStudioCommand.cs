@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using Microsoft.Build.Locator;
@@ -15,12 +15,12 @@ namespace Roslynator.CommandLine
 
         public ListVisualStudioCommandLineOptions Options { get; set; }
 
-        public CommandResult Execute()
+        public CommandStatus Execute()
         {
             int count = 0;
             foreach (VisualStudioInstance instance in MSBuildLocator.QueryVisualStudioInstances())
             {
-                WriteLine($"{instance.Name} {instance.Version}", ConsoleColor.Cyan, Verbosity.Normal);
+                WriteLine($"{instance.Name} {instance.Version}", ConsoleColors.Cyan, Verbosity.Normal);
                 WriteLine($"  Visual Studio Path: {instance.VisualStudioRootPath}", Verbosity.Detailed);
                 WriteLine($"  MSBuild Path:       {instance.MSBuildPath}", Verbosity.Detailed);
 
@@ -28,10 +28,9 @@ namespace Roslynator.CommandLine
             }
 
             WriteLine(Verbosity.Minimal);
-            WriteLine($"{count} Visual Studio {((count == 1) ? "installation" : "installations")} found", ConsoleColor.Green, Verbosity.Minimal);
-            WriteLine(Verbosity.Minimal);
+            WriteLine($"{count} Visual Studio {((count == 1) ? "installation" : "installations")} found", ConsoleColors.Green, Verbosity.Minimal);
 
-            return CommandResult.Success;
+            return CommandStatus.Success;
         }
     }
 }

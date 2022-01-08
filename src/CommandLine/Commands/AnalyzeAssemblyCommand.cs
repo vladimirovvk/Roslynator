@@ -1,11 +1,14 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Xml;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -23,13 +26,14 @@ namespace Roslynator.CommandLine
 
         public string Language { get; }
 
-        public CommandResult Execute(AnalyzeAssemblyCommandLineOptions options)
+        public CommandStatus Execute(AnalyzeAssemblyCommandLineOptions options)
         {
             var assemblies = new HashSet<Assembly>();
 
             AnalyzerAssemblyInfo[] analyzerAssemblies = options.GetPaths()
                 .SelectMany(path => AnalyzerAssemblyLoader.LoadFrom(
                     path: path,
+                    searchPattern: options.FileNamePattern ?? AnalyzerAssemblyLoader.DefaultSearchPattern,
                     loadAnalyzers: !options.NoAnalyzers,
                     loadFixers: !options.NoFixers,
                     language: Language))
@@ -43,7 +47,7 @@ namespace Roslynator.CommandLine
 
                 if (assemblies.Add(analyzerAssembly.Assembly))
                 {
-                    WriteLine(analyzerAssembly.FullName, ConsoleColor.Cyan, Verbosity.Minimal);
+                    WriteLine(analyzerAssembly.FullName, ConsoleColors.Cyan, Verbosity.Minimal);
 
                     if (ShouldWrite(Verbosity.Normal))
                     {
@@ -55,8 +59,8 @@ namespace Roslynator.CommandLine
                 }
                 else
                 {
-                    Write(analyzerAssembly.FullName, ConsoleColor.DarkGray, Verbosity.Minimal);
-                    WriteLine($" [{analyzerAssemblies[i].FilePath}]", ConsoleColor.DarkGray, Verbosity.Minimal);
+                    Write(analyzerAssembly.FullName, ConsoleColors.DarkGray, Verbosity.Minimal);
+                    WriteLine($" [{analyzerAssemblies[i].FilePath}]", ConsoleColors.DarkGray, Verbosity.Minimal);
                 }
             }
 
@@ -70,16 +74,42 @@ namespace Roslynator.CommandLine
             }
 
             WriteLine(Verbosity.Minimal);
-            WriteLine($"{assemblies.Count} analyzer {((assemblies.Count == 1) ? "assembly" : "assemblies")} found", ConsoleColor.Green, Verbosity.Minimal);
-            WriteLine(Verbosity.Minimal);
+            WriteLine($"{assemblies.Count} analyzer {((assemblies.Count == 1) ? "assembly" : "assemblies")} found", ConsoleColors.Green, Verbosity.Minimal);
 
-            if (options.Output != null
-                && analyzerAssemblies.Length > 0)
+            if (analyzerAssemblies.Length > 0)
             {
-                AnalyzerAssemblyXmlSerializer.Serialize(analyzerAssemblies, options.Output);
+                CultureInfo culture = (options.Culture != null) ? CultureInfo.GetCultureInfo(options.Culture) : null;
+
+                foreach (string path in options.Output)
+                {
+                    WriteLine($"Save '{path}'", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+
+                    string extension = Path.GetExtension(path);
+
+                    if (string.Equals(extension, ".xml", StringComparison.OrdinalIgnoreCase))
+                    {
+                        AnalyzerAssemblyXmlSerializer.Serialize(path, analyzerAssemblies, culture);
+                    }
+                    else if (string.Equals(extension, ".ruleset", StringComparison.OrdinalIgnoreCase))
+                    {
+                        WriteLine($"Save ruleset to '{path}'", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+
+                        using (var fileStream = new FileStream(path, FileMode.Create))
+                        using (XmlWriter xmlWriter = XmlWriter.Create(fileStream, new XmlWriterSettings() { Indent = true, IndentChars = "  ", CloseOutput = false }))
+                        {
+                            RuleSetUtility.WriteXml(
+                                writer: xmlWriter,
+                                analyzerAssemblies: analyzerAssemblies.Select(f => f.AnalyzerAssembly),
+                                name: "",
+                                toolsVersion: new Version(15, 0),
+                                description: null,
+                                formatProvider: culture);
+                        }
+                    }
+                }
             }
 
-            return CommandResult.Success;
+            return CommandStatus.Success;
         }
 
         private static void WriteAnalyzerAssembly(AnalyzerAssemblyInfo analyzerAssemblyInfo, DiagnosticMap map)
@@ -186,8 +216,8 @@ namespace Roslynator.CommandLine
 
                 if (ShouldWrite(Verbosity.Diagnostic))
                 {
-                    WriteLine($"      Languages:            {string.Join(", ", attribute.Languages.Select(f => GetShortLanguageName(f)).OrderBy(f => f))}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
-                    WriteLine($"      SupportedDiagnostics: {string.Join(", ", analyzer.SupportedDiagnostics.Select(f => f.Id).Distinct().OrderBy(f => f))}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                    WriteLine($"      Languages:            {string.Join(", ", attribute.Languages.Select(f => GetShortLanguageName(f)).OrderBy(f => f))}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+                    WriteLine($"      SupportedDiagnostics: {string.Join(", ", analyzer.SupportedDiagnostics.Select(f => f.Id).Distinct().OrderBy(f => f))}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
                 }
             }
         }
@@ -206,20 +236,20 @@ namespace Roslynator.CommandLine
 
                 if (ShouldWrite(Verbosity.Diagnostic))
                 {
-                    WriteLine($"      Languages:            {string.Join(", ", attribute.Languages.Select(f => GetShortLanguageName(f)).OrderBy(f => f))}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
-                    WriteLine($"      FixableDiagnosticIds: {string.Join(", ", fixer.FixableDiagnosticIds.Distinct().OrderBy(f => f))}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                    WriteLine($"      Languages:            {string.Join(", ", attribute.Languages.Select(f => GetShortLanguageName(f)).OrderBy(f => f))}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+                    WriteLine($"      FixableDiagnosticIds: {string.Join(", ", fixer.FixableDiagnosticIds.Distinct().OrderBy(f => f))}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
-                    Write("      FixAllProvider:       ", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                    Write("      FixAllProvider:       ", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
                     FixAllProvider fixAllProvider = fixer.GetFixAllProvider();
 
                     if (fixAllProvider != null)
                     {
-                        WriteLine($"{fixAllProvider.GetType().FullName} ({string.Join(", ", fixAllProvider.GetSupportedFixAllScopes().Select(f => f.ToString()).OrderBy(f => f))})", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                        WriteLine($"{fixAllProvider.GetType().FullName} ({string.Join(", ", fixAllProvider.GetSupportedFixAllScopes().Select(f => f.ToString()).OrderBy(f => f))})", ConsoleColors.DarkGray, Verbosity.Diagnostic);
                     }
                     else
                     {
-                        WriteLine("-", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                        WriteLine("-", ConsoleColors.DarkGray, Verbosity.Diagnostic);
                     }
                 }
             }
@@ -257,24 +287,24 @@ namespace Roslynator.CommandLine
                         && ShouldWrite(Verbosity.Diagnostic))
                     {
                         if (title != messageFormat)
-                            WriteLine($"      MessageFormat:       {messageFormat}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                            WriteLine($"      MessageFormat:       {messageFormat}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
-                        WriteLine($"      Category:            {descriptor.Category}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
-                        WriteLine($"      DefaultSeverity:     {descriptor.DefaultSeverity}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
-                        WriteLine($"      IsEnabledByDefault:  {descriptor.IsEnabledByDefault}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                        WriteLine($"      Category:            {descriptor.Category}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+                        WriteLine($"      DefaultSeverity:     {descriptor.DefaultSeverity}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+                        WriteLine($"      IsEnabledByDefault:  {descriptor.IsEnabledByDefault}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
                         string description = descriptor.Description?.ToString();
 
                         if (!string.IsNullOrEmpty(description))
-                            WriteLine($"      Description:         {description}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                            WriteLine($"      Description:         {description}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
                         if (!string.IsNullOrEmpty(descriptor.HelpLinkUri))
-                            WriteLine($"      HelpLinkUri:         {descriptor.HelpLinkUri}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                            WriteLine($"      HelpLinkUri:         {descriptor.HelpLinkUri}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
                         string customTags = string.Join(", ", descriptor.CustomTags.OrderBy(f => f));
 
                         if (!string.IsNullOrEmpty(customTags))
-                            WriteLine($"      CustomTags:          {customTags}", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                            WriteLine($"      CustomTags:          {customTags}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
                     }
                 }
 
@@ -282,14 +312,14 @@ namespace Roslynator.CommandLine
                 {
                     if (map.AnalyzersById.TryGetValue(diagnosticId, out IEnumerable<DiagnosticAnalyzer> analyzers2))
                     {
-                        Write("      DiagnosticAnalyzers: ", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                        Write("      DiagnosticAnalyzers: ", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
                         WriteTypes(analyzers2.Select(f => f.GetType()));
                     }
 
                     if (map.FixersById.TryGetValue(diagnosticId, out IEnumerable<CodeFixProvider> fixers2))
                     {
-                        Write("      CodeFixProviders:    ", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                        Write("      CodeFixProviders:    ", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
                         WriteTypes(fixers2.Select(f => f.GetType()));
                     }
@@ -306,11 +336,11 @@ namespace Roslynator.CommandLine
                         {
                             string name = (useAssemblyQualifiedName) ? en.Current.AssemblyQualifiedName : en.Current.FullName;
 
-                            WriteLine(name, ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                            WriteLine(name, ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
                             if (en.MoveNext())
                             {
-                                Write("                           ", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                                Write("                           ", ConsoleColors.DarkGray, Verbosity.Diagnostic);
                             }
                             else
                             {
@@ -331,6 +361,13 @@ namespace Roslynator.CommandLine
                     return languageName;
                 case LanguageNames.VisualBasic:
                     return "VB";
+#if DEBUG
+                // bug in CodeCracker.CSharp.dll
+                case "StaticConstructorExceptionCodeFixProvider":
+                case "StringRepresentationCodeFixProvider":
+                case "XmlDocumentationCodeFixProvider":
+                    return languageName;
+#endif
             }
 
             Debug.Fail(languageName);

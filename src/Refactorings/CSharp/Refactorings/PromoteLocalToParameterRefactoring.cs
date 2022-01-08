@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -18,7 +18,7 @@ namespace Roslynator.CSharp.Refactorings
             LocalDeclarationStatementSyntax localDeclaration,
             SemanticModel semanticModel)
         {
-            if (!(semanticModel.GetEnclosingSymbol(localDeclaration.SpanStart, context.CancellationToken) is IMethodSymbol methodSymbol))
+            if (semanticModel.GetEnclosingSymbol(localDeclaration.SpanStart, context.CancellationToken) is not IMethodSymbol methodSymbol)
                 return;
 
             if (methodSymbol.IsImplicitlyDeclared)
@@ -68,7 +68,7 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Promote '{variable.Identifier.ValueText}' to parameter",
-                cancellationToken =>
+                ct =>
                 {
                     return RefactorAsync(
                         context.Document,
@@ -76,9 +76,9 @@ namespace Roslynator.CSharp.Refactorings
                         localDeclaration,
                         type.WithoutTrivia().WithSimplifierAnnotation(),
                         variable,
-                        cancellationToken);
+                        ct);
                 },
-                RefactoringIdentifiers.PromoteLocalToParameter);
+                RefactoringDescriptors.PromoteLocalVariableToParameter);
         }
 
         public static Task<Document> RefactorAsync(
@@ -87,7 +87,7 @@ namespace Roslynator.CSharp.Refactorings
             LocalDeclarationStatementSyntax localDeclaration,
             TypeSyntax type,
             VariableDeclaratorSyntax variable,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             int variableCount = localDeclaration.Declaration.Variables.Count;
             ExpressionSyntax initializerValue = variable.Initializer?.Value;
@@ -131,9 +131,8 @@ namespace Roslynator.CSharp.Refactorings
 
             ParameterSyntax newParameter = Parameter(type, identifier).WithFormatterAnnotation();
 
-            if (newNode.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.MethodDeclaration))
+            if (newNode is MethodDeclarationSyntax methodDeclaration)
             {
-                var methodDeclaration = (MethodDeclarationSyntax)newNode;
                 newNode = methodDeclaration.AddParameterListParameters(newParameter);
             }
             else

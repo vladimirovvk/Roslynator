@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using static Roslynator.Logger;
 
 namespace Roslynator.CommandLine
 {
-    internal class LogicalLinesOfCodeCommand : AbstractLinesOfCodeCommand
+    internal class LogicalLinesOfCodeCommand : AbstractLinesOfCodeCommand<LinesOfCodeCommandResult>
     {
         public LogicalLinesOfCodeCommand(LogicalLinesOfCodeCommandLineOptions options, in ProjectFilter projectFilter) : base(projectFilter)
         {
@@ -23,9 +23,11 @@ namespace Roslynator.CommandLine
 
         public LogicalLinesOfCodeCommandLineOptions Options { get; }
 
-        public override async Task<CommandResult> ExecuteAsync(ProjectOrSolution projectOrSolution, CancellationToken cancellationToken = default)
+        public override async Task<LinesOfCodeCommandResult> ExecuteAsync(ProjectOrSolution projectOrSolution, CancellationToken cancellationToken = default)
         {
             var codeMetricsOptions = new CodeMetricsOptions(includeGenerated: Options.IncludeGeneratedCode);
+
+            CodeMetricsInfo codeMetrics;
 
             if (projectOrSolution.IsProject)
             {
@@ -35,32 +37,33 @@ namespace Roslynator.CommandLine
 
                 if (service != null)
                 {
-                    await CountLogicalLinesAsync(project, service, codeMetricsOptions, cancellationToken);
+                    codeMetrics = await CountLogicalLinesAsync(project, service, codeMetricsOptions, cancellationToken);
                 }
                 else
                 {
-                    WriteLine($"Cannot count logical lines for language '{project.Language}'", ConsoleColor.Yellow, Verbosity.Minimal);
+                    WriteLine($"Cannot count logical lines for language '{project.Language}'", ConsoleColors.Yellow, Verbosity.Minimal);
+                    return new LinesOfCodeCommandResult(CommandStatus.Fail, default);
                 }
             }
             else
             {
-                CountLines(projectOrSolution.AsSolution(), codeMetricsOptions, cancellationToken);
+                ImmutableDictionary<ProjectId, CodeMetricsInfo> codeMetricsByProject = CountLines(projectOrSolution.AsSolution(), codeMetricsOptions, cancellationToken);
+
+                codeMetrics = CodeMetricsInfo.Create(codeMetricsByProject.Values);
             }
 
-            return CommandResult.Success;
+            return new LinesOfCodeCommandResult(CommandStatus.Success, codeMetrics);
         }
 
-        private static async Task CountLogicalLinesAsync(Project project, ICodeMetricsService service, CodeMetricsOptions options, CancellationToken cancellationToken)
+        private static async Task<CodeMetricsInfo> CountLogicalLinesAsync(Project project, ICodeMetricsService service, CodeMetricsOptions options, CancellationToken cancellationToken)
         {
-            WriteLine($"Count logical lines for '{project.Name}'", ConsoleColor.Cyan, Verbosity.Minimal);
+            WriteLine($"Count logical lines for '{project.Name}'", ConsoleColors.Cyan, Verbosity.Minimal);
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             CodeMetricsInfo codeMetrics = await service.CountLinesAsync(project, LinesOfCodeKind.Logical, options, cancellationToken);
 
             stopwatch.Stop();
-
-            WriteLine(Verbosity.Minimal);
 
             WriteMetrics(
                 codeMetrics.CodeLineCount,
@@ -71,17 +74,19 @@ namespace Roslynator.CommandLine
 
             WriteLine(Verbosity.Minimal);
             WriteLine($"Done counting logical lines for '{project.FilePath}' in {stopwatch.Elapsed:mm\\:ss\\.ff}", Verbosity.Normal);
+
+            return codeMetrics;
         }
 
-        private void CountLines(Solution solution, CodeMetricsOptions options, CancellationToken cancellationToken)
+        private ImmutableDictionary<ProjectId, CodeMetricsInfo> CountLines(Solution solution, CodeMetricsOptions options, CancellationToken cancellationToken)
         {
-            WriteLine($"Count logical lines for solution '{solution.FilePath}'", ConsoleColor.Cyan, Verbosity.Minimal);
+            WriteLine($"Count logical lines for solution '{solution.FilePath}'", ConsoleColors.Cyan, Verbosity.Minimal);
 
             IEnumerable<Project> projects = FilterProjects(solution);
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            ImmutableDictionary<ProjectId, CodeMetricsInfo> codeMetrics = CountLinesInParallel(projects, LinesOfCodeKind.Logical, options, cancellationToken);
+            ImmutableDictionary<ProjectId, CodeMetricsInfo> codeMetrics = LinesOfCodeHelpers.CountLinesInParallel(projects, LinesOfCodeKind.Logical, options, cancellationToken);
 
             stopwatch.Stop();
 
@@ -90,10 +95,8 @@ namespace Roslynator.CommandLine
                 WriteLine(Verbosity.Normal);
                 WriteLine("Logical lines of code by project:", Verbosity.Normal);
 
-                WriteLinesOfCode(solution, codeMetrics);
+                LinesOfCodeHelpers.WriteLinesOfCode(solution, codeMetrics);
             }
-
-            WriteLine(Verbosity.Minimal);
 
             WriteMetrics(
                 codeMetrics.Sum(f => f.Value.CodeLineCount),
@@ -104,6 +107,8 @@ namespace Roslynator.CommandLine
 
             WriteLine(Verbosity.Minimal);
             WriteLine($"Done counting logical lines for solution '{solution.FilePath}' in {stopwatch.Elapsed:mm\\:ss\\.ff}", Verbosity.Normal);
+
+            return codeMetrics;
         }
 
         private static void WriteMetrics(
@@ -119,16 +124,30 @@ namespace Roslynator.CommandLine
             string totalPreprocessorDirectiveLines = totalPreprocessorDirectiveLineCount.ToString("n0");
             string totalLines = totalLineCount.ToString("n0");
 
-            int maxDigits = Math.Max(totalCodeLines.Length,
-                Math.Max(totalWhitespaceLines.Length,
-                    Math.Max(totalCommentLines.Length,
+            int maxDigits = Math.Max(
+                totalCodeLines.Length,
+                Math.Max(
+                    totalWhitespaceLines.Length,
+                    Math.Max(
+                        totalCommentLines.Length,
                         Math.Max(totalPreprocessorDirectiveLines.Length, totalLines.Length))));
 
-            WriteLine($"{totalCodeLines.PadLeft(maxDigits)} {totalCodeLineCount / (double)totalLineCount,4:P0} logical lines of code", ConsoleColor.Green, Verbosity.Minimal);
+            WriteLine(Verbosity.Minimal);
+            WriteLine($"{totalCodeLines.PadLeft(maxDigits)} {totalCodeLineCount / (double)totalLineCount,4:P0} logical lines of code", ConsoleColors.Green, Verbosity.Minimal);
             WriteLine($"{totalWhitespaceLines.PadLeft(maxDigits)} {totalWhitespaceLineCount / (double)totalLineCount,4:P0} white-space lines", Verbosity.Minimal);
             WriteLine($"{totalCommentLines.PadLeft(maxDigits)} {totalCommentLineCount / (double)totalLineCount,4:P0} comment lines", Verbosity.Minimal);
             WriteLine($"{totalPreprocessorDirectiveLines.PadLeft(maxDigits)} {totalPreprocessorDirectiveLineCount / (double)totalLineCount,4:P0} preprocessor directive lines", Verbosity.Minimal);
             WriteLine($"{totalLines.PadLeft(maxDigits)} {totalLineCount / (double)totalLineCount,4:P0} total lines", Verbosity.Minimal);
+        }
+
+        protected override void ProcessResults(IEnumerable<LinesOfCodeCommandResult> results)
+        {
+            WriteMetrics(
+                totalCodeLineCount: results.Sum(f => f.Metrics.CodeLineCount),
+                totalWhitespaceLineCount: results.Sum(f => f.Metrics.WhitespaceLineCount),
+                totalCommentLineCount: results.Sum(f => f.Metrics.CommentLineCount),
+                totalPreprocessorDirectiveLineCount: results.Sum(f => f.Metrics.PreprocessorDirectiveLineCount),
+                totalLineCount: results.Sum(f => f.Metrics.TotalLineCount));
         }
 
         protected override void OperationCanceled(OperationCanceledException ex)

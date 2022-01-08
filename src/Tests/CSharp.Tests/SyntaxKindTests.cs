@@ -1,16 +1,20 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Linq;
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
-namespace Roslynator.CSharp.Tests
+namespace Roslynator.Testing.CSharp
 {
     public static class SyntaxKindTests
     {
         [Fact]
         public static void DetectNewSyntaxKinds()
         {
+            List<SyntaxKind> unknownKinds = null;
+
             foreach (SyntaxKind value in Enum.GetValues(typeof(SyntaxKind)))
             {
                 switch (value)
@@ -501,15 +505,79 @@ namespace Roslynator.CSharp.Tests
                     case SyntaxKind.RefExpression:
                     case SyntaxKind.RefType:
                     case SyntaxKind.ThrowExpression:
+                    case SyntaxKind.ImplicitStackAllocArrayCreationExpression:
+                    // new in 3.0.0
+                    case SyntaxKind.DotDotToken:
+                    case SyntaxKind.QuestionQuestionEqualsToken:
+                    case SyntaxKind.NullableKeyword:
+                    case SyntaxKind.EnableKeyword:
+                    case SyntaxKind.VarKeyword:
+                    case SyntaxKind.RangeExpression:
+                    case SyntaxKind.CoalesceAssignmentExpression:
+                    case SyntaxKind.IndexExpression:
+                    case SyntaxKind.RecursivePattern:
+                    case SyntaxKind.PropertyPatternClause:
+                    case SyntaxKind.Subpattern:
+                    case SyntaxKind.PositionalPatternClause:
+                    case SyntaxKind.DiscardPattern:
+                    case SyntaxKind.SwitchExpression:
+                    case SyntaxKind.SwitchExpressionArm:
+                    case SyntaxKind.VarPattern:
+                    case SyntaxKind.SuppressNullableWarningExpression:
+                    case SyntaxKind.NullableDirectiveTrivia:
+                    // new in 3.5.0
+                    case SyntaxKind.WarningsKeyword:
+                    case SyntaxKind.AnnotationsKeyword:
+                    // new in 3.7.0
+                    case SyntaxKind.OrKeyword:
+                    case SyntaxKind.AndKeyword:
+                    case SyntaxKind.NotKeyword:
+                    case SyntaxKind.WithKeyword:
+                    case SyntaxKind.InitKeyword:
+                    case SyntaxKind.RecordKeyword:
+                    case SyntaxKind.ParenthesizedPattern:
+                    case SyntaxKind.RelationalPattern:
+                    case SyntaxKind.TypePattern:
+                    case SyntaxKind.OrPattern:
+                    case SyntaxKind.AndPattern:
+                    case SyntaxKind.NotPattern:
+                    case SyntaxKind.InitAccessorDeclaration:
+                    case SyntaxKind.RecordDeclaration:
+                    case SyntaxKind.WithExpression:
+                    case SyntaxKind.WithInitializerExpression:
+                    case SyntaxKind.ImplicitObjectCreationExpression:
+                    case SyntaxKind.PrimaryConstructorBaseType:
+                    case SyntaxKind.FunctionPointerType:
+                    case SyntaxKind.DefaultConstraint:
+                    case SyntaxKind.FunctionPointerCallingConvention:
+                    case SyntaxKind.FunctionPointerParameter:
+                    case SyntaxKind.FunctionPointerParameterList:
+                    case SyntaxKind.FunctionPointerUnmanagedCallingConvention:
+                    case SyntaxKind.FunctionPointerUnmanagedCallingConventionList:
+                    case SyntaxKind.ManagedKeyword:
+                    case SyntaxKind.UnmanagedKeyword:
+                    // new in 4.0.1
+                    case SyntaxKind.ExpressionColon:
+                    case SyntaxKind.FileScopedNamespaceDeclaration:
+                    case SyntaxKind.LineDirectivePosition:
+                    case SyntaxKind.LineSpanDirectiveTrivia:
+                    case SyntaxKind.RecordStructDeclaration:
                         {
                             break;
                         }
                     default:
                         {
-                            Assert.True(false, $"Unknown enum value '{value}'.");
+                            (unknownKinds ??= new List<SyntaxKind>()).Add(value);
                             break;
                         }
                 }
+            }
+
+            if (unknownKinds != null)
+            {
+                Assert.True(
+                    false,
+                    $"Unknown enum value(s) {string.Join(", ", unknownKinds.Select(f => $"'{f}'"))}.");
             }
         }
     }

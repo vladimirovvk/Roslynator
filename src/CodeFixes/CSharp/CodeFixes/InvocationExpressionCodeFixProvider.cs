@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -13,34 +13,34 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(InvocationExpressionCodeFixProvider))]
     [Shared]
-    public class InvocationExpressionCodeFixProvider : BaseCodeFixProvider
+    public sealed class InvocationExpressionCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.NonInvocableMemberCannotBeUsedLikeMethod); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS1955_NonInvocableMemberCannotBeUsedLikeMethod); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveArgumentList))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveArgumentList, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out InvocationExpressionSyntax invocationExpression))
                 return;
 
             CodeAction codeAction = CodeAction.Create(
                 "Remove argument list",
-                cancellationToken =>
+                ct =>
                 {
                     ExpressionSyntax newNode = invocationExpression.Expression
-                            .AppendToTrailingTrivia(invocationExpression.ArgumentList.GetTrailingTrivia())
-                            .WithFormatterAnnotation();
+                        .AppendToTrailingTrivia(invocationExpression.ArgumentList.GetTrailingTrivia())
+                        .WithFormatterAnnotation();
 
-                    return context.Document.ReplaceNodeAsync(invocationExpression, newNode, cancellationToken);
+                    return context.Document.ReplaceNodeAsync(invocationExpression, newNode, ct);
                 },
                 GetEquivalenceKey(diagnostic));
 

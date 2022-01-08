@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -24,14 +24,18 @@ namespace Roslynator.Documentation
         protected SymbolDefinitionWriter(
             SymbolFilterOptions filter = null,
             DefinitionListFormat format = null,
-            SymbolDocumentationProvider documentationProvider = null)
+            SymbolDocumentationProvider documentationProvider = null,
+            INamedTypeSymbol hierarchyRoot = null)
         {
             Filter = filter ?? SymbolFilterOptions.Default;
             Format = format ?? DefinitionListFormat.Default;
             DocumentationProvider = documentationProvider;
+            HierarchyRoot = hierarchyRoot;
 
             _typeDefinitionNameFormat = new SymbolDisplayFormat(
-                typeQualificationStyle: (Layout == SymbolDefinitionListLayout.TypeHierarchy) ? SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces : SymbolDisplayTypeQualificationStyle.NameOnly,
+                typeQualificationStyle: (Layout == SymbolDefinitionListLayout.TypeHierarchy && Format.Includes(SymbolDefinitionPartFilter.ContainingNamespaceInTypeHierarchy))
+                    ? SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces
+                    : SymbolDisplayTypeQualificationStyle.NameOnly,
                 genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters);
 
             _memberDefinitionNameFormat = new SymbolDisplayFormat(
@@ -46,6 +50,8 @@ namespace Roslynator.Documentation
 
         public SymbolDocumentationProvider DocumentationProvider { get; }
 
+        public INamedTypeSymbol HierarchyRoot { get; }
+
         public SymbolDefinitionComparer Comparer
         {
             get
@@ -58,7 +64,7 @@ namespace Roslynator.Documentation
 
         public abstract bool SupportsDocumentationComments { get; }
 
-        public virtual bool SupportsMultilineDefinitions => Layout != SymbolDefinitionListLayout.TypeHierarchy;
+        public abstract bool SupportsMultilineDefinitions { get; }
 
         protected int Depth { get; private set; }
 
@@ -224,16 +230,16 @@ namespace Roslynator.Documentation
 
             if (SupportsMultilineDefinitions)
             {
-                if (Format.Includes(SymbolDefinitionFormatOptions.BaseList))
-                    options |= SymbolDisplayAdditionalOptions.FormatBaseList;
+                if (Format.Includes(WrapListOptions.BaseTypes))
+                    options |= SymbolDisplayAdditionalOptions.WrapBaseTypes;
 
-                if (Format.Includes(SymbolDefinitionFormatOptions.Constraints))
-                    options |= SymbolDisplayAdditionalOptions.FormatConstraints;
+                if (Format.Includes(WrapListOptions.Constraints))
+                    options |= SymbolDisplayAdditionalOptions.WrapConstraints;
 
-                if (Format.Includes(SymbolDefinitionFormatOptions.Parameters))
+                if (Format.Includes(WrapListOptions.Parameters))
                     options |= SymbolDisplayAdditionalOptions.FormatParameters;
 
-                if (Format.Includes(SymbolDefinitionFormatOptions.Attributes))
+                if (Format.Includes(WrapListOptions.Attributes))
                     options |= SymbolDisplayAdditionalOptions.FormatAttributes;
             }
 
@@ -254,13 +260,15 @@ namespace Roslynator.Documentation
         public virtual void WriteDocument(IEnumerable<IAssemblySymbol> assemblies, CancellationToken cancellationToken = default)
         {
             WriteStartDocument();
-            WriteAssemblies(assemblies, cancellationToken);
+
+            if (Format.Includes(SymbolDefinitionPartFilter.Assemblies))
+                WriteAssemblies(assemblies, cancellationToken);
 
             if (!Format.GroupByAssembly)
             {
                 if (Layout == SymbolDefinitionListLayout.TypeHierarchy)
                 {
-                    WriteTypeHierarchy(assemblies.SelectMany(a => a.GetTypes(Filter.IsMatch)), cancellationToken);
+                    WriteTypeHierarchy(assemblies.SelectMany(a => a.GetTypes(f => Filter.IsMatch(f))), cancellationToken);
                 }
                 else
                 {
@@ -271,7 +279,7 @@ namespace Roslynator.Documentation
             WriteEndDocument();
         }
 
-        public virtual void WriteAssemblies(IEnumerable<IAssemblySymbol> assemblies, CancellationToken cancellationToken = default)
+        private void WriteAssemblies(IEnumerable<IAssemblySymbol> assemblies, CancellationToken cancellationToken = default)
         {
             WriteStartAssemblies();
 
@@ -295,7 +303,7 @@ namespace Roslynator.Documentation
                         {
                             if (Layout == SymbolDefinitionListLayout.TypeHierarchy)
                             {
-                                WriteTypeHierarchy(assembly.GetTypes(Filter.IsMatch), cancellationToken);
+                                WriteTypeHierarchy(assembly.GetTypes(f => Filter.IsMatch(f)), cancellationToken);
                             }
                             else
                             {
@@ -359,7 +367,11 @@ namespace Roslynator.Documentation
 
         private void WriteTypeHierarchy(IEnumerable<INamedTypeSymbol> types, CancellationToken cancellationToken = default)
         {
-            TypeHierarchy hierarchy = TypeHierarchy.Create(types, SymbolDefinitionComparer.SystemFirst.TypeComparer);
+            IComparer<INamedTypeSymbol> comparer = (Format.Includes(SymbolDefinitionPartFilter.ContainingNamespaceInTypeHierarchy))
+                ? SymbolDefinitionComparer.SystemFirst.TypeComparer
+                : SymbolDefinitionComparer.OmitContainingNamespace.TypeComparer;
+
+            TypeHierarchy hierarchy = TypeHierarchy.Create(types, HierarchyRoot, comparer);
 
             WriteTypeHierarchy(hierarchy, cancellationToken);
         }
@@ -382,8 +394,8 @@ namespace Roslynator.Documentation
                 do
                 {
                     WriteTypeHierarchyItem(en.Current, cancellationToken);
-                }
-                while (en.MoveNext());
+
+                } while (en.MoveNext());
 
                 WriteEndHierarchyTypes();
                 WriteEndType(symbol);
@@ -704,7 +716,8 @@ namespace Roslynator.Documentation
             using (IEnumerator<AttributeData> en = symbol
                 .GetAttributes()
                 .Where(f => Filter.IsMatch(symbol, f))
-                .OrderBy(f => f.AttributeClass, Comparer.TypeComparer).GetEnumerator())
+                .OrderBy(f => f.AttributeClass, Comparer.TypeComparer)
+                .GetEnumerator())
             {
                 if (en.MoveNext())
                 {
@@ -738,8 +751,8 @@ namespace Roslynator.Documentation
             if (!Format.Includes(SymbolDefinitionPartFilter.AttributeArguments))
                 return;
 
-            bool hasConstructorArgument = false;
-            bool hasNamedArgument = false;
+            var hasConstructorArgument = false;
+            var hasNamedArgument = false;
 
             WriteConstructorArguments();
             WriteNamedArguments();
@@ -929,7 +942,7 @@ namespace Roslynator.Documentation
 
             if (startIndex >= 0)
             {
-                Debug.Assert(symbol == s, parts.ToDisplayString());
+                Debug.Assert(SymbolEqualityComparer.Default.Equals(symbol, s), parts.ToDisplayString());
 
                 WriteParts(symbol, parts, 0, startIndex);
 
@@ -989,7 +1002,7 @@ namespace Roslynator.Documentation
             int max = startIndex + length;
 
             int i = startIndex;
-            int j = 0;
+            int j;
 
             while (i < max)
             {

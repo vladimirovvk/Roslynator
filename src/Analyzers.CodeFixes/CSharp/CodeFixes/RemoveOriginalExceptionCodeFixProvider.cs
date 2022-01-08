@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,14 +14,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RemoveOriginalExceptionCodeFixProvider))]
     [Shared]
-    public class RemoveOriginalExceptionCodeFixProvider : BaseCodeFixProvider
+    public sealed class RemoveOriginalExceptionCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.RemoveOriginalExceptionFromThrowStatement); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -30,7 +30,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Remove original exception from throw statement",
-                cancellationToken => RemoveOriginalExceptionFromThrowStatementRefactoring.RefactorAsync(context.Document, throwStatement, cancellationToken),
+                ct => RemoveOriginalExceptionFromThrowStatementRefactoring.RefactorAsync(context.Document, throwStatement, ct),
                 GetEquivalenceKey(DiagnosticIdentifiers.RemoveOriginalExceptionFromThrowStatement));
 
             context.RegisterCodeFix(codeAction, context.Diagnostics);

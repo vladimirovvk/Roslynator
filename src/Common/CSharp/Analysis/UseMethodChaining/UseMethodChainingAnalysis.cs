@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -10,9 +10,9 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
 {
     internal abstract class UseMethodChainingAnalysis
     {
-        public static MethodChainingWithoutAssignmentAnalysis WithoutAssignmentAnalysis { get; } = new MethodChainingWithoutAssignmentAnalysis();
+        public static MethodChainingWithoutAssignmentAnalysis WithoutAssignmentAnalysis { get; } = new();
 
-        public static MethodChainingWithAssignmentAnalysis WithAssignmentAnalysis { get; } = new MethodChainingWithAssignmentAnalysis();
+        public static MethodChainingWithAssignmentAnalysis WithAssignmentAnalysis { get; } = new();
 
         public static bool IsFixable(
             in SimpleMemberInvocationExpressionInfo invocationInfo,
@@ -29,7 +29,7 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
                     {
                         var expressionStatement = (ExpressionStatementSyntax)parent;
 
-                        if (!(WalkDownMethodChain(invocationInfo).Expression is IdentifierNameSyntax identifierName))
+                        if (WalkDownMethodChain(invocationInfo).Expression is not IdentifierNameSyntax identifierName)
                             break;
 
                         string name = identifierName.Identifier.ValueText;
@@ -38,15 +38,15 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
                     }
                 case SyntaxKind.SimpleAssignmentExpression:
                     {
-                        var assinmentExpression = (AssignmentExpressionSyntax)parent;
+                        var assignmentExpression = (AssignmentExpressionSyntax)parent;
 
-                        if (!(assinmentExpression.Left is IdentifierNameSyntax identifierName))
+                        if (assignmentExpression.Left is not IdentifierNameSyntax identifierName)
                             break;
 
-                        if (assinmentExpression.Right != invocationExpression)
+                        if (assignmentExpression.Right != invocationExpression)
                             break;
 
-                        if (!(assinmentExpression.Parent is ExpressionStatementSyntax expressionStatement))
+                        if (assignmentExpression.Parent is not ExpressionStatementSyntax expressionStatement)
                             break;
 
                         string name = identifierName.Identifier.ValueText;

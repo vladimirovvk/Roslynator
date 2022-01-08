@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,9 +14,9 @@ namespace Roslynator.CSharp.Refactorings
         public static void ComputeRefactoring(RefactoringContext context, BlockSyntax block)
         {
             if (context.IsAnyRefactoringEnabled(
-                RefactoringIdentifiers.RemoveStatement,
-                RefactoringIdentifiers.DuplicateStatement,
-                RefactoringIdentifiers.CommentOutStatement))
+                RefactoringDescriptors.RemoveStatement,
+                RefactoringDescriptors.CopyStatement,
+                RefactoringDescriptors.CommentOutStatement))
             {
                 StatementSyntax statement = GetStatement(context, block, block.Parent);
 
@@ -32,36 +32,36 @@ namespace Roslynator.CSharp.Refactorings
             {
                 RegisterRefactoring(context, switchStatement);
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveAllSwitchSections)
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveAllSwitchSections)
                     && switchStatement.Sections.Any())
                 {
                     context.RegisterRefactoring(
                         "Remove all sections",
-                        cancellationToken => RemoveAllSwitchSectionsAsync(context.Document, switchStatement, cancellationToken),
-                        RefactoringIdentifiers.RemoveAllSwitchSections);
+                        ct => RemoveAllSwitchSectionsAsync(context.Document, switchStatement, ct),
+                        RefactoringDescriptors.RemoveAllSwitchSections);
                 }
             }
         }
 
         private static void RegisterRefactoring(RefactoringContext context, StatementSyntax statement)
         {
-            bool isEmbedded = statement.IsEmbedded(canBeIfInsideElse: false);
+            bool isEmbedded = statement.IsEmbedded();
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveStatement)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveStatement)
                 && !isEmbedded)
             {
-                context.RegisterRefactoring(CodeActionFactory.RemoveStatement(context.Document, statement, "Remove statement", RefactoringIdentifiers.RemoveStatement));
+                context.RegisterRefactoring(CodeActionFactory.RemoveStatement(context.Document, statement, "Remove statement", EquivalenceKey.Create(RefactoringDescriptors.RemoveStatement)));
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.DuplicateStatement))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.CopyStatement))
             {
                 context.RegisterRefactoring(
-                    "Duplicate statement",
-                    cancellationToken => DuplicateStatementAsync(context.Document, statement, cancellationToken),
-                    RefactoringIdentifiers.DuplicateStatement);
+                    "Copy statement",
+                    ct => CopyStatementAsync(context.Document, statement, ct),
+                    RefactoringDescriptors.CopyStatement);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.CommentOutStatement)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.CommentOutStatement)
                 && !isEmbedded)
             {
                 CommentOutRefactoring.RegisterRefactoring(context, statement);
@@ -90,10 +90,8 @@ namespace Roslynator.CSharp.Refactorings
                         if (block.OpenBraceToken.Span.Contains(context.Span)
                             || block.CloseBraceToken.Span.Contains(context.Span))
                         {
-                            if (parent.IsKind(SyntaxKind.UsingStatement))
+                            if (parent is UsingStatementSyntax usingStatement)
                             {
-                                var usingStatement = (UsingStatementSyntax)parent;
-
                                 while (usingStatement.IsParentKind(SyntaxKind.UsingStatement))
                                     usingStatement = (UsingStatementSyntax)usingStatement.Parent;
 
@@ -127,7 +125,7 @@ namespace Roslynator.CSharp.Refactorings
                         if (ifStatement.Else == null
                             && block.CloseBraceToken.Span.Contains(context.Span))
                         {
-                            return ifStatement;
+                            return ifStatement.GetTopmostIf();
                         }
 
                         break;
@@ -177,10 +175,10 @@ namespace Roslynator.CSharp.Refactorings
             return null;
         }
 
-        private static Task<Document> DuplicateStatementAsync(
+        private static Task<Document> CopyStatementAsync(
             Document document,
             StatementSyntax statement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             StatementListInfo statementsInfo = SyntaxInfo.StatementListInfo(statement);
             if (statementsInfo.Success)
@@ -213,7 +211,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> RemoveAllSwitchSectionsAsync(
             Document document,
             SwitchStatementSyntax switchStatement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SwitchStatementSyntax newSwitchStatement = switchStatement
                 .WithSections(default(SyntaxList<SwitchSectionSyntax>))

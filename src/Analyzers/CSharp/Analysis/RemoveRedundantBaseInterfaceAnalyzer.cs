@@ -1,9 +1,11 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -12,29 +14,40 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantBaseInterfaceAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantBaseInterfaceAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveRedundantBaseInterface); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveRedundantBaseInterface);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeBaseList, SyntaxKind.BaseList);
+            context.RegisterSyntaxNodeAction(f => AnalyzeBaseList(f), SyntaxKind.BaseList);
         }
 
-        public static void AnalyzeBaseList(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeBaseList(SyntaxNodeAnalysisContext context)
         {
             var baseList = (BaseListSyntax)context.Node;
 
-            if (!baseList.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.InterfaceDeclaration))
+            if (!baseList.IsParentKind(
+                SyntaxKind.ClassDeclaration,
+                SyntaxKind.StructDeclaration,
+                SyntaxKind.RecordStructDeclaration,
+                SyntaxKind.InterfaceDeclaration))
+            {
                 return;
+            }
 
             if (baseList.ContainsDiagnostics)
                 return;
@@ -47,9 +60,9 @@ namespace Roslynator.CSharp.Analysis
             if (baseTypes.Count <= 1)
                 return;
 
-            bool isFirst = true;
+            var isFirst = true;
             INamedTypeSymbol typeSymbol = null;
-            var baseClassInfo = default(SymbolInterfaceInfo);
+            SymbolInterfaceInfo baseClassInfo = default;
             List<SymbolInterfaceInfo> baseInterfaceInfos = null;
 
             foreach (BaseTypeSyntax baseType in baseTypes)
@@ -84,17 +97,17 @@ namespace Roslynator.CSharp.Analysis
                         {
                             foreach (SymbolInterfaceInfo baseInterfaceInfo2 in baseInterfaceInfos)
                             {
-                                Analyze(context, baseInterfaceInfo, baseInterfaceInfo2);
-                                Analyze(context, baseInterfaceInfo2, baseInterfaceInfo);
+                                Analyze(baseInterfaceInfo, baseInterfaceInfo2);
+                                Analyze(baseInterfaceInfo2, baseInterfaceInfo);
                             }
                         }
 
-                        if (baseClassInfo.IsValid)
+                        if (baseClassInfo.Symbol != null)
                         {
                             if (typeSymbol == null)
                                 typeSymbol = context.SemanticModel.GetDeclaredSymbol((TypeDeclarationSyntax)baseList.Parent, context.CancellationToken);
 
-                            Analyze(context, baseInterfaceInfo, baseClassInfo, typeSymbol);
+                            Analyze(baseInterfaceInfo, baseClassInfo);
                         }
                     }
                 }
@@ -102,103 +115,183 @@ namespace Roslynator.CSharp.Analysis
                 if (isFirst)
                     isFirst = false;
             }
-        }
 
-        private static void Analyze(
-            SyntaxNodeAnalysisContext context,
-            in SymbolInterfaceInfo interfaceInfo,
-            in SymbolInterfaceInfo interfaceInfo2,
-            INamedTypeSymbol typeSymbol = null)
-        {
-            if (IsFixable(interfaceInfo, interfaceInfo2, typeSymbol))
+            void Analyze(
+                in SymbolInterfaceInfo interfaceInfo,
+                in SymbolInterfaceInfo interfaceInfo2)
             {
-                BaseTypeSyntax baseType = interfaceInfo.BaseType;
+                ImmutableArray<ISymbol> members = default;
 
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.RemoveRedundantBaseInterface,
-                    baseType,
-                    SymbolDisplay.ToMinimalDisplayString(interfaceInfo.Symbol, context.SemanticModel, baseType.SpanStart, SymbolDisplayFormats.Default),
-                    SymbolDisplay.ToMinimalDisplayString(interfaceInfo2.Symbol, context.SemanticModel, baseType.SpanStart, SymbolDisplayFormats.Default));
-            }
-        }
-
-        private static bool IsFixable(
-            in SymbolInterfaceInfo interfaceInfo,
-            in SymbolInterfaceInfo interfaceInfo2,
-            INamedTypeSymbol typeSymbol = null)
-        {
-            ImmutableArray<ISymbol> members = default;
-
-            foreach (INamedTypeSymbol interfaceSymbol in interfaceInfo2.Interfaces)
-            {
-                if (interfaceInfo.Symbol.Equals(interfaceSymbol))
+                foreach (INamedTypeSymbol interfaceSymbol in interfaceInfo2.Interfaces)
                 {
-                    if (typeSymbol != null)
+                    if (SymbolEqualityComparer.Default.Equals(interfaceInfo.Symbol, interfaceSymbol))
                     {
-                        if (members.IsDefault)
-                            members = typeSymbol.GetMembers();
+                        if (typeSymbol != null)
+                        {
+                            if (members.IsDefault)
+                                members = typeSymbol.GetMembers();
 
-                        if (IsExplicitlyImplemented(interfaceInfo, members))
-                            continue;
+                            if (IsExplicitlyImplemented(interfaceInfo, members))
+                                continue;
+
+                            if (IsImplementedWithNewKeyword(interfaceInfo, typeSymbol, context.CancellationToken))
+                                continue;
+                        }
+
+                        BaseTypeSyntax baseType = interfaceInfo.BaseType;
+
+                        DiagnosticHelpers.ReportDiagnostic(
+                            context,
+                            DiagnosticRules.RemoveRedundantBaseInterface,
+                            baseType,
+                            SymbolDisplay.ToMinimalDisplayString(interfaceInfo.Symbol, context.SemanticModel, baseType.SpanStart, SymbolDisplayFormats.DisplayName),
+                            SymbolDisplay.ToMinimalDisplayString(interfaceInfo2.Symbol, context.SemanticModel, baseType.SpanStart, SymbolDisplayFormats.DisplayName));
+
+                        return;
                     }
-
-                    return true;
                 }
             }
-
-            return false;
         }
 
         private static bool IsExplicitlyImplemented(in SymbolInterfaceInfo interfaceInfo, ImmutableArray<ISymbol> members)
         {
-            if (IsExplicitlyImplemented(interfaceInfo.Symbol, members))
+            if (IsExplicitlyImplemented(interfaceInfo.Symbol))
                 return true;
 
             foreach (INamedTypeSymbol interfaceSymbol in interfaceInfo.Interfaces)
             {
-                if (IsExplicitlyImplemented(interfaceSymbol, members))
+                if (IsExplicitlyImplemented(interfaceSymbol))
                     return true;
             }
 
             return false;
+
+            bool IsExplicitlyImplemented(ISymbol interfaceSymbol)
+            {
+                foreach (ISymbol member in members)
+                {
+                    switch (member.Kind)
+                    {
+                        case SymbolKind.Event:
+                            {
+                                foreach (IEventSymbol eventSymbol in ((IEventSymbol)member).ExplicitInterfaceImplementations)
+                                {
+                                    if (SymbolEqualityComparer.Default.Equals(eventSymbol.ContainingType, interfaceSymbol))
+                                        return true;
+                                }
+
+                                break;
+                            }
+                        case SymbolKind.Method:
+                            {
+                                foreach (IMethodSymbol methodSymbol in ((IMethodSymbol)member).ExplicitInterfaceImplementations)
+                                {
+                                    if (SymbolEqualityComparer.Default.Equals(methodSymbol.ContainingType, interfaceSymbol))
+                                        return true;
+                                }
+
+                                break;
+                            }
+                        case SymbolKind.Property:
+                            {
+                                foreach (IPropertySymbol propertySymbol in ((IPropertySymbol)member).ExplicitInterfaceImplementations)
+                                {
+                                    if (SymbolEqualityComparer.Default.Equals(propertySymbol.ContainingType, interfaceSymbol))
+                                        return true;
+                                }
+
+                                break;
+                            }
+                    }
+                }
+
+                return false;
+            }
         }
 
-        internal static bool IsExplicitlyImplemented(ISymbol interfaceSymbol, ImmutableArray<ISymbol> members)
+        private static bool IsImplementedWithNewKeyword(
+            in SymbolInterfaceInfo interfaceInfo,
+            INamedTypeSymbol typeSymbol,
+            CancellationToken cancellationToken)
         {
-            foreach (ISymbol member in members)
+            foreach (ISymbol member in interfaceInfo.Symbol.GetMembers())
             {
-                switch (member.Kind)
+                string name = member.Name;
+
+                if (name.StartsWith("get_", StringComparison.Ordinal)
+                    || name.StartsWith("set_", StringComparison.Ordinal)
+                    || name.StartsWith("add_", StringComparison.Ordinal)
+                    || name.StartsWith("remove_", StringComparison.Ordinal))
                 {
-                    case SymbolKind.Event:
-                        {
-                            foreach (IEventSymbol eventSymbol in ((IEventSymbol)member).ExplicitInterfaceImplementations)
-                            {
-                                if (eventSymbol.ContainingType?.Equals(interfaceSymbol) == true)
-                                    return true;
-                            }
+                    continue;
+                }
 
-                            break;
-                        }
-                    case SymbolKind.Method:
-                        {
-                            foreach (IMethodSymbol methodSymbol in ((IMethodSymbol)member).ExplicitInterfaceImplementations)
-                            {
-                                if (methodSymbol.ContainingType?.Equals(interfaceSymbol) == true)
-                                    return true;
-                            }
+                ISymbol symbol = typeSymbol.FindImplementationForInterfaceMember(member);
 
-                            break;
-                        }
-                    case SymbolKind.Property:
-                        {
-                            foreach (IPropertySymbol propertySymbol in ((IPropertySymbol)member).ExplicitInterfaceImplementations)
-                            {
-                                if (propertySymbol.ContainingType?.Equals(interfaceSymbol) == true)
-                                    return true;
-                            }
+                if (symbol != null)
+                {
+                    foreach (SyntaxReference syntaxReference in symbol.DeclaringSyntaxReferences)
+                    {
+                        SyntaxNode node = syntaxReference.GetSyntax(cancellationToken);
 
-                            break;
+                        switch (node.Kind())
+                        {
+                            case SyntaxKind.MethodDeclaration:
+                                {
+                                    var methodDeclaration = (MethodDeclarationSyntax)node;
+
+                                    if (methodDeclaration.Modifiers.Contains(SyntaxKind.NewKeyword))
+                                        return true;
+
+                                    break;
+                                }
+                            case SyntaxKind.PropertyDeclaration:
+                                {
+                                    var propertyDeclaration = (PropertyDeclarationSyntax)node;
+
+                                    if (propertyDeclaration.Modifiers.Contains(SyntaxKind.NewKeyword))
+                                        return true;
+
+                                    break;
+                                }
+                            case SyntaxKind.IndexerDeclaration:
+                                {
+                                    var indexerDeclaration = (IndexerDeclarationSyntax)node;
+
+                                    if (indexerDeclaration.Modifiers.Contains(SyntaxKind.NewKeyword))
+                                        return true;
+
+                                    break;
+                                }
+                            case SyntaxKind.EventDeclaration:
+                                {
+                                    var eventDeclaration = (EventDeclarationSyntax)node;
+
+                                    if (eventDeclaration.Modifiers.Contains(SyntaxKind.NewKeyword))
+                                        return true;
+
+                                    break;
+                                }
+                            case SyntaxKind.VariableDeclarator:
+                                {
+                                    if (node.IsParentKind(SyntaxKind.VariableDeclaration)
+                                        && node.Parent.IsParentKind(SyntaxKind.EventFieldDeclaration))
+                                    {
+                                        var eventFieldDeclaration = (EventFieldDeclarationSyntax)node.Parent.Parent;
+
+                                        if (eventFieldDeclaration.Modifiers.Contains(SyntaxKind.NewKeyword))
+                                            return true;
+                                    }
+
+                                    break;
+                                }
+                            default:
+                                {
+                                    SyntaxDebug.Fail(node);
+                                    return true;
+                                }
                         }
+                    }
                 }
             }
 
@@ -212,11 +305,6 @@ namespace Roslynator.CSharp.Analysis
                 BaseType = baseType;
                 Symbol = symbol;
                 Interfaces = interfaces;
-            }
-
-            public bool IsValid
-            {
-                get { return BaseType != null; }
             }
 
             public BaseTypeSyntax BaseType { get; }

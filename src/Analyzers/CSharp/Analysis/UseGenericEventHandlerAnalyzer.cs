@@ -1,7 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,24 +11,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UseGenericEventHandlerAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UseGenericEventHandlerAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UseGenericEventHandler); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UseGenericEventHandler);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSymbolAction(AnalyzeEvent, SymbolKind.Event);
+            context.RegisterSymbolAction(f => AnalyzeEvent(f), SymbolKind.Event);
         }
 
-        public static void AnalyzeEvent(SymbolAnalysisContext context)
+        private static void AnalyzeEvent(SymbolAnalysisContext context)
         {
             var eventSymbol = (IEventSymbol)context.Symbol;
 
@@ -53,6 +59,9 @@ namespace Roslynator.CSharp.Analysis
             if (delegateInvokeMethod == null)
                 return;
 
+            if (!delegateInvokeMethod.ReturnType.IsVoid())
+                return;
+
             ImmutableArray<IParameterSymbol> parameters = delegateInvokeMethod.Parameters;
 
             if (parameters.Length != 2)
@@ -68,35 +77,36 @@ namespace Roslynator.CSharp.Analysis
 
             TypeSyntax type = GetTypeSyntax(node);
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseGenericEventHandler, type);
+            if (type == null)
+                return;
+
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseGenericEventHandler, type);
         }
 
         private static TypeSyntax GetTypeSyntax(SyntaxNode node)
         {
-            switch (node.Kind())
+            switch (node)
             {
-                case SyntaxKind.EventDeclaration:
+                case EventDeclarationSyntax eventDeclaration:
                     {
-                        return ((EventDeclarationSyntax)node).Type;
+                        return eventDeclaration.Type;
                     }
-                case SyntaxKind.VariableDeclarator:
+                case VariableDeclaratorSyntax declarator:
                     {
-                        var declarator = (VariableDeclaratorSyntax)node;
-
-                        SyntaxNode parent = declarator.Parent;
-
-                        if (parent?.Kind() == SyntaxKind.VariableDeclaration)
-                        {
-                            var declaration = (VariableDeclarationSyntax)parent;
-
+                        if (declarator.Parent is VariableDeclarationSyntax declaration)
                             return declaration.Type;
-                        }
 
+                        SyntaxDebug.Fail(declarator.Parent);
+                        break;
+                    }
+                default:
+                    {
+                        SyntaxDebug.Fail(node);
                         break;
                     }
             }
 
-            throw new InvalidOperationException();
+            return null;
         }
     }
 }

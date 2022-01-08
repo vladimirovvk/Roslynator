@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CSharp.Analysis;
@@ -9,13 +9,13 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context, AnonymousMethodExpressionSyntax anonymousMethod)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseLambdaExpressionInsteadOfAnonymousMethod)
-                && UseLambdaExpressionInsteadOfAnonymousMethodAnalysis.IsFixable(anonymousMethod))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.UseLambdaInsteadOfAnonymousMethod)
+                && UseLambdaInsteadOfAnonymousMethodAnalysis.IsFixable(anonymousMethod))
             {
                 context.RegisterRefactoring(
-                    "Use lambda expression instead of anonymous method",
-                    ct => UseLambdaExpressionInsteadOfAnonymousMethodRefactoring.RefactorAsync(context.Document, anonymousMethod, ct),
-                    RefactoringIdentifiers.UseLambdaExpressionInsteadOfAnonymousMethod);
+                    "Use lambda instead of anonymous method",
+                    ct => UseLambdaInsteadOfAnonymousMethodRefactoring.RefactorAsync(context.Document, anonymousMethod, ct),
+                    RefactoringDescriptors.UseLambdaInsteadOfAnonymousMethod);
             }
         }
     }

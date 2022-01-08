@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -14,7 +14,7 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class InvertIfRefactoring
     {
-        public static readonly string RecursiveRefactoringIdentifier = EquivalenceKey.Join(RefactoringIdentifiers.InvertIf, "Recursive");
+        public static readonly string RecursiveRefactoringIdentifier = EquivalenceKey.Create(RefactoringDescriptors.InvertIf, "Recursive");
 
         public static void ComputeRefactoring(RefactoringContext context, IfStatementSyntax ifStatement)
         {
@@ -34,7 +34,7 @@ namespace Roslynator.CSharp.Refactorings
 
             if (elseClause != null)
             {
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.InvertIfElse))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.InvertIfElse))
                 {
                     StatementSyntax elseStatement = elseClause.Statement;
 
@@ -42,13 +42,13 @@ namespace Roslynator.CSharp.Refactorings
                         && !elseStatement.IsKind(SyntaxKind.IfStatement))
                     {
                         context.RegisterRefactoring(
-                            "Invert if-else",
+                            "Invert if",
                             ct => InvertIfElseAsync(document, ifStatement, ct),
-                            RefactoringIdentifiers.InvertIfElse);
+                            RefactoringDescriptors.InvertIfElse);
                     }
                 }
             }
-            else if (context.IsRefactoringEnabled(RefactoringIdentifiers.InvertIf)
+            else if (context.IsRefactoringEnabled(RefactoringDescriptors.InvertIf)
                 && ifStatement.IsTopmostIf())
             {
                 InvertIfAnalysis analysis = InvertIfAnalysis.Create(ifStatement, statement);
@@ -58,7 +58,7 @@ namespace Roslynator.CSharp.Refactorings
                     context.RegisterRefactoring(
                         "Invert if",
                         ct => InvertIfAsync(document, ifStatement, recursive: false, ct),
-                        RefactoringIdentifiers.InvertIf);
+                        RefactoringDescriptors.InvertIf);
 
                     if (analysis.AnalyzeNextStatement().Success)
                     {
@@ -74,7 +74,7 @@ namespace Roslynator.CSharp.Refactorings
         private static async Task<Document> InvertIfElseAsync(
             Document document,
             IfStatementSyntax ifStatement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -87,7 +87,7 @@ namespace Roslynator.CSharp.Refactorings
             IfStatementSyntax newIfStatement = ifStatement.Update(
                 ifKeyword: ifStatement.IfKeyword,
                 openParenToken: ifStatement.OpenParenToken,
-                condition: SyntaxInverter.LogicallyInvert(ifStatement.Condition, semanticModel, cancellationToken),
+                condition: SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(ifStatement.Condition, semanticModel, cancellationToken),
                 closeParenToken: ifStatement.CloseParenToken,
                 statement: whenFalse.WithTriviaFrom(whenTrue),
                 @else: elseClause.WithStatement(whenTrue.WithTriviaFrom(whenFalse)));
@@ -101,7 +101,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             IfStatementSyntax ifStatement,
             bool recursive = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -133,7 +133,7 @@ namespace Roslynator.CSharp.Refactorings
             }
             else
             {
-                IfStatementSyntax lastIfStatement = ifStatement;
+                IfStatementSyntax lastIfStatement;
 
                 InvertIfAnalysis a = analysis.AnalyzeNextStatement();
 
@@ -158,7 +158,6 @@ namespace Roslynator.CSharp.Refactorings
                     statement = ifStatement.Statement;
                     Refactor();
                     lastStatementIndex = firstLastStatementIndex + newStatements.Count - statements.Count;
-                    lastStatement = (statement is BlockSyntax block) ? block.Statements.Last() : statement;
                     index--;
                 }
             }
@@ -204,7 +203,7 @@ namespace Roslynator.CSharp.Refactorings
                 IfStatementSyntax newIfStatement = ifStatement.Update(
                     ifKeyword: ifStatement.IfKeyword,
                     openParenToken: ifStatement.OpenParenToken,
-                    condition: SyntaxInverter.LogicallyInvert(ifStatement.Condition, semanticModel, cancellationToken),
+                    condition: SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(ifStatement.Condition, semanticModel, cancellationToken),
                     closeParenToken: ifStatement.CloseParenToken,
                     statement: newStatement,
                     @else: elseClause);
@@ -337,13 +336,13 @@ namespace Roslynator.CSharp.Refactorings
                         i++;
                     }
 
-                    lastStatement = lastStatement ?? next;
+                    lastStatement ??= next;
                 }
             }
 
             public InvertIfAnalysis AnalyzeNextStatement()
             {
-                if (!(NextStatement is IfStatementSyntax ifStatement))
+                if (NextStatement is not IfStatementSyntax ifStatement)
                     return default;
 
                 SimpleIfStatementInfo simpleIf = SyntaxInfo.SimpleIfStatementInfo(ifStatement);

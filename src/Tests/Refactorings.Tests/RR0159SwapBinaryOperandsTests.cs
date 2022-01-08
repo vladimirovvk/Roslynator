@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -18,7 +19,7 @@ namespace Roslynator.CSharp.Refactorings.Tests
         [InlineData("i >[||]= j", "j <= i")]
         [InlineData("i [||]< j", "j > i")]
         [InlineData("i <[||]= j", "j >= i")]
-        public async Task Test(string fromData, string toData)
+        public async Task Test(string source, string expected)
         {
             await VerifyRefactoringAsync(@"
 class C
@@ -33,13 +34,13 @@ class C
         if ([||]) { }
     }
 }
-", fromData, toData, equivalenceKey: RefactoringId);
+", source, expected, equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Theory, Trait(Traits.Refactoring, RefactoringIdentifiers.SwapBinaryOperands)]
         [InlineData("i [||]+ j", "j + i")]
         [InlineData("i [||]* j", "j * i")]
-        public async Task Test_AddMultiply(string fromData, string toData)
+        public async Task Test_AddMultiply(string source, string expected)
         {
             await VerifyRefactoringAsync(@"
 class C
@@ -49,7 +50,73 @@ class C
         int k = [||];
     }
 }
-", fromData, toData, equivalenceKey: RefactoringId);
+", source, expected, equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.SwapBinaryOperands)]
+        public async Task Test_BitwiseAnd()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+    void M(bool f1, bool f2)
+    {
+        bool f = f1 [||]& f2;
+    }
+}
+", @"
+class C
+{
+    void M(bool f1, bool f2)
+    {
+        bool f = f2 {|n:&|} f1;
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.SwapBinaryOperands)]
+        public async Task Test_BitwiseOr()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+    void M(bool f1, bool f2)
+    {
+        bool f = f1 [||]| f2;
+    }
+}
+", @"
+class C
+{
+    void M(bool f1, bool f2)
+    {
+        bool f = f2 | f1;
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.SwapBinaryOperands)]
+        public async Task Test_ExclusiveOr()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+    void M(bool f1, bool f2)
+    {
+        bool f = f1 [||]^ f2;
+    }
+}
+", @"
+class C
+{
+    void M(bool f1, bool f2)
+    {
+        bool f = f2 ^ f1;
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.SwapBinaryOperands)]
@@ -66,7 +133,7 @@ class C
         if (f =[||]= true) { }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

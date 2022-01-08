@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,11 +17,10 @@ namespace Roslynator.CSharp.Refactorings
                 return;
 
             if (context.IsAnyRefactoringEnabled(
-                    RefactoringIdentifiers.AddIdentifierToParameter,
-                    RefactoringIdentifiers.RenameParameterAccordingToTypeName,
-                    RefactoringIdentifiers.CheckParameterForNull,
-                    RefactoringIdentifiers.IntroduceAndInitializeField,
-                    RefactoringIdentifiers.IntroduceAndInitializeProperty)
+                RefactoringDescriptors.RenameParameterAccordingToTypeName,
+                RefactoringDescriptors.CheckParameterForNull,
+                RefactoringDescriptors.IntroduceAndInitializeField,
+                RefactoringDescriptors.IntroduceAndInitializeProperty)
                 && commaToken.IsParentKind(SyntaxKind.ParameterList)
                 && context.Span.Start > 0)
             {
@@ -40,7 +39,7 @@ namespace Roslynator.CSharp.Refactorings
                     .FirstOrDefault(f => f.FullSpan.End == commaToken.FullSpan.Start);
 
                 if (argument != null)
-                    await ArgumentRefactoring.ComputeRefactoringsAsync(context, argument).ConfigureAwait(false);
+                    ArgumentRefactoring.ComputeRefactorings(context, argument);
             }
         }
     }

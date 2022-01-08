@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -17,21 +17,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ExtractDeclarationFromUsingStatementCodeFixProvider))]
     [Shared]
-    public class ExtractDeclarationFromUsingStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class ExtractDeclarationFromUsingStatementCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.TypeUsedInUsingStatementMustBeImplicitlyConvertibleToIDisposable); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS1674_TypeUsedInUsingStatementMustBeImplicitlyConvertibleToIDisposable); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ExtractDeclarationFromUsingStatement))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ExtractDeclarationFromUsingStatement, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out UsingStatementSyntax usingStatement))
                 return;
@@ -41,7 +41,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Extract declaration from using statement",
-                cancellationToken => RefactorAsync(context.Document, usingStatement, cancellationToken),
+                ct => RefactorAsync(context.Document, usingStatement, ct),
                 GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);
@@ -50,7 +50,7 @@ namespace Roslynator.CSharp.CodeFixes
         public static Task<Document> RefactorAsync(
             Document document,
             UsingStatementSyntax usingStatement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             StatementListInfo statementsInfo = SyntaxInfo.StatementListInfo(usingStatement);
 

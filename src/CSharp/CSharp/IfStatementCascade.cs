@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -34,7 +34,6 @@ namespace Roslynator.CSharp
         /// <summary>
         /// Gets the enumerator for the if-else cascade.
         /// </summary>
-        /// <returns></returns>
         public Enumerator GetEnumerator()
         {
             return new Enumerator(IfStatement);
@@ -59,7 +58,6 @@ namespace Roslynator.CSharp
         /// <summary>
         /// Returns the string representation of the underlying syntax, not including its leading and trailing trivia.
         /// </summary>
-        /// <returns></returns>
         public override string ToString()
         {
             return IfStatement?.ToString() ?? "";
@@ -106,10 +104,7 @@ namespace Roslynator.CSharp
             return !(cascade1 == cascade2);
         }
 
-        [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
-        [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "<Pending>")]
-        [SuppressMessage("Usage", "CA2231:Overload operator equals on overriding value type Equals", Justification = "<Pending>")]
-        [SuppressMessage("Usage", "RCS1223:Use DebuggerDisplay attribute for publicly visible type.", Justification = "<Pending>")]
+        [SuppressMessage("Usage", "RCS1223:Use DebuggerDisplay attribute for publicly visible type.")]
         public struct Enumerator
         {
             private IfStatementOrElseClause _ifOrElse;
@@ -125,7 +120,7 @@ namespace Roslynator.CSharp
             {
                 if (_count == -1)
                 {
-                    if (_ifOrElse != default(IfStatementOrElseClause))
+                    if (_ifOrElse != default)
                     {
                         _count++;
                         return true;

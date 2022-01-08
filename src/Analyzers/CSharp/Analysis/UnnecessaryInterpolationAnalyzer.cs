@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,24 +11,29 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UnnecessaryInterpolationAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UnnecessaryInterpolationAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UnnecessaryInterpolation); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UnnecessaryInterpolation);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeInterpolation, SyntaxKind.Interpolation);
+            context.RegisterSyntaxNodeAction(f => AnalyzeInterpolation(f), SyntaxKind.Interpolation);
         }
 
-        public static void AnalyzeInterpolation(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeInterpolation(SyntaxNodeAnalysisContext context)
         {
             var interpolation = (InterpolationSyntax)context.Node;
 
@@ -43,13 +48,13 @@ namespace Roslynator.CSharp.Analysis
             if (!stringLiteralInfo.Success)
                 return;
 
-            if (!(interpolation.Parent is InterpolatedStringExpressionSyntax interpolatedString))
+            if (interpolation.Parent is not InterpolatedStringExpressionSyntax interpolatedString)
                 return;
 
             if (interpolatedString.StringStartToken.ValueText.Contains("@") != stringLiteralInfo.IsVerbatim)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UnnecessaryInterpolation, interpolation);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UnnecessaryInterpolation, interpolation);
         }
     }
 }

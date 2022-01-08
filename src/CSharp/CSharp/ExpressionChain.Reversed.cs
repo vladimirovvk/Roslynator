@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -17,7 +17,7 @@ namespace Roslynator.CSharp
         /// <summary>
         /// Enables to enumerate expressions of <see cref="ExpressionChain"/> in a reversed order.
         /// </summary>
-        [SuppressMessage("Usage", "RCS1223:Mark publicly visible type with DebuggerDisplay attribute.", Justification = "<Pending>")]
+        [SuppressMessage("Usage", "RCS1223:Mark publicly visible type with DebuggerDisplay attribute.")]
         public readonly struct Reversed : IEquatable<Reversed>, IEnumerable<ExpressionSyntax>
         {
             private readonly ExpressionChain _chain;
@@ -29,7 +29,7 @@ namespace Roslynator.CSharp
 
             internal bool IsStringConcatenation(
                 SemanticModel semanticModel,
-                CancellationToken cancellationToken = default(CancellationToken))
+                CancellationToken cancellationToken = default)
             {
                 if (!_chain.BinaryExpression.IsKind(SyntaxKind.AddExpression))
                     return false;
@@ -115,13 +115,10 @@ namespace Roslynator.CSharp
                 return !(reversed1 == reversed2);
             }
 
-            [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
-            [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "<Pending>")]
-            [SuppressMessage("Usage", "CA2231:Overload operator equals on overriding value type Equals", Justification = "<Pending>")]
-            [SuppressMessage("Usage", "RCS1223:Mark publicly visible type with DebuggerDisplay attribute.", Justification = "<Pending>")]
+            [SuppressMessage("Usage", "RCS1223:Mark publicly visible type with DebuggerDisplay attribute.")]
             public struct Enumerator
             {
-                private ExpressionChain _chain;
+                private readonly ExpressionChain _chain;
                 private ExpressionSyntax _current;
                 private State _state;
 
@@ -161,7 +158,7 @@ namespace Roslynator.CSharp
 
                                 BinaryExpressionSyntax binaryExpression = _chain.BinaryExpression;
 
-                                ExpressionSyntax left = null;
+                                ExpressionSyntax left;
 
                                 while (true)
                                 {

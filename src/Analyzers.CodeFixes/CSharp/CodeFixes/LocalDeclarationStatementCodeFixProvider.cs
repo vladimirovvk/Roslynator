@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -20,14 +20,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(LocalDeclarationStatementCodeFixProvider))]
     [Shared]
-    public class LocalDeclarationStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class LocalDeclarationStatementCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.InlineLocalVariable); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -75,7 +75,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             IEnumerable<SyntaxTrivia> trivia = statementsInfo
                 .Parent
-                .DescendantTrivia(TextSpan.FromBounds(localDeclaration.SpanStart, nextStatement.SpanStart));
+                .DescendantTrivia(TextSpan.FromBounds(localDeclaration.Span.End, nextStatement.SpanStart));
 
             if (!trivia.All(f => f.IsWhitespaceOrEndOfLineTrivia()))
             {
@@ -98,8 +98,7 @@ namespace Roslynator.CSharp.CodeFixes
             VariableDeclarationSyntax variableDeclaration = localDeclaration.Declaration;
 
             ExpressionSyntax expression = variableDeclaration
-                .Variables
-                .First()
+                .Variables[0]
                 .Initializer
                 .Value;
 
@@ -115,7 +114,11 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 expression = expression.Parenthesize();
 
-                ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(variableDeclaration.Type, cancellationToken);
+                ExpressionSyntax typeExpression = (variableDeclaration.Type.IsVar)
+                    ? variableDeclaration.Variables.First().Initializer.Value
+                    : variableDeclaration.Type;
+
+                ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(typeExpression, cancellationToken);
 
                 if (typeSymbol.SupportsExplicitDeclaration())
                 {

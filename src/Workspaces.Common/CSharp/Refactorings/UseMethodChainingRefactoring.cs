@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Text;
 using System.Threading;
@@ -36,7 +36,7 @@ namespace Roslynator.CSharp.Refactorings
 
             int index = statements.IndexOf(expressionStatement);
 
-            string indentation = expressionStatement.GetIncreasedIndentation(cancellationToken).ToString();
+            string indentation = SyntaxTriviaAnalysis.GetIncreasedIndentation(expressionStatement, cancellationToken);
 
             var sb = new StringBuilder(invocationExpression.ToString());
 

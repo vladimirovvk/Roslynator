@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,7 @@ namespace Roslynator.CSharp.Refactorings
         public Task<Document> RefactorAsync(
             Document document,
             TextLineCollectionSelection selectedLines,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -33,9 +33,9 @@ namespace Roslynator.CSharp.Refactorings
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, SyntaxNode node)
         {
             if (context.IsAnyRefactoringEnabled(
-                RefactoringIdentifiers.WrapInRegion,
-                RefactoringIdentifiers.WrapInIfDirective,
-                RefactoringIdentifiers.RemoveEmptyLines))
+                RefactoringDescriptors.WrapLinesInRegion,
+                RefactoringDescriptors.WrapLinesInPreprocessorDirective,
+                RefactoringDescriptors.RemoveEmptyLines))
             {
                 SyntaxNode root = context.Root;
                 TextSpan span = context.Span;
@@ -52,26 +52,26 @@ namespace Roslynator.CSharp.Refactorings
                 if (!IsInMultiLineDocumentationComment(root, span.Start)
                     && !IsInMultiLineDocumentationComment(root, span.End))
                 {
-                    if (context.IsRefactoringEnabled(RefactoringIdentifiers.WrapInRegion))
+                    if (context.IsRefactoringEnabled(RefactoringDescriptors.WrapLinesInRegion))
                     {
                         context.RegisterRefactoring(
-                            "Wrap in region",
-                            ct => WrapInRegionRefactoring.Instance.RefactorAsync(document, selectedLines, ct),
-                            RefactoringIdentifiers.WrapInRegion);
+                            "Wrap in #region",
+                            ct => WrapLinesInRegionRefactoring.Instance.RefactorAsync(document, selectedLines, ct),
+                            RefactoringDescriptors.WrapLinesInRegion);
                     }
 
-                    if (context.IsRefactoringEnabled(RefactoringIdentifiers.WrapInIfDirective))
+                    if (context.IsRefactoringEnabled(RefactoringDescriptors.WrapLinesInPreprocessorDirective))
                     {
                         context.RegisterRefactoring(
                             "Wrap in #if",
-                            ct => WrapInIfDirectiveRefactoring.Instance.RefactorAsync(document, selectedLines, ct),
-                            RefactoringIdentifiers.WrapInIfDirective);
+                            ct => WrapLinesInPreprocessorDirectiveRefactoring.Instance.RefactorAsync(document, selectedLines, ct),
+                            RefactoringDescriptors.WrapLinesInPreprocessorDirective);
                     }
                 }
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveEmptyLines))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveEmptyLines))
                 {
-                    bool containsEmptyLine = false;
+                    var containsEmptyLine = false;
 
                     foreach (TextLine line in selectedLines)
                     {
@@ -99,7 +99,7 @@ namespace Roslynator.CSharp.Refactorings
 
                                 return document.WithTextChangesAsync(textChanges, ct);
                             },
-                            RefactoringIdentifiers.RemoveEmptyLines);
+                            RefactoringDescriptors.RemoveEmptyLines);
                     }
                 }
             }

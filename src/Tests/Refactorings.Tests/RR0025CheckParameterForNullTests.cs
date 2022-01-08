@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -32,7 +33,7 @@ class C
             throw new ArgumentNullException(nameof(p));
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -58,7 +59,7 @@ class C
             throw new ArgumentNullException(nameof(p));
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -89,7 +90,7 @@ class C
             throw new ArgumentNullException(nameof(p2));
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -129,7 +130,7 @@ class C
             throw new ArgumentNullException(nameof(pi));
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -146,7 +147,7 @@ class C
             throw new ArgumentNullException(nameof(p));
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -166,7 +167,7 @@ class C
             throw new ArgumentNullException(nameof(p2));
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -179,7 +180,7 @@ class C
     {
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -192,7 +193,7 @@ class C
     {
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -205,7 +206,7 @@ class C
     {
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
@@ -218,7 +219,22 @@ class C
     {
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.CheckParameterForNull)]
+        public async Task TestNoRefactoring_NullableReferenceType()
+        {
+            await VerifyNoRefactoringAsync(@"
+#nullable enable
+
+class C
+{
+    void M(object? [||]p)
+    {
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,16 +14,16 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UseNameOfOperatorCodeFixProvider))]
     [Shared]
-    public class UseNameOfOperatorCodeFixProvider : BaseCodeFixProvider
+    public sealed class UseNameOfOperatorCodeFixProvider : BaseCodeFixProvider
     {
         private const string Title = "Use nameof operator";
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.UseNameOfOperator); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -36,7 +36,7 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 CodeAction codeAction = CodeAction.Create(
                     Title,
-                    cancellationToken => UseNameOfOperatorRefactoring.RefactorAsync(context.Document, (LiteralExpressionSyntax)node, identifier, cancellationToken),
+                    ct => UseNameOfOperatorRefactoring.RefactorAsync(context.Document, (LiteralExpressionSyntax)node, identifier, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -45,7 +45,7 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 CodeAction codeAction = CodeAction.Create(
                     Title,
-                    cancellationToken => UseNameOfOperatorRefactoring.RefactorAsync(context.Document, (InvocationExpressionSyntax)node, cancellationToken),
+                    ct => UseNameOfOperatorRefactoring.RefactorAsync(context.Document, (InvocationExpressionSyntax)node, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
@@ -15,13 +15,13 @@ namespace Roslynator.CSharp.Refactorings
                 case SyntaxKind.TrueLiteralExpression:
                 case SyntaxKind.FalseLiteralExpression:
                     {
-                        if (context.IsRefactoringEnabled(RefactoringIdentifiers.InvertBooleanLiteral)
+                        if (context.IsRefactoringEnabled(RefactoringDescriptors.InvertBooleanLiteral)
                             && literalExpression.Span.Contains(context.Span))
                         {
                             context.RegisterRefactoring(
                                 "Invert boolean literal",
-                                cancellationToken => InvertBooleanLiteralRefactoring.RefactorAsync(context.Document, literalExpression, cancellationToken),
-                                RefactoringIdentifiers.InvertBooleanLiteral);
+                                ct => InvertBooleanLiteralRefactoring.RefactorAsync(context.Document, literalExpression, ct),
+                                RefactoringDescriptors.InvertBooleanLiteral);
                         }
 
                         break;
@@ -35,10 +35,10 @@ namespace Roslynator.CSharp.Refactorings
                     }
                 case SyntaxKind.NumericLiteralExpression:
                     {
-                        if (context.IsRefactoringEnabled(RefactoringIdentifiers.ReplaceHexadecimalLiteralWithDecimalLiteral)
+                        if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertHexadecimalLiteralToDecimalLiteral)
                             && context.Span.IsBetweenSpans(literalExpression))
                         {
-                            ReplaceHexadecimalLiteralWithDecimalLiteralRefactoring.ComputeRefactoring(context, literalExpression);
+                            ConvertHexadecimalLiteralToDecimalLiteralRefactoring.ComputeRefactoring(context, literalExpression);
                         }
 
                         break;

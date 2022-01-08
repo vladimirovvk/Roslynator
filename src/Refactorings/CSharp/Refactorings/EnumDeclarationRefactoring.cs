@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -10,16 +10,16 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringAsync(RefactoringContext context, EnumDeclarationSyntax enumDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ExtractTypeDeclarationToNewFile))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ExtractTypeDeclarationToNewFile))
                 ExtractTypeDeclarationToNewFileRefactoring.ComputeRefactorings(context, enumDeclaration);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveEnumMemberValue)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveEnumMemberValue)
                 && context.Span.IsEmptyAndContainedInSpan(enumDeclaration.Identifier))
             {
                 RemoveEnumMemberValueRefactoring.ComputeRefactoring(context, enumDeclaration);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.GenerateEnumValues)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.GenerateEnumValues)
                 && context.Span.IsEmpty)
             {
                 if (enumDeclaration.BracesSpan().Contains(context.Span))
@@ -39,7 +39,7 @@ namespace Roslynator.CSharp.Refactorings
 
             await SelectedEnumMemberDeclarationsRefactoring.ComputeRefactoringAsync(context, enumDeclaration).ConfigureAwait(false);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.GenerateEnumMember)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.GenerateEnumMember)
                 && context.Span.IsEmpty
                 && enumDeclaration.BracesSpan().Contains(context.Span))
             {

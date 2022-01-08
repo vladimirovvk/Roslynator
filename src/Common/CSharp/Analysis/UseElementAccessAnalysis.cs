@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -40,7 +40,7 @@ namespace Roslynator.CSharp.Analysis
 
             SymbolInfo symbolInfo = semanticModel.GetSpeculativeSymbolInfo(invocationExpression.SpanStart, elementAccess, SpeculativeBindingOption.BindAsExpression);
 
-            return !(symbolInfo.Symbol is IPropertySymbol propertySymbol)
+            return symbolInfo.Symbol is not IPropertySymbol propertySymbol
                 || !propertySymbol.IsIndexer
                 || CheckInfiniteRecursion(propertySymbol, invocationExpression.SpanStart, semanticModel, cancellationToken);
         }
@@ -88,7 +88,7 @@ namespace Roslynator.CSharp.Analysis
         }
 
         private static bool CheckInfiniteRecursion(
-        IPropertySymbol indexerSymbol,
+            IPropertySymbol indexerSymbol,
             int position,
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
@@ -111,7 +111,7 @@ namespace Roslynator.CSharp.Analysis
                         propertySymbol = methodSymbol.AssociatedSymbol as IPropertySymbol;
                 }
 
-                if (propertySymbol == indexerSymbol)
+                if (SymbolEqualityComparer.Default.Equals(propertySymbol, indexerSymbol))
                     return false;
             }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,13 +9,13 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
 {
     internal sealed class RemoveRedundantYieldBreakStatementAnalysis : RemoveRedundantStatementAnalysis<YieldStatementSyntax>
     {
-        public static RemoveRedundantYieldBreakStatementAnalysis Instance { get; } = new RemoveRedundantYieldBreakStatementAnalysis();
+        public static RemoveRedundantYieldBreakStatementAnalysis Instance { get; } = new();
 
         private RemoveRedundantYieldBreakStatementAnalysis()
         {
         }
 
-        protected override bool IsFixable(StatementSyntax statement, BlockSyntax block, SyntaxKind parentKind)
+        protected override bool IsFixable(StatementSyntax statement, StatementSyntax containingStatement, BlockSyntax block, SyntaxKind parentKind)
         {
             if (!parentKind.Is(
                 SyntaxKind.MethodDeclaration,
@@ -26,14 +26,14 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
 
             SyntaxList<StatementSyntax> statements = block.Statements;
 
-            if (object.ReferenceEquals(statements.SingleOrDefault(ignoreLocalFunctions: true, shouldThrow: false), statement))
+            if (object.ReferenceEquals(statements.SingleOrDefault(ignoreLocalFunctions: true, shouldThrow: false), containingStatement))
                 return false;
 
-            ContainsYieldWalker walker = ContainsYieldWalker.Cache.GetInstance();
+            ContainsYieldWalker walker = ContainsYieldWalker.GetInstance();
 
-            bool success = false;
+            var success = false;
 
-            int index = statements.IndexOf(statement);
+            int index = statements.IndexOf(containingStatement);
 
             for (int i = 0; i < index; i++)
             {
@@ -45,7 +45,7 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
                     break;
             }
 
-            ContainsYieldWalker.Cache.Free(walker);
+            ContainsYieldWalker.Free(walker);
 
             return success;
         }

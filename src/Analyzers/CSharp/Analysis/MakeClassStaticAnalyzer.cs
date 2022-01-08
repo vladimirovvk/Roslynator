@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -14,24 +14,29 @@ using Roslynator.CSharp.SyntaxWalkers;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class MakeClassStaticAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class MakeClassStaticAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.MakeClassStatic); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.MakeClassStatic);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeClassDeclaration, SyntaxKind.ClassDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeClassDeclaration(f), SyntaxKind.ClassDeclaration);
         }
 
-        public static void AnalyzeClassDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeClassDeclaration(SyntaxNodeAnalysisContext context)
         {
             var classDeclaration = (ClassDeclarationSyntax)context.Node;
 
@@ -63,30 +68,35 @@ namespace Roslynator.CSharp.Analysis
             if (!AnalyzeMembers(members))
                 return;
 
-            MakeClassStaticWalker walker = MakeClassStaticWalker.GetInstance();
+            bool canBeMadeStatic;
+            MakeClassStaticWalker walker = null;
 
-            walker.CanBeMadeStatic = true;
-            walker.Symbol = symbol;
-            walker.SemanticModel = context.SemanticModel;
-            walker.CancellationToken = context.CancellationToken;
+            try
+            {
+                walker = MakeClassStaticWalker.GetInstance();
 
-            walker.Visit(classDeclaration);
+                walker.CanBeMadeStatic = true;
+                walker.Symbol = symbol;
+                walker.SemanticModel = context.SemanticModel;
+                walker.CancellationToken = context.CancellationToken;
 
-            bool canBeMadeStatic = walker.CanBeMadeStatic;
+                walker.Visit(classDeclaration);
 
-            walker.Symbol = null;
-            walker.SemanticModel = null;
-            walker.CancellationToken = default;
-
-            MakeClassStaticWalker.Free(walker);
+                canBeMadeStatic = walker.CanBeMadeStatic;
+            }
+            finally
+            {
+                if (walker != null)
+                    MakeClassStaticWalker.Free(walker);
+            }
 
             if (canBeMadeStatic)
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.MakeClassStatic, classDeclaration.Identifier);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.MakeClassStatic, classDeclaration.Identifier);
         }
 
         public static bool AnalyzeMembers(ImmutableArray<ISymbol> members)
         {
-            bool areAllImplicitlyDeclared = true;
+            var areAllImplicitlyDeclared = true;
 
             foreach (ISymbol memberSymbol in members)
             {
@@ -178,15 +188,12 @@ namespace Roslynator.CSharp.Analysis
 
             protected override void VisitType(TypeSyntax node)
             {
-                if (node.IsKind(SyntaxKind.IdentifierName))
+                if (node is IdentifierNameSyntax identifierName)
                 {
-                    var identifierName = (IdentifierNameSyntax)node;
-
                     if (string.Equals(Symbol.Name, identifierName.Identifier.ValueText, StringComparison.Ordinal)
-                        && SemanticModel
-                            .GetSymbol(identifierName, CancellationToken)?
-                            .OriginalDefinition
-                            .Equals(Symbol) == true)
+                        && SymbolEqualityComparer.Default.Equals(
+                            SemanticModel.GetSymbol(identifierName, CancellationToken)?.OriginalDefinition,
+                            Symbol))
                     {
                         CanBeMadeStatic = false;
                     }
@@ -203,6 +210,10 @@ namespace Roslynator.CSharp.Analysis
 
                 if (walker != null)
                 {
+                    Debug.Assert(walker.Symbol == null);
+                    Debug.Assert(walker.SemanticModel == null);
+                    Debug.Assert(walker.CancellationToken == default);
+
                     _cachedInstance = null;
                     return walker;
                 }
@@ -212,6 +223,10 @@ namespace Roslynator.CSharp.Analysis
 
             public static void Free(MakeClassStaticWalker walker)
             {
+                walker.Symbol = null;
+                walker.SemanticModel = null;
+                walker.CancellationToken = default;
+
                 _cachedInstance = walker;
             }
         }

@@ -1,6 +1,5 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
@@ -21,9 +20,9 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ValidateArgumentsCorrectlyCodeFixProvider))]
     [Shared]
-    public class ValidateArgumentsCorrectlyCodeFixProvider : BaseCodeFixProvider
+    public sealed class ValidateArgumentsCorrectlyCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.ValidateArgumentsCorrectly); }
         }
@@ -33,7 +32,7 @@ namespace Roslynator.CSharp.CodeFixes
             return null;
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -44,7 +43,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Validate arguments correctly",
-                cancellationToken => RefactorAsync(context.Document, statement, cancellationToken),
+                ct => RefactorAsync(context.Document, statement, ct),
                 GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);
@@ -59,6 +58,8 @@ namespace Roslynator.CSharp.CodeFixes
 
             var methodDeclaration = (MethodDeclarationSyntax)statementsInfo.Parent.Parent;
 
+            SyntaxToken asyncKeyword = methodDeclaration.Modifiers.Find(SyntaxKind.AsyncKeyword);
+
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
             string name = methodDeclaration.Identifier.ValueText;
@@ -71,12 +72,10 @@ namespace Roslynator.CSharp.CodeFixes
 
             List<StatementSyntax> localFunctionStatements = statements.Skip(index).ToList();
 
-            int lastIndex = localFunctionStatements.Count - 1;
-
             localFunctionStatements[0] = localFunctionStatements[0].TrimLeadingTrivia();
 
             LocalFunctionStatementSyntax localFunction = LocalFunctionStatement(
-                default(SyntaxTokenList),
+                (asyncKeyword.IsKind(SyntaxKind.AsyncKeyword)) ? TokenList(SyntaxKind.AsyncKeyword) : default,
                 methodDeclaration.ReturnType.WithoutTrivia(),
                 Identifier(name).WithRenameAnnotation(),
                 ParameterList(),
@@ -92,7 +91,18 @@ namespace Roslynator.CSharp.CodeFixes
                 statements.Count - index,
                 new StatementSyntax[] { returnStatement.WithFormatterAnnotation(), localFunction.WithFormatterAnnotation() });
 
-            return await document.ReplaceStatementsAsync(statementsInfo, newStatements, cancellationToken).ConfigureAwait(false);
+            if (asyncKeyword.IsKind(SyntaxKind.AsyncKeyword))
+            {
+                MethodDeclarationSyntax newMethodDeclaration = methodDeclaration.RemoveModifier(SyntaxKind.AsyncKeyword);
+
+                newMethodDeclaration = newMethodDeclaration.WithBody(newMethodDeclaration.Body.WithStatements(newStatements));
+
+                return await document.ReplaceNodeAsync(methodDeclaration, newMethodDeclaration, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                return await document.ReplaceStatementsAsync(statementsInfo, newStatements, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 }

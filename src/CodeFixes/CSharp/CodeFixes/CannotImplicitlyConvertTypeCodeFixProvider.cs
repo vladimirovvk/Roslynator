@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,14 +15,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(CannotImplicitlyConvertTypeCodeFixProvider))]
     [Shared]
-    public class CannotImplicitlyConvertTypeCodeFixProvider : BaseCodeFixProvider
+    public sealed class CannotImplicitlyConvertTypeCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CannotImplicitlyConvertType); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0029_CannotImplicitlyConvertType); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -32,9 +32,9 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.CannotImplicitlyConvertType:
+                    case CompilerDiagnosticIdentifiers.CS0029_CannotImplicitlyConvertType:
                         {
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceStringLiteralWithCharacterLiteral)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceStringLiteralWithCharacterLiteral, context.Document, root.SyntaxTree)
                                 && node?.Kind() == SyntaxKind.StringLiteralExpression)
                             {
                                 var literalExpression = (LiteralExpressionSyntax)node;
@@ -47,7 +47,7 @@ namespace Roslynator.CSharp.CodeFixes
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Replace string literal with character literal",
-                                            cancellationToken => ReplaceStringLiteralWithCharacterLiteralRefactoring.RefactorAsync(context.Document, literalExpression, cancellationToken),
+                                            ct => ReplaceStringLiteralWithCharacterLiteralRefactoring.RefactorAsync(context.Document, literalExpression, ct),
                                             GetEquivalenceKey(diagnostic));
 
                                         context.RegisterCodeFix(codeAction, diagnostic);
@@ -55,7 +55,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 }
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseYieldReturnInsteadOfReturn)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseYieldReturnInsteadOfReturn, context.Document, root.SyntaxTree)
                                 && node.IsParentKind(SyntaxKind.ReturnStatement))
                             {
                                 var returnStatement = (ReturnStatementSyntax)node.Parent;
@@ -69,7 +69,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 {
                                     CodeAction codeAction = CodeAction.Create(
                                         "Use yield return instead of return",
-                                        cancellationToken => UseYieldReturnInsteadOfReturnRefactoring.RefactorAsync(context.Document, returnStatement, SyntaxKind.YieldReturnStatement, semanticModel, cancellationToken),
+                                        ct => UseYieldReturnInsteadOfReturnRefactoring.RefactorAsync(context.Document, returnStatement, SyntaxKind.YieldReturnStatement, semanticModel, ct),
                                         GetEquivalenceKey(diagnostic));
 
                                     context.RegisterCodeFix(codeAction, diagnostic);

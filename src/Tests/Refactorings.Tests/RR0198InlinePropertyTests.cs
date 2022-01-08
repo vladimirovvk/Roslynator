@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -32,7 +33,7 @@ class C
         get { return null; }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineProperty)]
@@ -58,7 +59,7 @@ class C
         get { return null; }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

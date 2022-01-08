@@ -1,5 +1,6 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Composition;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Host;
@@ -12,7 +13,7 @@ namespace Roslynator.VisualBasic
     [ExportMetadata("ServiceType", "Roslynator.ISyntaxFactsService")]
     internal sealed class VisualBasicSyntaxFactsService : ISyntaxFactsService
     {
-        public static VisualBasicSyntaxFactsService Instance { get; } = new VisualBasicSyntaxFactsService();
+        public static VisualBasicSyntaxFactsService Instance { get; } = new();
 
         public string SingleLineCommentStart => "'";
 
@@ -56,6 +57,13 @@ namespace Roslynator.VisualBasic
         public bool AreEquivalent(SyntaxTree oldTree, SyntaxTree newTree)
         {
             return SyntaxFactory.AreEquivalent(oldTree, newTree, topLevel: false);
+        }
+
+        public SyntaxNode GetSymbolDeclaration(SyntaxToken identifier) => throw new NotImplementedException();
+
+        public bool IsValidIdentifier(string name)
+        {
+            return SyntaxFacts.IsValidIdentifier(name);
         }
     }
 }

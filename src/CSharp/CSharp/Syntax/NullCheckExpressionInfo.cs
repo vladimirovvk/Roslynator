@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -97,7 +97,7 @@ namespace Roslynator.CSharp.Syntax
             NullCheckStyles allowedStyles = NullCheckStyles.All,
             bool walkDownParentheses = true,
             bool allowMissing = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (semanticModel == null)
                 throw new ArgumentNullException(nameof(semanticModel));
@@ -164,10 +164,17 @@ namespace Roslynator.CSharp.Syntax
                     {
                         var isPatternExpression = (IsPatternExpressionSyntax)expression;
 
-                        if (!(isPatternExpression.Pattern is ConstantPatternSyntax constantPattern))
+                        PatternSyntax pattern = isPatternExpression.Pattern;
+
+                        bool isNotPattern = pattern.IsKind(SyntaxKind.NotPattern);
+
+                        if (isNotPattern)
+                            pattern = ((UnaryPatternSyntax)pattern).Pattern;
+
+                        if (pattern is not ConstantPatternSyntax constantPattern)
                             break;
 
-                        if (constantPattern.Expression?.IsKind(SyntaxKind.NullLiteralExpression) != true)
+                        if (!constantPattern.Expression.IsKind(SyntaxKind.NullLiteralExpression))
                             break;
 
                         ExpressionSyntax e = WalkAndCheck(isPatternExpression.Expression, walkDownParentheses, allowMissing);
@@ -175,7 +182,10 @@ namespace Roslynator.CSharp.Syntax
                         if (e == null)
                             break;
 
-                        return new NullCheckExpressionInfo(expression, e, NullCheckStyles.IsNull);
+                        return new NullCheckExpressionInfo(
+                            expression,
+                            e,
+                            (isNotPattern) ? NullCheckStyles.IsNotNull : NullCheckStyles.IsNull);
                     }
                 case SyntaxKind.LogicalNotExpression:
                     {
@@ -213,10 +223,10 @@ namespace Roslynator.CSharp.Syntax
 
                                     var isPatternExpression = (IsPatternExpressionSyntax)operand;
 
-                                    if (!(isPatternExpression.Pattern is ConstantPatternSyntax constantPattern))
+                                    if (isPatternExpression.Pattern is not ConstantPatternSyntax constantPattern)
                                         break;
 
-                                    if (constantPattern.Expression?.IsKind(SyntaxKind.NullLiteralExpression) != true)
+                                    if (!constantPattern.Expression.IsKind(SyntaxKind.NullLiteralExpression))
                                         break;
 
                                     ExpressionSyntax e = WalkAndCheck(isPatternExpression.Expression, walkDownParentheses, allowMissing);
@@ -248,10 +258,15 @@ namespace Roslynator.CSharp.Syntax
             switch (expression1.Kind())
             {
                 case SyntaxKind.NullLiteralExpression:
+                case SyntaxKind.DefaultLiteralExpression:
+                case SyntaxKind.DefaultExpression:
                     {
                         NullCheckStyles style = (binaryExpressionKind == SyntaxKind.EqualsExpression) ? NullCheckStyles.EqualsToNull : NullCheckStyles.NotEqualsToNull;
 
                         if ((allowedStyles & style) == 0)
+                            break;
+
+                        if (!IsNullOrDefault(expression2, expression1, semanticModel, cancellationToken))
                             break;
 
                         return new NullCheckExpressionInfo(
@@ -302,7 +317,7 @@ namespace Roslynator.CSharp.Syntax
             if ((allowedStyles & (NullCheckStyles.HasValueProperty)) == 0)
                 return default;
 
-            if (!(expression is MemberAccessExpressionSyntax memberAccessExpression))
+            if (expression is not MemberAccessExpressionSyntax memberAccessExpression)
                 return default;
 
             if (memberAccessExpression.Kind() != SyntaxKind.SimpleMemberAccessExpression)
@@ -331,6 +346,45 @@ namespace Roslynator.CSharp.Syntax
             return expression?.Kind() == SyntaxKind.IdentifierName
                 && string.Equals(((IdentifierNameSyntax)expression).Identifier.ValueText, name, StringComparison.Ordinal)
                 && SyntaxUtility.IsPropertyOfNullableOfT(expression, name, semanticModel, cancellationToken);
+        }
+
+        private static bool IsNullOrDefault(
+            ExpressionSyntax left,
+            ExpressionSyntax right,
+            SemanticModel semanticModel,
+            CancellationToken cancellationToken)
+        {
+            switch (right?.Kind())
+            {
+                case SyntaxKind.NullLiteralExpression:
+                    {
+                        return true;
+                    }
+                case SyntaxKind.DefaultExpression:
+                    {
+                        if (semanticModel == null)
+                            return false;
+
+                        ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(left, cancellationToken);
+
+                        if (!typeSymbol.IsReferenceType)
+                            return false;
+
+                        ITypeSymbol typeSymbol2 = semanticModel.GetTypeSymbol(right, cancellationToken);
+
+                        return SymbolEqualityComparer.Default.Equals(typeSymbol, typeSymbol2);
+                    }
+                case SyntaxKind.DefaultLiteralExpression:
+                    {
+                        return semanticModel?
+                            .GetTypeSymbol(left, cancellationToken)
+                            .IsReferenceType == true;
+                    }
+                default:
+                    {
+                        return false;
+                    }
+            }
         }
     }
 }

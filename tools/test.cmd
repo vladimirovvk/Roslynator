@@ -1,6 +1,8 @@
 @echo off
 
-"C:\Program Files\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\msbuild" "..\src\Tests\Tests.sln" ^
+set _programFiles=%ProgramFiles%
+
+"%_programFiles%\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild" "..\src\Tests\Tests.sln" ^
  /t:Clean,Build ^
  /p:Configuration=Debug,RunCodeAnalysis=false ^
  /v:minimal ^
@@ -33,6 +35,20 @@ if errorlevel 1 (
 )
 
 dotnet test -c Debug --no-build "..\src\Tests\Analyzers.Tests\Analyzers.Tests.csproj"
+
+if errorlevel 1 (
+ pause
+ exit
+)
+
+dotnet test -c Debug --no-build "..\src\Tests\CodeAnalysis.Analyzers.Tests\CodeAnalysis.Analyzers.Tests.csproj"
+
+if errorlevel 1 (
+ pause
+ exit
+)
+
+dotnet test -c Debug --no-build "..\src\Tests\Formatting.Analyzers.Tests\Formatting.Analyzers.Tests.csproj"
 
 if errorlevel 1 (
  pause

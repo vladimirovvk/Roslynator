@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1009UseExplicitTypeInsteadOfVarInForEachTests : AbstractCSharpFixVerifier
+    public class RCS1009UseExplicitTypeInsteadOfVarInForEachTests : AbstractCSharpDiagnosticVerifier<UseExplicitTypeInsteadOfVarInForEachAnalyzer, UseExplicitTypeInsteadOfVarInForEachCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UseExplicitTypeInsteadOfVarInForEach;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UseExplicitTypeInForEachAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new UseExplicitTypeInsteadOfVarInForEachCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UseExplicitTypeInsteadOfVarInForEach;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseExplicitTypeInsteadOfVarInForEach)]
         public async Task TestDiagnostic()
@@ -48,6 +43,108 @@ class C
         foreach (DateTime item in items)
         {
         }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseExplicitTypeInsteadOfVarInForEach)]
+        public async Task TestDiagnostic_Tuple_DeclarationExpression()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<(object x, System.DateTime y)> M()
+    {
+        foreach ([|var|] (x, y) in M())
+        {
+        }
+
+        return default;
+    }
+}
+", @"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<(object x, System.DateTime y)> M()
+    {
+        foreach ((object x, System.DateTime y) in M())
+        {
+        }
+
+        return default;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseExplicitTypeInsteadOfVarInForEach)]
+        public async Task TestDiagnostic_TupleExpression()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<(object x, System.DateTime y)> M()
+    {
+        foreach ((object x, [|var|] y) in M())
+        {
+        }
+
+        return default;
+    }
+}
+", @"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<(object x, System.DateTime y)> M()
+    {
+        foreach ((object x, System.DateTime y) in M())
+        {
+        }
+
+        return default;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseExplicitTypeInsteadOfVarInForEach)]
+        public async Task TestDiagnostic_TupleExpression_AllVar()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<(object x, System.DateTime y)> M()
+    {
+        foreach (([|var|] x, [|var|] y) in M())
+        {
+        }
+
+        return default;
+    }
+}
+", @"
+using System.Collections.Generic;
+
+class C
+{
+    IEnumerable<(object x, System.DateTime y)> M()
+    {
+        foreach ((object x, System.DateTime y) in M())
+        {
+        }
+
+        return default;
     }
 }
 ");

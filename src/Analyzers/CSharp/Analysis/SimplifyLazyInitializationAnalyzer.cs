@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -13,33 +13,37 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class SimplifyLazyInitializationAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class SimplifyLazyInitializationAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.SimplifyLazyInitialization); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.SimplifyLazyInitialization);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeGetAccessorDeclaration, SyntaxKind.GetAccessorDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeMethodDeclaration(f), SyntaxKind.MethodDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeGetAccessorDeclaration(f), SyntaxKind.GetAccessorDeclaration);
         }
 
-        public static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
             Analyze(context, methodDeclaration, methodDeclaration.Body);
         }
 
-        public static void AnalyzeGetAccessorDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeGetAccessorDeclaration(SyntaxNodeAnalysisContext context)
         {
             var accessor = (AccessorDeclarationSyntax)context.Node;
 
@@ -59,10 +63,10 @@ namespace Roslynator.CSharp.Analysis
             if (statements.Count != 2)
                 return;
 
-            if (!(statements[0] is IfStatementSyntax ifStatement))
+            if (statements[0] is not IfStatementSyntax ifStatement)
                 return;
 
-            if (!(statements[1] is ReturnStatementSyntax returnStatement))
+            if (statements[1] is not ReturnStatementSyntax returnStatement)
                 return;
 
             ExpressionSyntax returnExpression = returnStatement.Expression;
@@ -102,12 +106,27 @@ namespace Roslynator.CSharp.Analysis
             if (!nullCheck.Success)
                 return;
 
+            if (nullCheck.Style == NullCheckStyles.EqualsToNull)
+            {
+                ISymbol equalsOperatorSymbol = semanticModel.GetSymbol(nullCheck.NullCheckExpression, cancellationToken);
+
+                if (!equalsOperatorSymbol.IsErrorType()
+                    && equalsOperatorSymbol.ContainingType.SpecialType != SpecialType.System_Object
+                    && equalsOperatorSymbol is IMethodSymbol methodSymbol)
+                {
+                    ImmutableArray<IParameterSymbol> parameters = methodSymbol.Parameters;
+
+                    if (!SymbolEqualityComparer.IncludeNullability.Equals(parameters[0].Type, parameters[1].Type))
+                        return;
+                }
+            }
+
             ExpressionSyntax expression = nullCheck.Expression;
 
             if (!expression.IsKind(SyntaxKind.IdentifierName, SyntaxKind.SimpleMemberAccessExpression))
                 return;
 
-            if (!(semanticModel.GetSymbol(expression, cancellationToken) is IFieldSymbol fieldSymbol))
+            if (semanticModel.GetSymbol(expression, cancellationToken) is not IFieldSymbol fieldSymbol)
                 return;
 
             if (!ExpressionEquals(expression, assignmentInfo.Left))
@@ -128,8 +147,9 @@ namespace Roslynator.CSharp.Analysis
             if (!ExpressionEquals(expression, returnExpression))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.SimplifyLazyInitialization,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.SimplifyLazyInitialization,
                 Location.Create(node.SyntaxTree, TextSpan.FromBounds(ifStatement.SpanStart, returnStatement.Span.End)));
         }
 

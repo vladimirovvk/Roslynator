@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -23,12 +23,12 @@ namespace Roslynator.CodeFixes
             return WellKnownFixAllProviders.BatchFixer;
         }
 
-        protected virtual string GetEquivalenceKey(Diagnostic diagnostic, string additionalKey1 = null, string additionalKey2 = null)
+        protected string GetEquivalenceKey(Diagnostic diagnostic, string additionalKey1 = null, string additionalKey2 = null)
         {
             return EquivalenceKey.Create(diagnostic, additionalKey1, additionalKey2);
         }
 
-        protected virtual string GetEquivalenceKey(string key, string additionalKey1 = null, string additionalKey2 = null)
+        protected string GetEquivalenceKey(string key, string additionalKey1 = null, string additionalKey2 = null)
         {
             return EquivalenceKey.Create(key, additionalKey1, additionalKey2);
         }
@@ -99,7 +99,7 @@ namespace Roslynator.CodeFixes
         {
             token = root.FindToken(position, findInsideTrivia: findInsideTrivia);
 
-            bool success = token != default(SyntaxToken);
+            bool success = token != default;
 
             Assert.True(success, nameof(token));
 
@@ -114,7 +114,7 @@ namespace Roslynator.CodeFixes
         {
             trivia = root.FindTrivia(position, findInsideTrivia: findInsideTrivia);
 
-            bool success = trivia != default(SyntaxTrivia);
+            bool success = trivia != default;
 
             Assert.True(success, nameof(trivia));
 

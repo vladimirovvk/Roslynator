@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -93,7 +93,7 @@ namespace Roslynator.CSharp.Syntax
             ExpressionStatementSyntax expressionStatement,
             bool allowMissing = false)
         {
-            if (!(expressionStatement?.Expression is InvocationExpressionSyntax invocationExpression))
+            if (expressionStatement?.Expression is not InvocationExpressionSyntax invocationExpression)
                 return default;
 
             return CreateImpl(invocationExpression, allowMissing);

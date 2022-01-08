@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -43,25 +43,27 @@ namespace Roslynator.CSharp.Refactorings
             if (endLine >= tree.GetStartLine(members[index + 1].TrimmedSpan(), context.CancellationToken))
                 return;
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveMemberDeclarations))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveMemberDeclarations))
             {
                 context.RegisterRefactoring(
                     "Remove members above",
                     ct => ReplaceMembersAsync(context.Document, info, members.Skip(index + 1), ct),
-                    EquivalenceKey.Join(RefactoringIdentifiers.RemoveMemberDeclarations, "Above"));
+                    RefactoringDescriptors.RemoveMemberDeclarations,
+                    "Above");
 
                 context.RegisterRefactoring(
                     "Remove members below",
                     ct => ReplaceMembersAsync(context.Document, info, members.Take(index + 1), ct),
-                    EquivalenceKey.Join(RefactoringIdentifiers.RemoveMemberDeclarations, "Below"));
+                    RefactoringDescriptors.RemoveMemberDeclarations,
+                    "Below");
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SwapMemberDeclarations))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.SwapMemberDeclarations))
             {
                 context.RegisterRefactoring(
                     "Swap members",
                     ct => SwapMembersAsync(context.Document, info, index, ct),
-                    RefactoringIdentifiers.SwapMemberDeclarations);
+                    RefactoringDescriptors.SwapMemberDeclarations);
             }
         }
 
@@ -96,7 +98,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             in MemberDeclarationListInfo info,
             int index,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxList<MemberDeclarationSyntax> members = info.Members;
 
@@ -113,7 +115,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (trivia.IsEndOfLineTrivia())
                 {
                     member = member.PrependToLeadingTrivia(trivia);
-                    nextMember = nextMember.WithLeadingTrivia(leading.Remove(trivia));
+                    nextMember = nextMember.WithLeadingTrivia(leading.Remove(trivia)).WithNavigationAnnotation();
                 }
             }
 
@@ -128,7 +130,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             in MemberDeclarationListInfo info,
             IEnumerable<MemberDeclarationSyntax> newMembers,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return document.ReplaceMembersAsync(info, newMembers, cancellationToken);
         }

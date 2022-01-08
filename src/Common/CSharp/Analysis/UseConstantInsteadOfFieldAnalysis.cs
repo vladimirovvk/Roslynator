@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -15,10 +16,10 @@ namespace Roslynator.CSharp.Analysis
             FieldDeclarationSyntax fieldDeclaration,
             SemanticModel semanticModel,
             bool onlyPrivate = false,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
-            bool isStatic = false;
-            bool isReadOnly = false;
+            var isStatic = false;
+            var isReadOnly = false;
 
             foreach (SyntaxToken modifier in fieldDeclaration.Modifiers)
             {
@@ -59,7 +60,7 @@ namespace Roslynator.CSharp.Analysis
 
             SeparatedSyntaxList<VariableDeclaratorSyntax> declarators = fieldDeclaration.Declaration.Variables;
 
-            VariableDeclaratorSyntax firstDeclarator = declarators.First();
+            VariableDeclaratorSyntax firstDeclarator = declarators[0];
 
             var fieldSymbol = (IFieldSymbol)semanticModel.GetDeclaredSymbol(firstDeclarator, cancellationToken);
 
@@ -74,6 +75,9 @@ namespace Roslynator.CSharp.Analysis
                 ExpressionSyntax value = declarator.Initializer?.Value;
 
                 if (value == null)
+                    return false;
+
+                if (value.WalkDownParentheses().IsKind(SyntaxKind.InterpolatedStringExpression))
                     return false;
 
                 if (!semanticModel.HasConstantValue(value, cancellationToken))
@@ -93,17 +97,26 @@ namespace Roslynator.CSharp.Analysis
 
                     if (body != null)
                     {
-                        UseConstantInsteadOfFieldWalker walker = UseConstantInsteadOfFieldWalker.GetInstance();
+                        bool canBeConvertedToConstant;
+                        UseConstantInsteadOfFieldWalker walker = null;
 
-                        walker.FieldSymbol = fieldSymbol;
-                        walker.SemanticModel = semanticModel;
-                        walker.CancellationToken = cancellationToken;
+                        try
+                        {
+                            walker = UseConstantInsteadOfFieldWalker.GetInstance();
 
-                        walker.VisitBlock(body);
+                            walker.FieldSymbol = fieldSymbol;
+                            walker.SemanticModel = semanticModel;
+                            walker.CancellationToken = cancellationToken;
 
-                        bool canBeConvertedToConstant = walker.CanBeConvertedToConstant;
+                            walker.VisitBlock(body);
 
-                        UseConstantInsteadOfFieldWalker.Free(walker);
+                            canBeConvertedToConstant = walker.CanBeConvertedToConstant;
+                        }
+                        finally
+                        {
+                            if (walker != null)
+                                UseConstantInsteadOfFieldWalker.Free(walker);
+                        }
 
                         if (!canBeConvertedToConstant)
                             return false;
@@ -116,13 +129,16 @@ namespace Roslynator.CSharp.Analysis
 
         private class UseConstantInsteadOfFieldWalker : AssignedExpressionWalker
         {
+            [ThreadStatic]
+            private static UseConstantInsteadOfFieldWalker _cachedInstance;
+
             public IFieldSymbol FieldSymbol { get; set; }
 
             public SemanticModel SemanticModel { get; set; }
 
             public CancellationToken CancellationToken { get; set; }
 
-            public bool CanBeConvertedToConstant { get; private set; }
+            public bool CanBeConvertedToConstant { get; set; }
 
             protected override bool ShouldVisit
             {
@@ -139,20 +155,9 @@ namespace Roslynator.CSharp.Analysis
             {
                 CancellationToken.ThrowIfCancellationRequested();
 
-                expression = expression?.WalkDownParentheses();
-
-                if (expression.IsKind(SyntaxKind.IdentifierName))
-                {
-                    var identifierName = (IdentifierNameSyntax)expression;
-
-                    if (string.Equals(identifierName.Identifier.ValueText, FieldSymbol.Name, StringComparison.Ordinal)
-                        && SemanticModel.GetSymbol(identifierName, CancellationToken)?.Equals(FieldSymbol) == true)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                return expression?.WalkDownParentheses() is IdentifierNameSyntax identifierName
+                    && string.Equals(identifierName.Identifier.ValueText, FieldSymbol.Name, StringComparison.Ordinal)
+                    && SymbolEqualityComparer.Default.Equals(SemanticModel.GetSymbol(identifierName, CancellationToken), FieldSymbol);
             }
 
             public override void VisitArgument(ArgumentSyntax node)
@@ -185,23 +190,21 @@ namespace Roslynator.CSharp.Analysis
                 base.VisitArgument(node);
             }
 
-            [ThreadStatic]
-            private static UseConstantInsteadOfFieldWalker _cachedInstance;
-
             public static UseConstantInsteadOfFieldWalker GetInstance()
             {
                 UseConstantInsteadOfFieldWalker walker = _cachedInstance;
 
                 if (walker != null)
                 {
-                    _cachedInstance = null;
+                    Debug.Assert(walker.FieldSymbol == null);
+                    Debug.Assert(walker.SemanticModel == null);
+                    Debug.Assert(walker.CancellationToken == default);
 
+                    _cachedInstance = null;
                     return walker;
                 }
-                else
-                {
-                    return new UseConstantInsteadOfFieldWalker();
-                }
+
+                return new UseConstantInsteadOfFieldWalker();
             }
 
             public static void Free(UseConstantInsteadOfFieldWalker walker)

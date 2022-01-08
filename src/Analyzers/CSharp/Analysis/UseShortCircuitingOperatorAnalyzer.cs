@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,23 +10,27 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UseShortCircuitingOperatorAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UseShortCircuitingOperatorAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UseShortCircuitingOperator); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UseShortCircuitingOperator);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(Analyze, SyntaxKind.BitwiseAndExpression);
-            context.RegisterSyntaxNodeAction(Analyze, SyntaxKind.BitwiseOrExpression);
+            context.RegisterSyntaxNodeAction(f => Analyze(f), SyntaxKind.BitwiseAndExpression);
+            context.RegisterSyntaxNodeAction(f => Analyze(f), SyntaxKind.BitwiseOrExpression);
         }
 
         public static void Analyze(SyntaxNodeAnalysisContext context)
@@ -53,7 +57,7 @@ namespace Roslynator.CSharp.Analysis
                     return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseShortCircuitingOperator, binaryExpression.OperatorToken);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseShortCircuitingOperator, binaryExpression.OperatorToken);
         }
     }
 }

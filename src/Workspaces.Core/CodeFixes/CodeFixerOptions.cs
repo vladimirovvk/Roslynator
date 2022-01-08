@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.CodeFixes;
 
 namespace Roslynator.CodeFixes
 {
@@ -14,9 +14,7 @@ namespace Roslynator.CodeFixes
     {
         private ImmutableArray<string> _fileBannerLines;
 
-        private CompilationWithAnalyzersOptions _compilationWithAnalyzersOptions;
-
-        public static CodeFixerOptions Default { get; } = new CodeFixerOptions();
+        public static CodeFixerOptions Default { get; } = new();
 
         public CodeFixerOptions(
             DiagnosticSeverity severityLevel = DiagnosticSeverity.Info,
@@ -29,6 +27,7 @@ namespace Roslynator.CodeFixes
             IEnumerable<string> diagnosticIdsFixableOneByOne = null,
             IEnumerable<KeyValuePair<string, string>> diagnosticFixMap = null,
             IEnumerable<KeyValuePair<string, string>> diagnosticFixerMap = null,
+            FixAllScope fixAllScope = FixAllScope.Project,
             string fileBanner = null,
             int maxIterations = -1,
             int batchSize = -1,
@@ -55,6 +54,14 @@ namespace Roslynator.CodeFixes
             }
 
             DiagnosticFixerMap = diagnosticFixerMap?.ToImmutableDictionary() ?? ImmutableDictionary<string, string>.Empty;
+
+            if (FixAllScope != FixAllScope.Document
+                && FixAllScope != FixAllScope.Project)
+            {
+                throw new ArgumentException("", nameof(fixAllScope));
+            }
+
+            FixAllScope = fixAllScope;
             FileBanner = fileBanner;
             MaxIterations = maxIterations;
             BatchSize = batchSize;
@@ -110,17 +117,6 @@ namespace Roslynator.CodeFixes
 
         public ImmutableDictionary<string, string> DiagnosticFixerMap { get; }
 
-        internal CompilationWithAnalyzersOptions CompilationWithAnalyzersOptions
-        {
-            get
-            {
-                return _compilationWithAnalyzersOptions ?? (_compilationWithAnalyzersOptions = new CompilationWithAnalyzersOptions(
-                    options: default(AnalyzerOptions),
-                    onAnalyzerException: default(Action<Exception, DiagnosticAnalyzer, Diagnostic>),
-                    concurrentAnalysis: ConcurrentAnalysis,
-                    logAnalyzerExecutionTime: false,
-                    reportSuppressedDiagnostics: false));
-            }
-        }
+        public FixAllScope FixAllScope { get; }
     }
 }

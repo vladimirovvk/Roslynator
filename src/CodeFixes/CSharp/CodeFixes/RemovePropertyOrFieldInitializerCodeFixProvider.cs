@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,50 +15,46 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RemovePropertyOrFieldInitializerCodeFixProvider))]
     [Shared]
-    public class RemovePropertyOrFieldInitializerCodeFixProvider : BaseCodeFixProvider
+    public sealed class RemovePropertyOrFieldInitializerCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
         private const string Title = "Remove initializer";
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.CannotHaveInstancePropertyOrFieldInitializersInStruct,
-                    CompilerDiagnosticIdentifiers.OnlyAutoImplementedPropertiesCanHaveInitializers);
+                    CompilerDiagnosticIdentifiers.CS0573_CannotHaveInstancePropertyOrFieldInitializersInStruct,
+                    CompilerDiagnosticIdentifiers.CS8050_OnlyAutoImplementedPropertiesCanHaveInitializers);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemovePropertyOrFieldInitializer))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemovePropertyOrFieldInitializer, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindToken(root, context.Span.Start, out SyntaxToken token))
                 return;
 
-            Debug.Assert(token.Kind() == SyntaxKind.IdentifierToken, token.Kind().ToString());
+            SyntaxDebug.Assert(token.Kind() == SyntaxKind.IdentifierToken, token);
 
             if (token.Kind() != SyntaxKind.IdentifierToken)
                 return;
 
-            SyntaxNode parent = token.Parent;
-
-            switch (parent.Kind())
+            switch (token.Parent)
             {
-                case SyntaxKind.PropertyDeclaration:
+                case PropertyDeclarationSyntax propertyDeclaration:
                     {
-                        var propertyDeclaration = (PropertyDeclarationSyntax)parent;
-
                         EqualsValueClauseSyntax initializer = propertyDeclaration.Initializer;
 
                         CodeAction codeAction = CodeAction.Create(
                             Title,
-                            cancellationToken =>
+                            ct =>
                             {
                                 PropertyDeclarationSyntax newNode = propertyDeclaration
                                     .RemoveNode(initializer)
@@ -66,29 +62,28 @@ namespace Roslynator.CSharp.CodeFixes
                                     .AppendToTrailingTrivia(propertyDeclaration.SemicolonToken.GetAllTrivia())
                                     .WithFormatterAnnotation();
 
-                                return context.Document.ReplaceNodeAsync(propertyDeclaration, newNode, cancellationToken);
+                                return context.Document.ReplaceNodeAsync(propertyDeclaration, newNode, ct);
                             },
                             GetEquivalenceKey(diagnostic, CodeFixIdentifiers.RemovePropertyOrFieldInitializer));
 
                         context.RegisterCodeFix(codeAction, diagnostic);
                         break;
                     }
-                case SyntaxKind.VariableDeclarator:
+                case VariableDeclaratorSyntax variableDeclarator:
                     {
-                        var variableDeclarator = (VariableDeclaratorSyntax)parent;
                         EqualsValueClauseSyntax initializer = variableDeclarator.Initializer;
 
                         CodeAction codeAction = CodeAction.Create(
                             Title,
-                            cancellationToken =>
+                            ct =>
                             {
                                 VariableDeclaratorSyntax newNode = variableDeclarator
                                     .RemoveNode(initializer)
                                     .WithFormatterAnnotation();
 
-                                return context.Document.ReplaceNodeAsync(variableDeclarator, newNode, cancellationToken);
+                                return context.Document.ReplaceNodeAsync(variableDeclarator, newNode, ct);
                             },
-                            GetEquivalenceKey(CompilerDiagnosticIdentifiers.CannotHaveInstancePropertyOrFieldInitializersInStruct, CodeFixIdentifiers.RemovePropertyOrFieldInitializer));
+                            GetEquivalenceKey(CompilerDiagnosticIdentifiers.CS0573_CannotHaveInstancePropertyOrFieldInitializersInStruct, CodeFixIdentifiers.RemovePropertyOrFieldInitializer));
 
                         context.RegisterCodeFix(codeAction, diagnostic);
                         break;

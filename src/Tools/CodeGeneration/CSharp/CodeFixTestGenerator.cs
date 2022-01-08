@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.Metadata;
@@ -54,7 +54,7 @@ class C
 
         //[Theory, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.$Identifier$)]
         //[InlineData("""", """")]
-        public async Task Test(string fromData, string toData)
+        public async Task Test(string source, string expected)
         {
             await VerifyFixAsync(@""
 using System;
@@ -68,7 +68,7 @@ class C
     {
     }
 }
-"", fromData, toData, equivalenceKey: EquivalenceKey.Create(DiagnosticId));
+"", source, expected, equivalenceKey: EquivalenceKey.Create(DiagnosticId));
         }
 
         //[Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.$Identifier$)]

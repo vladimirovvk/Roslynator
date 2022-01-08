@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -12,7 +12,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringAsync(RefactoringContext context, ThrowStatementSyntax throwStatement)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddExceptionToDocumentationComment)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddExceptionElementToDocumentationComment)
                 && context.Span.IsContainedInSpanOrBetweenSpans(throwStatement))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -26,9 +26,9 @@ namespace Roslynator.CSharp.Refactorings
                 if (analysis.Success)
                 {
                     context.RegisterRefactoring(
-                        "Add exception to documentation comment",
-                        cancellationToken => AddExceptionToDocumentationCommentRefactoring.RefactorAsync(context.Document, analysis, cancellationToken),
-                        RefactoringIdentifiers.AddExceptionToDocumentationComment);
+                        "Add 'exception' element to documentation comment",
+                        ct => AddExceptionElementToDocumentationCommentRefactoring.RefactorAsync(context.Document, analysis, ct),
+                        RefactoringDescriptors.AddExceptionElementToDocumentationComment);
                 }
             }
         }

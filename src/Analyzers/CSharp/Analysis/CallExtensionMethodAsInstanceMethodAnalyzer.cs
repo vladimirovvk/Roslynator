@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,21 +11,26 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class CallExtensionMethodAsInstanceMethodAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class CallExtensionMethodAsInstanceMethodAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.CallExtensionMethodAsInstanceMethod); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.CallExtensionMethodAsInstanceMethod);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeInvocationExpression, SyntaxKind.InvocationExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeInvocationExpression(f), SyntaxKind.InvocationExpression);
         }
 
         private static void AnalyzeInvocationExpression(SyntaxNodeAnalysisContext context)
@@ -46,14 +51,14 @@ namespace Roslynator.CSharp.Analysis
             if (!analysis.Success)
                 return;
 
-            if (semanticModel
-                .GetEnclosingNamedType(analysis.InvocationExpression.SpanStart, cancellationToken)?
-                .Equals(analysis.MethodSymbol.ContainingType) != false)
+            if (SymbolEqualityComparer.Default.Equals(
+                semanticModel.GetEnclosingNamedType(analysis.InvocationExpression.SpanStart, cancellationToken),
+                analysis.MethodSymbol.ContainingType))
             {
                 return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.CallExtensionMethodAsInstanceMethod, invocation);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.CallExtensionMethodAsInstanceMethod, invocation);
         }
     }
 }

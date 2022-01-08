@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -79,12 +79,12 @@ namespace Roslynator.Documentation
             {
                 foreach (INamedTypeSymbol symbol in Types)
                 {
-                    if (symbol.BaseType?.OriginalDefinition.Equals(typeSymbol) == true)
+                    if (SymbolEqualityComparer.Default.Equals(symbol.BaseType?.OriginalDefinition, typeSymbol))
                         yield return symbol;
 
                     foreach (INamedTypeSymbol interfaceSymbol in symbol.Interfaces)
                     {
-                        if (interfaceSymbol.OriginalDefinition.Equals(typeSymbol))
+                        if (SymbolEqualityComparer.Default.Equals(interfaceSymbol.OriginalDefinition, typeSymbol))
                             yield return symbol;
                     }
                 }
@@ -144,7 +144,7 @@ namespace Roslynator.Documentation
                             {
                                 ITypeSymbol typeSymbol2 = GetExtendedType(methodSymbol);
 
-                                if (typeSymbol == typeSymbol2)
+                                if (SymbolEqualityComparer.Default.Equals(typeSymbol, typeSymbol2))
                                     yield return methodSymbol;
                             }
                         }
@@ -199,7 +199,7 @@ namespace Roslynator.Documentation
 
             return null;
 
-            INamedTypeSymbol GetTypeParameterConstraintClass(ITypeParameterSymbol typeParameter)
+            static INamedTypeSymbol GetTypeParameterConstraintClass(ITypeParameterSymbol typeParameter)
             {
                 foreach (ITypeSymbol constraintType in typeParameter.ConstraintTypes)
                 {
@@ -312,7 +312,7 @@ namespace Roslynator.Documentation
                 {
                     xml = XmlDocumentation.Unindent(xml);
 
-                    XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
+                    var element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
 
                     xmlDocumentation = new SymbolXmlDocumentation(symbol, element);
 

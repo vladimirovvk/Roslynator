@@ -1,5 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,6 +12,9 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
 {
     internal class UsePatternMatchingWalker : CSharpSyntaxNodeWalker
     {
+        [ThreadStatic]
+        private static UsePatternMatchingWalker _cachedInstance;
+
         private ISymbol _symbol;
         private IdentifierNameSyntax _identifierName;
         private string _name;
@@ -37,11 +42,6 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
             _cancellationToken = cancellationToken;
         }
 
-        public void Clear()
-        {
-            SetValues(default(IdentifierNameSyntax), default(SemanticModel), default(CancellationToken));
-        }
-
         public override void VisitIdentifierName(IdentifierNameSyntax node)
         {
             _cancellationToken.ThrowIfCancellationRequested();
@@ -59,7 +59,7 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
                     }
                 }
 
-                if (_symbol.Equals(_semanticModel.GetSymbol(node, _cancellationToken)))
+                if (SymbolEqualityComparer.Default.Equals(_symbol, _semanticModel.GetSymbol(node, _cancellationToken)))
                 {
                     ExpressionSyntax n = node;
 
@@ -79,6 +79,30 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
                 }
             }
         }
+
+        public static UsePatternMatchingWalker GetInstance()
+        {
+            UsePatternMatchingWalker walker = _cachedInstance;
+
+            if (walker != null)
+            {
+                Debug.Assert(walker._symbol == null);
+                Debug.Assert(walker._identifierName == null);
+                Debug.Assert(walker._semanticModel == null);
+                Debug.Assert(walker._cancellationToken == default);
+
+                _cachedInstance = null;
+                return walker;
+            }
+
+            return new UsePatternMatchingWalker();
+        }
+
+        public static void Free(UsePatternMatchingWalker walker)
+        {
+            walker.SetValues(default(IdentifierNameSyntax), default(SemanticModel), default(CancellationToken));
+
+            _cachedInstance = walker;
+        }
     }
 }
-

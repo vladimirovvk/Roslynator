@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -18,21 +18,21 @@ namespace Roslynator.CSharp.Refactorings
                 await SelectedStatementsRefactoring.ComputeRefactoringAsync(context, selectedStatements).ConfigureAwait(false);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SortCaseLabels)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.SortCaseLabels)
                 && SyntaxListSelection<SwitchLabelSyntax>.TryCreate(switchSection.Labels, context.Span, out SyntaxListSelection<SwitchLabelSyntax> selectedLabels)
                 && selectedLabels.Count > 1)
             {
                 SortCaseLabelsRefactoring.ComputeRefactoring(context, selectedLabels);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SplitSwitchLabels))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.SplitSwitchLabels))
                 SplitSwitchLabelsRefactoring.ComputeRefactoring(context, switchSection);
 
             if (context.IsAnyRefactoringEnabled(
-                    RefactoringIdentifiers.AddBracesToSwitchSection,
-                    RefactoringIdentifiers.AddBracesToSwitchSections,
-                    RefactoringIdentifiers.RemoveBracesFromSwitchSection,
-                    RefactoringIdentifiers.RemoveBracesFromSwitchSections)
+                RefactoringDescriptors.AddBracesToSwitchSection,
+                RefactoringDescriptors.AddBracesToSwitchSections,
+                RefactoringDescriptors.RemoveBracesFromSwitchSection,
+                RefactoringDescriptors.RemoveBracesFromSwitchSections)
                 && context.Span.IsEmpty
                 && IsContainedInCaseOrDefaultKeyword(context.Span))
             {
@@ -44,46 +44,46 @@ namespace Roslynator.CSharp.Refactorings
 
                 if (analysis.AddBraces)
                 {
-                    if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddBracesToSwitchSection))
+                    if (context.IsRefactoringEnabled(RefactoringDescriptors.AddBracesToSwitchSection))
                     {
                         context.RegisterRefactoring(
                             AddBracesToSwitchSectionRefactoring.Title,
-                            cancellationToken => AddBracesToSwitchSectionRefactoring.RefactorAsync(context.Document, switchSection, cancellationToken),
-                            RefactoringIdentifiers.AddBracesToSwitchSection);
+                            ct => AddBracesToSwitchSectionRefactoring.RefactorAsync(context.Document, switchSection, ct),
+                            RefactoringDescriptors.AddBracesToSwitchSection);
                     }
 
-                    if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddBracesToSwitchSections)
+                    if (context.IsRefactoringEnabled(RefactoringDescriptors.AddBracesToSwitchSections)
                         && sections.Any(f => f != switchSection && AddBracesToSwitchSectionAnalysis.CanAddBraces(f)))
                     {
                         context.RegisterRefactoring(
                             AddBracesToSwitchSectionsRefactoring.Title,
-                            cancellationToken => AddBracesToSwitchSectionsRefactoring.RefactorAsync(context.Document, switchStatement, null, cancellationToken),
-                            RefactoringIdentifiers.AddBracesToSwitchSections);
+                            ct => AddBracesToSwitchSectionsRefactoring.RefactorAsync(context.Document, switchStatement, null, ct),
+                            RefactoringDescriptors.AddBracesToSwitchSections);
                     }
                 }
                 else if (analysis.RemoveBraces)
                 {
-                    if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveBracesFromSwitchSection))
+                    if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveBracesFromSwitchSection))
                     {
                         context.RegisterRefactoring(
                             RemoveBracesFromSwitchSectionRefactoring.Title,
-                            cancellationToken => RemoveBracesFromSwitchSectionRefactoring.RefactorAsync(context.Document, switchSection, cancellationToken),
-                            RefactoringIdentifiers.RemoveBracesFromSwitchSection);
+                            ct => RemoveBracesFromSwitchSectionRefactoring.RefactorAsync(context.Document, switchSection, ct),
+                            RefactoringDescriptors.RemoveBracesFromSwitchSection);
                     }
 
-                    if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveBracesFromSwitchSections)
+                    if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveBracesFromSwitchSections)
                         && sections.Any(f => f != switchSection && RemoveBracesFromSwitchSectionRefactoring.CanRemoveBraces(f)))
                     {
                         context.RegisterRefactoring(
                             RemoveBracesFromSwitchSectionsRefactoring.Title,
-                            cancellationToken => RemoveBracesFromSwitchSectionsRefactoring.RefactorAsync(context.Document, switchStatement, null, cancellationToken),
-                            RefactoringIdentifiers.RemoveBracesFromSwitchSections);
+                            ct => RemoveBracesFromSwitchSectionsRefactoring.RefactorAsync(context.Document, switchStatement, null, ct),
+                            RefactoringDescriptors.RemoveBracesFromSwitchSections);
                     }
                 }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.DuplicateSwitchSection))
-                DuplicateSwitchSectionRefactoring.ComputeRefactoring(context, switchSection);
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.CopySwitchSection))
+                CopySwitchSectionRefactoring.ComputeRefactoring(context, switchSection);
 
             bool IsContainedInCaseOrDefaultKeyword(TextSpan span)
             {

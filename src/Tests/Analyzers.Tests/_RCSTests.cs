@@ -1,22 +1,18 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
-using Roslynator.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCSTests : AbstractCSharpFixVerifier
+    public class RCSTests : AbstractCSharpDiagnosticVerifier<AddBracesAnalyzer, AddBracesCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.AddBracesWhenExpressionSpansOverMultipleLines;
-
-        public override DiagnosticAnalyzer Analyzer { get; }
-
-        public override CodeFixProvider FixProvider { get; }
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.AddBracesWhenExpressionSpansOverMultipleLines;
 
         //[Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddBracesWhenExpressionSpansOverMultipleLines)]
         public async Task Test()
@@ -39,7 +35,7 @@ class C
 
         //[Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddBracesWhenExpressionSpansOverMultipleLines)]
         //[InlineData("", "")]
-        public async Task Test2(string fromData, string toData)
+        public async Task Test2(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 using System;
@@ -53,7 +49,7 @@ class C
     {
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         //[Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddBracesWhenExpressionSpansOverMultipleLines)]
@@ -76,7 +72,7 @@ class C
 
         //[Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddBracesWhenExpressionSpansOverMultipleLines)]
         //[InlineData("")]
-        public async Task TestNoDiagnostic2(string fromData)
+        public async Task TestNoDiagnostic2(string source)
         {
             await VerifyNoDiagnosticAsync(@"
 using System;
@@ -90,7 +86,7 @@ class C
     {
     }
 }
-", fromData);
+", source);
         }
     }
 }

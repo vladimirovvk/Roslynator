@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
@@ -16,7 +17,7 @@ using static Roslynator.Logger;
 
 namespace Roslynator.CommandLine
 {
-    internal class GenerateSourceReferencesCommand : MSBuildWorkspaceCommand
+    internal class GenerateSourceReferencesCommand : MSBuildWorkspaceCommand<CommandResult>
     {
         public GenerateSourceReferencesCommand(
             GenerateSourceReferencesCommandLineOptions options,
@@ -85,7 +86,7 @@ namespace Roslynator.CommandLine
 
             WriteLine($"Source references successfully saved to '{Options.Output}'.", Verbosity.Minimal);
 
-            return CommandResult.Success;
+            return CommandResults.Success;
         }
 
         private void WriteSymbol(XmlWriter writer, ISymbol symbol, CancellationToken cancellationToken)
@@ -135,6 +136,7 @@ namespace Roslynator.CommandLine
             writer.WriteEndElement();
         }
 
+#pragma warning disable RS1024
         private static bool IsImplicitConstructor(ISymbol symbol)
         {
             return symbol is IMethodSymbol methodSymbol
@@ -142,5 +144,6 @@ namespace Roslynator.CommandLine
                 && !methodSymbol.Parameters.Any()
                 && methodSymbol.ContainingType.InstanceConstructors.SingleOrDefault(shouldThrow: false) == methodSymbol;
         }
+#pragma warning restore RS1024
     }
 }

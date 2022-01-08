@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -21,7 +21,7 @@ namespace Roslynator.CSharp.Refactorings
             SyntaxNode declaration,
             SemanticModel semanticModel)
         {
-            if (!(semanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is IMethodSymbol methodSymbol))
+            if (semanticModel.GetDeclaredSymbol(declaration, context.CancellationToken) is not IMethodSymbol methodSymbol)
                 return;
 
             ITypeSymbol typeSymbol = GetElementType(methodSymbol.ReturnType, semanticModel);
@@ -31,8 +31,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Use List instead of yield",
-                cancellationToken => RefactorAsync(context.Document, declaration, typeSymbol, semanticModel, cancellationToken),
-                RefactoringIdentifiers.UseListInsteadOfYield);
+                ct => RefactorAsync(context.Document, declaration, typeSymbol, semanticModel, ct),
+                RefactoringDescriptors.UseListInsteadOfYield);
         }
 
         private static ITypeSymbol GetElementType(ITypeSymbol returnType, SemanticModel semanticModel)
@@ -69,9 +69,9 @@ namespace Roslynator.CSharp.Refactorings
                 .ToMinimalTypeSyntax(semanticModel, position);
 
             LocalDeclarationStatementSyntax localDeclarationStatement = LocalDeclarationStatement(
-                    VarType(),
-                    name,
-                    EqualsValueClause(ObjectCreationExpression(listType, ArgumentList())));
+                VarType(),
+                name,
+                EqualsValueClause(ObjectCreationExpression(listType, ArgumentList())));
 
             localDeclarationStatement = localDeclarationStatement.WithFormatterAnnotation();
 
@@ -135,10 +135,8 @@ namespace Roslynator.CSharp.Refactorings
 
         private static bool IsParameterCheck(StatementSyntax statement)
         {
-            if (statement.IsKind(SyntaxKind.IfStatement))
+            if (statement is IfStatementSyntax ifStatement)
             {
-                var ifStatement = (IfStatementSyntax)statement;
-
                 return ifStatement.SingleNonBlockStatementOrDefault()?.Kind() == SyntaxKind.ThrowStatement;
             }
 
@@ -192,7 +190,7 @@ namespace Roslynator.CSharp.Refactorings
                         node.SemicolonToken);
                 }
 
-                Debug.Fail(node.Kind().ToString());
+                SyntaxDebug.Fail(node);
 
                 return base.VisitYieldStatement(node);
             }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -29,6 +29,8 @@ namespace Roslynator
         public Assembly Assembly { get; }
 
         internal string FullName => Assembly.FullName;
+
+        internal string Name => Assembly.GetName().Name;
 
         public bool HasAnalyzers => AnalyzersByLanguage.Count > 0;
 
@@ -68,20 +70,41 @@ namespace Roslynator
             Dictionary<string, ImmutableArray<DiagnosticAnalyzer>.Builder> analyzers = null;
             Dictionary<string, ImmutableArray<CodeFixProvider>.Builder> fixers = null;
 
+            TypeInfo[] types = null;
             try
             {
-                foreach (TypeInfo typeInfo in analyzerAssembly.DefinedTypes)
+                types = analyzerAssembly.DefinedTypes.ToArray();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                types = ex.Types.OfType<TypeInfo>().ToArray();
+
+                int count = ex.Types.Count(f => f == null);
+                string message = $"Cannot load {count} type{((count == 1) ? "" : "s")} from assembly '{analyzerAssembly.FullName}'";
+
+                if (!string.IsNullOrEmpty(analyzerAssembly.Location))
+                    message += $" at '{analyzerAssembly.Location}'";
+
+                WriteLine(message, ConsoleColors.DarkGray, Verbosity.Diagnostic);
+
+                foreach (Exception loadeException in ex.LoaderExceptions)
+                    WriteLine($"  {loadeException.Message}", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+            }
+
+            foreach (TypeInfo typeInfo in types)
+            {
+                if (loadAnalyzers
+                    && !typeInfo.IsAbstract
+                    && typeInfo.IsSubclassOf(typeof(DiagnosticAnalyzer)))
                 {
-                    if (loadAnalyzers
-                        && !typeInfo.IsAbstract
-                        && typeInfo.IsSubclassOf(typeof(DiagnosticAnalyzer)))
+                    DiagnosticAnalyzerAttribute attribute = typeInfo.GetCustomAttribute<DiagnosticAnalyzerAttribute>();
+
+                    if (attribute != null)
                     {
-                        DiagnosticAnalyzerAttribute attribute = typeInfo.GetCustomAttribute<DiagnosticAnalyzerAttribute>();
+                        DiagnosticAnalyzer analyzer = CreateInstanceAndCatchIfThrows<DiagnosticAnalyzer>(typeInfo);
 
-                        if (attribute != null)
+                        if (analyzer != null)
                         {
-                            var analyzer = (DiagnosticAnalyzer)Activator.CreateInstance(typeInfo.AsType());
-
                             if (analyzers == null)
                                 analyzers = new Dictionary<string, ImmutableArray<DiagnosticAnalyzer>.Builder>();
 
@@ -98,16 +121,19 @@ namespace Roslynator
                             }
                         }
                     }
-                    else if (loadFixers
-                        && !typeInfo.IsAbstract
-                        && typeInfo.IsSubclassOf(typeof(CodeFixProvider)))
+                }
+                else if (loadFixers
+                    && !typeInfo.IsAbstract
+                    && typeInfo.IsSubclassOf(typeof(CodeFixProvider)))
+                {
+                    ExportCodeFixProviderAttribute attribute = typeInfo.GetCustomAttribute<ExportCodeFixProviderAttribute>();
+
+                    if (attribute != null)
                     {
-                        ExportCodeFixProviderAttribute attribute = typeInfo.GetCustomAttribute<ExportCodeFixProviderAttribute>();
+                        CodeFixProvider fixer = CreateInstanceAndCatchIfThrows<CodeFixProvider>(typeInfo);
 
-                        if (attribute != null)
+                        if (fixer != null)
                         {
-                            var fixer = (CodeFixProvider)Activator.CreateInstance(typeInfo.AsType());
-
                             if (fixers == null)
                                 fixers = new Dictionary<string, ImmutableArray<CodeFixProvider>.Builder>();
 
@@ -126,15 +152,26 @@ namespace Roslynator
                     }
                 }
             }
-            catch (ReflectionTypeLoadException)
-            {
-                WriteLine($"Cannot load types from assembly '{analyzerAssembly.FullName}'", ConsoleColor.DarkGray, Verbosity.Diagnostic);
-            }
 
             return new AnalyzerAssembly(
                 analyzerAssembly,
                 analyzers?.ToImmutableDictionary(f => f.Key, f => f.Value.ToImmutableArray()) ?? ImmutableDictionary<string, ImmutableArray<DiagnosticAnalyzer>>.Empty,
                 fixers?.ToImmutableDictionary(f => f.Key, f => f.Value.ToImmutableArray()) ?? ImmutableDictionary<string, ImmutableArray<CodeFixProvider>>.Empty);
+        }
+
+        private static T CreateInstanceAndCatchIfThrows<T>(TypeInfo typeInfo)
+        {
+            try
+            {
+                return (T)Activator.CreateInstance(typeInfo.AsType());
+            }
+            catch (TargetInvocationException ex)
+            {
+                WriteLine($"Cannot create instance of type '{typeInfo.FullName}'", ConsoleColors.DarkGray, Verbosity.Diagnostic);
+                WriteLine(ex.ToString(), ConsoleColors.DarkGray, Verbosity.Diagnostic);
+            }
+
+            return default;
         }
 
         public override int GetHashCode()

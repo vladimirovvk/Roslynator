@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,37 +10,41 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UseIsOperatorInsteadOfAsOperatorAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UseIsOperatorInsteadOfAsOperatorAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UseIsOperatorInsteadOfAsOperator); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UseIsOperatorInsteadOfAsOperator);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeEqualsExpression, SyntaxKind.EqualsExpression);
-            context.RegisterSyntaxNodeAction(AnalyzeNotEqualsExpression, SyntaxKind.NotEqualsExpression);
-            context.RegisterSyntaxNodeAction(AnalyzeIsPatternExpression, SyntaxKind.IsPatternExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeEqualsExpression(f), SyntaxKind.EqualsExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeNotEqualsExpression(f), SyntaxKind.NotEqualsExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIsPatternExpression(f), SyntaxKind.IsPatternExpression);
         }
 
-        public static void AnalyzeEqualsExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeEqualsExpression(SyntaxNodeAnalysisContext context)
         {
             Analyze(context, context.Node);
         }
 
-        public static void AnalyzeNotEqualsExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeNotEqualsExpression(SyntaxNodeAnalysisContext context)
         {
             Analyze(context, context.Node);
         }
 
-        public static void AnalyzeIsPatternExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIsPatternExpression(SyntaxNodeAnalysisContext context)
         {
             Analyze(context, context.Node);
         }
@@ -60,7 +64,7 @@ namespace Roslynator.CSharp.Analysis
             if (!asExpressionInfo.Success)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseIsOperatorInsteadOfAsOperator, node);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseIsOperatorInsteadOfAsOperator, node);
         }
     }
 }

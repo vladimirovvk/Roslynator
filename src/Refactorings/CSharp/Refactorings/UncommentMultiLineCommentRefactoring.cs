@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -26,12 +26,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Uncomment",
-                cancellationToken =>
-                {
-                    var textChange = new TextChange(multiLineComment.Span, s.Substring(2, s.Length - 4));
-                    return context.Document.WithTextChangeAsync(textChange, cancellationToken);
-                },
-                RefactoringIdentifiers.UncommentMultiLineComment);
+                ct => context.Document.WithTextChangeAsync(multiLineComment.Span, s.Substring(2, s.Length - 4), ct),
+                RefactoringDescriptors.UncommentMultiLineComment);
         }
     }
 }

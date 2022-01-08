@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Text;
@@ -26,8 +26,8 @@ namespace Roslynator.CSharp.Refactorings
 
             ExpressionSyntax firstExpression = expressions[0];
 
-            bool isVerbatim = false;
-            bool isInterpolated = false;
+            bool isVerbatim;
+            var isInterpolated = false;
 
             if (firstExpression is InterpolatedStringExpressionSyntax interpolatedString)
             {
@@ -41,7 +41,7 @@ namespace Roslynator.CSharp.Refactorings
 
             StringBuilder sb = StringBuilderCache.GetInstance();
 
-            var builder = new StringTextBuilder(sb, isVerbatim: isVerbatim, isInterpolated: isInterpolated);
+            var builder = new StringLiteralTextBuilder(sb, isVerbatim: isVerbatim, isInterpolated: isInterpolated);
 
             builder.AppendStart();
 
@@ -68,9 +68,9 @@ namespace Roslynator.CSharp.Refactorings
 
             StringBuilderCache.Free(sb);
 
-            var textChange = new TextChange(TextSpan.FromBounds(firstExpression.SpanStart, expressions.Last().Span.End), newText);
+            TextSpan changedSpan = TextSpan.FromBounds(firstExpression.SpanStart, expressions.Last().Span.End);
 
-            return document.WithTextChangeAsync(textChange, cancellationToken);
+            return document.WithTextChangeAsync(changedSpan, newText, cancellationToken);
         }
     }
 }

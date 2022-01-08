@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,24 +10,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AddStaticModifierToAllPartialClassDeclarationsAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AddStaticModifierToAllPartialClassDeclarationsAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AddStaticModifierToAllPartialClassDeclarations); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AddStaticModifierToAllPartialClassDeclarations);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+            context.RegisterSymbolAction(f => AnalyzeNamedType(f), SymbolKind.NamedType);
         }
 
-        public static void AnalyzeNamedType(SymbolAnalysisContext context)
+        private static void AnalyzeNamedType(SymbolAnalysisContext context)
         {
             var symbol = (INamedTypeSymbol)context.Symbol;
 
@@ -56,8 +61,9 @@ namespace Roslynator.CSharp.Analysis
 
                 if (!modifiers.Contains(SyntaxKind.StaticKeyword))
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context,
-                        DiagnosticDescriptors.AddStaticModifierToAllPartialClassDeclarations,
+                    DiagnosticHelpers.ReportDiagnostic(
+                        context,
+                        DiagnosticRules.AddStaticModifierToAllPartialClassDeclarations,
                         classDeclaration.Identifier);
                 }
             }

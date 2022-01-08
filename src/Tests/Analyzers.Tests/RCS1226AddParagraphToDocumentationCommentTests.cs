@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1226AddParagraphToDocumentationCommentTests : AbstractCSharpFixVerifier
+    public class RCS1226AddParagraphToDocumentationCommentTests : AbstractCSharpDiagnosticVerifier<AddParagraphToDocumentationCommentAnalyzer, AddParagraphToDocumentationCommentCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.AddParagraphToDocumentationComment;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new AddParagraphToDocumentationCommentAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new AddParagraphToDocumentationCommentCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.AddParagraphToDocumentationComment;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
         public async Task Test_TwoParagraphs_Summary()
@@ -297,8 +292,8 @@ namespace N
     /// [|<c></c>
     /// <c></c>
     /// 
-    /// <code>
-    /// </code>|]
+    /// <c>
+    /// </c>|]
     /// </summary>
     class C
     {
@@ -313,8 +308,8 @@ namespace N
     /// <c></c>
     /// </para>
     /// <para>
-    /// <code>
-    /// </code>
+    /// <c>
+    /// </c>
     /// </para>
     /// </summary>
     class C
@@ -360,6 +355,135 @@ namespace N
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task Test_StartsWithParaElement()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+namespace N
+{
+    /// <summary>
+    /// <para>a</para>
+    ///[| b
+    /// 
+    /// c|]
+    /// </summary>
+    class C
+    {
+    }
+}
+", @"
+namespace N
+{
+    /// <summary>
+    /// <para>a</para>
+    /// <para>b</para>
+    /// <para>c</para>
+    /// </summary>
+    class C
+    {
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task Test_ContainsParaElement()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+namespace N
+{
+    /// <summary>
+    /// a
+    /// <para>b</para>
+    ///[| c
+    ///
+    /// d|]
+    /// </summary>
+    class C
+    {
+    }
+}
+", @"
+namespace N
+{
+    /// <summary>
+    /// a
+    /// <para>b</para>
+    /// <para>c</para>
+    /// <para>d</para>
+    /// </summary>
+    class C
+    {
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task Test_EndsWithParaElement()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+namespace N
+{
+    /// <summary>
+    ///[| a
+    /// 
+    /// b|]
+    /// <para>c</para>
+    /// </summary>
+    class C
+    {
+    }
+}
+", @"
+namespace N
+{
+    /// <summary>
+    /// <para>a</para>
+    /// <para>b</para>
+    /// <para>c</para>
+    /// </summary>
+    class C
+    {
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task Test_EndsWithParaElement2()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+namespace N
+{
+    /// <summary>
+    ///[| a
+    /// 
+    /// b|]
+    /// 
+    /// c
+    /// <para>d</para>
+    /// </summary>
+    class C
+    {
+    }
+}
+", @"
+namespace N
+{
+    /// <summary>
+    /// <para>a</para>
+    /// <para>b</para>
+    /// <para>c</para>
+    /// <para>d</para>
+    /// </summary>
+    class C
+    {
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
         public async Task TestNoDiagnostic_SimpleComment()
         {
             await VerifyNoDiagnosticAsync(@"
@@ -395,6 +519,104 @@ class C
 ///
 /// <a>x
 ///
+/// </summary>
+class C
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task TestNoDiagnostic_CodeElement()
+        {
+            await VerifyNoDiagnosticAsync(@"
+/// <summary>
+/// a
+/// 
+/// <code>
+/// b
+/// </code>
+/// </summary>
+class C
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task TestNoDiagnostic_CodeElement2()
+        {
+            await VerifyNoDiagnosticAsync(@"
+/// <summary>
+/// <code>
+/// a
+/// </code>
+/// 
+/// b
+/// </summary>
+class C
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task TestNoDiagnostic_InheritDocElement()
+        {
+            await VerifyNoDiagnosticAsync(@"
+/// <summary>
+/// a
+/// 
+/// <inheritdoc>b</inheritdoc>
+/// </summary>
+class C
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task TestNoDiagnostic_InheritDocElement2()
+        {
+            await VerifyNoDiagnosticAsync(@"
+/// <summary>
+/// <inheritdoc>a</inheritdoc>
+/// 
+/// b
+/// </summary>
+class C
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task TestNoDiagnostic_ListElement()
+        {
+            await VerifyNoDiagnosticAsync(@"
+/// <summary>
+/// a
+/// 
+/// <list type=""bullet"">
+/// <item><description>b</description></item>
+/// </list>
+/// </summary>
+class C
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AddParagraphToDocumentationComment)]
+        public async Task TestNoDiagnostic_ListElement2()
+        {
+            await VerifyNoDiagnosticAsync(@"
+/// <summary>
+/// <list type=""bullet"">
+/// <item><description>b</description></item>
+/// </list>
+/// 
+/// b
 /// </summary>
 class C
 {

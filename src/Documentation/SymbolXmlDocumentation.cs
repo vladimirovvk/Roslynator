@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -12,16 +12,18 @@ namespace Roslynator.Documentation
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class SymbolXmlDocumentation
     {
-        private static readonly Regex _simpleElementRegex = new Regex(@"
-(?<=^\<(?<name>\w+)\>)
-\r?\n
-([^\r\n]+)
-\r?\n
-(?=\</\k<name>\>)", RegexOptions.IgnorePatternWhitespace);
+        private static readonly Regex _simpleElementRegex = new(
+            @"
+            (?<=^\<(?<name>\w+)\>)
+            \r?\n
+            ([^\r\n]+)
+            \r?\n
+            (?=\</\k<name>\>)",
+            RegexOptions.IgnorePatternWhitespace);
 
         private readonly XElement _element;
 
-        internal static SymbolXmlDocumentation Default { get; } = new SymbolXmlDocumentation(null, null);
+        internal static SymbolXmlDocumentation Default { get; } = new(null, null);
 
         public SymbolXmlDocumentation(ISymbol symbol, XElement element)
         {
@@ -124,7 +126,6 @@ namespace Roslynator.Documentation
                             yield return GetElementXml(element);
                             break;
                         }
-
                     case "exception":
                     case "permission":
                     case "seealso":

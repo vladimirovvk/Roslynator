@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -40,16 +40,11 @@ namespace Roslynator
 
         public ImmutableHashSet<string> IgnoredDiagnosticIds { get; }
 
-        internal bool IsSupportedDiagnostic(Diagnostic diagnostic)
+        internal bool IsSupportedDiagnosticId(string diagnosticId)
         {
-            if (diagnostic.Severity >= SeverityLevel)
-            {
-                return (SupportedDiagnosticIds.Count > 0)
-                    ? SupportedDiagnosticIds.Contains(diagnostic.Id)
-                    : !IgnoredDiagnosticIds.Contains(diagnostic.Id);
-            }
-
-            return false;
+            return (SupportedDiagnosticIds.Count > 0)
+                ? SupportedDiagnosticIds.Contains(diagnosticId)
+                : !IgnoredDiagnosticIds.Contains(diagnosticId);
         }
     }
 }

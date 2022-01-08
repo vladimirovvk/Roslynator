@@ -1,7 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,24 +12,29 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class SimplifyLogicalNegationAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class SimplifyLogicalNegationAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.SimplifyLogicalNegation); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.SimplifyLogicalNegation);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeLogicalNotExpression, SyntaxKind.LogicalNotExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeLogicalNotExpression(f), SyntaxKind.LogicalNotExpression);
         }
 
-        public static void AnalyzeLogicalNotExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLogicalNotExpression(SyntaxNodeAnalysisContext context)
         {
             var logicalNot = (PrefixUnaryExpressionSyntax)context.Node;
 
@@ -72,12 +78,88 @@ namespace Roslynator.CSharp.Analysis
                         ReportDiagnostic();
                         break;
                     }
+                case SyntaxKind.LessThanExpression:
+                case SyntaxKind.LessThanOrEqualExpression:
+                case SyntaxKind.GreaterThanExpression:
+                case SyntaxKind.GreaterThanOrEqualExpression:
+                    {
+                        var binaryExpression = (BinaryExpressionSyntax)expression;
+
+                        if (IsNumericType(binaryExpression.Left, context.SemanticModel, context.CancellationToken)
+                            && IsNumericType(binaryExpression.Right, context.SemanticModel, context.CancellationToken))
+                        {
+                            ReportDiagnostic();
+                        }
+
+                        break;
+                    }
+                case SyntaxKind.IsPatternExpression:
+                    {
+                        if (((CSharpParseOptions)expression.SyntaxTree.Options).LanguageVersion >= LanguageVersion.CSharp9)
+                        {
+                            var isPatternExpression = (IsPatternExpressionSyntax)expression;
+
+                            if (isPatternExpression.Pattern is ConstantPatternSyntax constantPattern
+                                && constantPattern.Expression.IsKind(SyntaxKind.NullLiteralExpression))
+                            {
+                                ReportDiagnostic();
+                            }
+                        }
+
+                        break;
+                    }
             }
 
             void ReportDiagnostic()
             {
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.SimplifyLogicalNegation, logicalNot);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.SimplifyLogicalNegation, logicalNot);
             }
+        }
+
+        public static bool IsNumericType(ExpressionSyntax expression, SemanticModel semanticModel, CancellationToken cancellationToken)
+        {
+            if (expression?.IsMissing == false)
+            {
+                if (expression.IsKind(SyntaxKind.NumericLiteralExpression))
+                    return true;
+
+                switch (semanticModel
+                    .GetTypeInfo(expression, cancellationToken)
+                    .ConvertedType?
+                    .SpecialType)
+                {
+                    case SpecialType.System_SByte:
+                    case SpecialType.System_Byte:
+                    case SpecialType.System_Int16:
+                    case SpecialType.System_UInt16:
+                    case SpecialType.System_Int32:
+                    case SpecialType.System_UInt32:
+                    case SpecialType.System_Int64:
+                    case SpecialType.System_UInt64:
+                    case SpecialType.System_Decimal:
+                        {
+                            return true;
+                        }
+                    case SpecialType.System_Single:
+                        {
+                            Optional<object> optional = semanticModel.GetConstantValue(expression, cancellationToken);
+
+                            return optional.HasValue
+                                && optional.Value is float value
+                                && !float.IsNaN(value);
+                        }
+                    case SpecialType.System_Double:
+                        {
+                            Optional<object> optional = semanticModel.GetConstantValue(expression, cancellationToken);
+
+                            return optional.HasValue
+                                && optional.Value is double value
+                                && !double.IsNaN(value);
+                        }
+                }
+            }
+
+            return false;
         }
 
         public static void Analyze(SyntaxNodeAnalysisContext context, in SimpleMemberInvocationExpressionInfo invocationInfo)
@@ -87,7 +169,7 @@ namespace Roslynator.CSharp.Analysis
             if (parent.Kind() != SyntaxKind.LogicalNotExpression)
                 return;
 
-            SingleParameterLambdaExpressionInfo lambdaInfo = SyntaxInfo.SingleParameterLambdaExpressionInfo(invocationInfo.Arguments.First().Expression.WalkDownParentheses());
+            SingleParameterLambdaExpressionInfo lambdaInfo = SyntaxInfo.SingleParameterLambdaExpressionInfo(invocationInfo.Arguments[0].Expression.WalkDownParentheses());
 
             if (!lambdaInfo.Success)
                 return;
@@ -105,7 +187,7 @@ namespace Roslynator.CSharp.Analysis
             if (!SymbolUtility.IsLinqExtensionOfIEnumerableOfTWithPredicate(methodSymbol))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.SimplifyLogicalNegation, parent);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.SimplifyLogicalNegation, parent);
         }
 
         internal static ExpressionSyntax GetReturnExpression(CSharpSyntaxNode node)
