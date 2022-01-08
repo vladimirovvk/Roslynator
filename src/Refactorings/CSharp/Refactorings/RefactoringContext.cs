@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -9,25 +9,32 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
+using Roslynator.Configuration;
 using Roslynator.CSharp.Analysis;
 
 namespace Roslynator.CSharp.Refactorings
 {
     internal class RefactoringContext
     {
-        public RefactoringContext(CodeRefactoringContext underlyingContext, SyntaxNode root, RefactoringSettings settings)
+        private AnalyzerConfigOptions _configOptions;
+        private readonly bool? _globalIsEnabled;
+
+        public RefactoringContext(CodeRefactoringContext underlyingContext, SyntaxNode root)
         {
             UnderlyingContext = underlyingContext;
             Root = root;
-            Settings = settings;
+
+            _configOptions = Document.GetConfigOptions(Root.SyntaxTree);
+
+            if (_configOptions.TryGetValueAsBool(ConfigOptionKeys.RefactoringsEnabled, out bool globalIsEnabled))
+                _globalIsEnabled = globalIsEnabled;
         }
 
         public CodeRefactoringContext UnderlyingContext { get; }
 
         public SyntaxNode Root { get; }
-
-        public RefactoringSettings Settings { get; }
 
         public CancellationToken CancellationToken
         {
@@ -111,6 +118,8 @@ namespace Roslynator.CSharp.Refactorings
             }
         }
 
+        public bool PrefixFieldIdentifierWithUnderscore => (_configOptions ??= Document.GetConfigOptions(Root.SyntaxTree)).GetPrefixFieldIdentifierWithUnderscore();
+
         public void ThrowIfCancellationRequested()
         {
             CancellationToken.ThrowIfCancellationRequested();
@@ -137,34 +146,82 @@ namespace Roslynator.CSharp.Refactorings
             RegisterRefactoring(CodeAction.Create(title, createChangedSolution, equivalenceKey));
         }
 
+        public void RegisterRefactoring(
+            string title,
+            Func<CancellationToken, Task<Document>> createChangedDocument,
+            RefactoringDescriptor descriptor,
+            string additionalEquivalenceKey1 = null,
+            string additionalEquivalenceKey2 = null)
+        {
+            RegisterRefactoring(
+                title,
+                createChangedDocument,
+                EquivalenceKey.Create(descriptor, additionalEquivalenceKey1, additionalEquivalenceKey2));
+        }
+
+        public void RegisterRefactoring(
+            string title,
+            Func<CancellationToken, Task<Solution>> createChangedSolution,
+            RefactoringDescriptor descriptor,
+            string additionalEquivalenceKey1 = null,
+            string additionalEquivalenceKey2 = null)
+        {
+            RegisterRefactoring(
+                title,
+                createChangedSolution,
+                EquivalenceKey.Create(descriptor, additionalEquivalenceKey1, additionalEquivalenceKey2));
+        }
+
         public void RegisterRefactoring(CodeAction codeAction)
         {
             UnderlyingContext.RegisterRefactoring(codeAction);
         }
 
-        public bool IsRefactoringEnabled(string identifier)
+        public bool IsRefactoringEnabled(RefactoringDescriptor refactoring)
         {
-            return Settings.IsEnabled(identifier);
+            if (_configOptions.TryGetValue(refactoring.OptionKey, out string value)
+                && bool.TryParse(value, out bool enabled))
+            {
+                return enabled;
+            }
+
+            if (_globalIsEnabled != null)
+                return _globalIsEnabled.Value;
+
+            if (CodeAnalysisConfig.Instance.Refactorings.TryGetValue(refactoring.OptionKey, out enabled))
+                return enabled;
+
+            return CodeAnalysisConfig.Instance.RefactoringsEnabled ?? true;
         }
 
-        public bool IsAnyRefactoringEnabled(string identifier1, string identifier2)
+        public bool IsAnyRefactoringEnabled(RefactoringDescriptor refactoring1, RefactoringDescriptor refactoring2)
         {
-            return Settings.IsAnyEnabled(identifier1, identifier2);
+            return IsRefactoringEnabled(refactoring1)
+                || IsRefactoringEnabled(refactoring2);
         }
 
-        public bool IsAnyRefactoringEnabled(string identifier1, string identifier2, string identifier3)
+        public bool IsAnyRefactoringEnabled(RefactoringDescriptor refactoring1, RefactoringDescriptor refactoring2, RefactoringDescriptor refactoring3)
         {
-            return Settings.IsAnyEnabled(identifier1, identifier2, identifier3);
+            return IsRefactoringEnabled(refactoring1)
+                || IsRefactoringEnabled(refactoring2)
+                || IsRefactoringEnabled(refactoring3);
         }
 
-        public bool IsAnyRefactoringEnabled(string identifier1, string identifier2, string identifier3, string identifier4)
+        public bool IsAnyRefactoringEnabled(RefactoringDescriptor refactoring1, RefactoringDescriptor refactoring2, RefactoringDescriptor refactoring3, RefactoringDescriptor refactoring4)
         {
-            return Settings.IsAnyEnabled(identifier1, identifier2, identifier3, identifier4);
+            return IsRefactoringEnabled(refactoring1)
+                || IsRefactoringEnabled(refactoring2)
+                || IsRefactoringEnabled(refactoring3)
+                || IsRefactoringEnabled(refactoring4);
         }
 
-        public bool IsAnyRefactoringEnabled(string identifier1, string identifier2, string identifier3, string identifier4, string identifier5)
+        public bool IsAnyRefactoringEnabled(RefactoringDescriptor refactoring1, RefactoringDescriptor refactoring2, RefactoringDescriptor refactoring3, RefactoringDescriptor refactoring4, RefactoringDescriptor refactoring5)
         {
-            return Settings.IsAnyEnabled(identifier1, identifier2, identifier3, identifier4, identifier5);
+            return IsRefactoringEnabled(refactoring1)
+                || IsRefactoringEnabled(refactoring2)
+                || IsRefactoringEnabled(refactoring3)
+                || IsRefactoringEnabled(refactoring4)
+                || IsRefactoringEnabled(refactoring5);
         }
 
         public async Task ComputeRefactoringsAsync()
@@ -198,7 +255,7 @@ namespace Roslynator.CSharp.Refactorings
             {
                 case SyntaxKind.XmlTextLiteralToken:
                     {
-                        if (IsRefactoringEnabled(RefactoringIdentifiers.AddTagToDocumentationComment)
+                        if (IsRefactoringEnabled(RefactoringDescriptors.AddTagToDocumentationComment)
                             && !Span.IsEmpty)
                         {
                             TextSpan span = token.Span;
@@ -217,8 +274,8 @@ namespace Roslynator.CSharp.Refactorings
                                     {
                                         RegisterRefactoring(
                                             "Add tag 'c'",
-                                            ct => Document.WithTextChangeAsync(new TextChange(Span, $"<c>{token.ToString(Span)}</c>"), ct),
-                                            RefactoringIdentifiers.AddTagToDocumentationComment);
+                                            ct => Document.WithTextChangeAsync(Span, $"<c>{token.ToString(Span)}</c>", ct),
+                                            RefactoringDescriptors.AddTagToDocumentationComment);
                                     }
                                 }
                             }
@@ -297,14 +354,14 @@ namespace Roslynator.CSharp.Refactorings
                 case SyntaxKind.ProtectedKeyword:
                 case SyntaxKind.PrivateKeyword:
                     {
-                        if (IsRefactoringEnabled(RefactoringIdentifiers.ChangeAccessibility))
+                        if (IsRefactoringEnabled(RefactoringDescriptors.ChangeAccessibility))
                             await AccessModifierRefactoring.ComputeRefactoringsAsync(this, token).ConfigureAwait(false);
 
                         break;
                     }
                 case SyntaxKind.AsyncKeyword:
                     {
-                        if (IsRefactoringEnabled(RefactoringIdentifiers.RemoveAsyncAwait)
+                        if (IsRefactoringEnabled(RefactoringDescriptors.RemoveAsyncAwait)
                             && Span.IsEmptyAndContainedInSpan(token))
                         {
                             await RemoveAsyncAwaitRefactoring.ComputeRefactoringsAsync(this, token).ConfigureAwait(false);
@@ -323,15 +380,15 @@ namespace Roslynator.CSharp.Refactorings
 
             if (kind == SyntaxKind.SingleLineCommentTrivia)
             {
-                if (IsRefactoringEnabled(RefactoringIdentifiers.UncommentSingleLineComment))
+                if (IsRefactoringEnabled(RefactoringDescriptors.UncommentSingleLineComment))
                 {
                     RegisterRefactoring(
                         "Uncomment",
-                        cancellationToken => UncommentSingleLineCommentRefactoring.RefactorAsync(Document, trivia, cancellationToken),
-                        RefactoringIdentifiers.UncommentSingleLineComment);
+                        ct => UncommentSingleLineCommentRefactoring.RefactorAsync(Document, trivia, ct),
+                        RefactoringDescriptors.UncommentSingleLineComment);
                 }
 
-                if (IsRefactoringEnabled(RefactoringIdentifiers.ConvertCommentToDocumentationComment))
+                if (IsRefactoringEnabled(RefactoringDescriptors.ConvertCommentToDocumentationComment))
                 {
                     TextSpan fixableSpan = ConvertCommentToDocumentationCommentAnalysis.GetFixableSpan(trivia);
 
@@ -339,14 +396,14 @@ namespace Roslynator.CSharp.Refactorings
                     {
                         RegisterRefactoring(
                             ConvertCommentToDocumentationCommentRefactoring.Title,
-                            cancellationToken => ConvertCommentToDocumentationCommentRefactoring.RefactorAsync(Document, (MemberDeclarationSyntax)trivia.Token.Parent, fixableSpan, cancellationToken),
-                            RefactoringIdentifiers.ConvertCommentToDocumentationComment);
+                            ct => ConvertCommentToDocumentationCommentRefactoring.RefactorAsync(Document, (MemberDeclarationSyntax)trivia.Token.Parent, fixableSpan, ct),
+                            RefactoringDescriptors.ConvertCommentToDocumentationComment);
                     }
                 }
             }
             else if (kind == SyntaxKind.MultiLineCommentTrivia)
             {
-                if (IsRefactoringEnabled(RefactoringIdentifiers.UncommentMultiLineComment))
+                if (IsRefactoringEnabled(RefactoringDescriptors.UncommentMultiLineComment))
                     UncommentMultiLineCommentRefactoring.ComputeRefactoring(this, trivia);
             }
 
@@ -362,6 +419,7 @@ namespace Roslynator.CSharp.Refactorings
                 return;
 
             RefactoringFlags flags = RefactoringFlagsCache.GetInstance();
+            flags.Reset();
 
             SyntaxNode firstNode = node;
 
@@ -391,6 +449,7 @@ namespace Roslynator.CSharp.Refactorings
                     case SyntaxKind.RemoveAccessorDeclaration:
                     case SyntaxKind.GetAccessorDeclaration:
                     case SyntaxKind.SetAccessorDeclaration:
+                    case SyntaxKind.InitAccessorDeclaration:
                     case SyntaxKind.UnknownAccessorDeclaration:
                         {
                             if (flags.IsSet(Flag.Accessor))
@@ -405,7 +464,7 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.Argument))
                                 continue;
 
-                            await ArgumentRefactoring.ComputeRefactoringsAsync(this, (ArgumentSyntax)node).ConfigureAwait(false);
+                            ArgumentRefactoring.ComputeRefactorings(this, (ArgumentSyntax)node);
                             flags.Set(Flag.Argument);
                             continue;
                         }
@@ -432,7 +491,7 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.ArrowExpressionClause))
                                 continue;
 
-                            await ArrowExpressionClauseRefactoring.ComputeRefactoringsAsync(this, (ArrowExpressionClauseSyntax)node).ConfigureAwait(false);
+                            ArrowExpressionClauseRefactoring.ComputeRefactorings(this, (ArrowExpressionClauseSyntax)node);
                             flags.Set(Flag.ArrowExpressionClause);
                             continue;
                         }
@@ -477,7 +536,7 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.VariableDeclarator))
                                 continue;
 
-                            await VariableDeclaratorRefactoring.ComputeRefactoringsAsync(this, (VariableDeclaratorSyntax)node).ConfigureAwait(false);
+                            VariableDeclaratorRefactoring.ComputeRefactorings(this, (VariableDeclaratorSyntax)node);
                             flags.Set(Flag.VariableDeclarator);
                             continue;
                         }
@@ -513,7 +572,6 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.CaseSwitchLabel))
                                 continue;
 
-                            await CaseSwitchLabelRefactoring.ComputeRefactoringsAsync(this, (CaseSwitchLabelSyntax)node).ConfigureAwait(false);
                             flags.Set(Flag.CaseSwitchLabel);
                             continue;
                         }
@@ -568,7 +626,7 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.AssignmentExpression))
                                 continue;
 
-                            await AssignmentExpressionRefactoring.ComputeRefactoringsAsync(this, (AssignmentExpressionSyntax)node).ConfigureAwait(false);
+                            AssignmentExpressionRefactoring.ComputeRefactorings(this, (AssignmentExpressionSyntax)node);
                             flags.Set(Flag.AssignmentExpression);
                             continue;
                         }
@@ -633,7 +691,6 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.GenericName))
                                 continue;
 
-                            GenericNameRefactoring.ComputeRefactorings(this, (GenericNameSyntax)node);
                             flags.Set(Flag.GenericName);
                             continue;
                         }
@@ -650,6 +707,7 @@ namespace Roslynator.CSharp.Refactorings
                     case SyntaxKind.CollectionInitializerExpression:
                     case SyntaxKind.ComplexElementInitializerExpression:
                     case SyntaxKind.ObjectInitializerExpression:
+                    case SyntaxKind.WithInitializerExpression:
                         {
                             if (flags.IsSet(Flag.InitializerExpression))
                                 continue;
@@ -759,7 +817,6 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.AwaitExpression))
                                 continue;
 
-                            await AwaitExpressionRefactoring.ComputeRefactoringsAsync(this, (AwaitExpressionSyntax)node).ConfigureAwait(false);
                             flags.Set(Flag.AwaitExpression);
                             continue;
                         }
@@ -768,7 +825,7 @@ namespace Roslynator.CSharp.Refactorings
                             if (flags.IsSet(Flag.CastExpression))
                                 continue;
 
-                            CastExpressionRefactoring.ComputeRefactorings(this, (CastExpressionSyntax)node);
+                            await CastExpressionRefactoring.ComputeRefactoringsAsync(this, (CastExpressionSyntax)node).ConfigureAwait(false);
                             flags.Set(Flag.CastExpression);
                             continue;
                         }
@@ -797,6 +854,15 @@ namespace Roslynator.CSharp.Refactorings
 
                             InvertIsExpressionRefactoring.ComputeRefactoring(this, (IsPatternExpressionSyntax)node);
                             flags.Set(Flag.IsPatternExpression);
+                            continue;
+                        }
+                    case SyntaxKind.SwitchExpression:
+                        {
+                            if (flags.IsSet(Flag.SwitchExpression))
+                                continue;
+
+                            SwitchExpressionRefactoring.ComputeRefactorings(this, (SwitchExpressionSyntax)node);
+                            flags.Set(Flag.SwitchExpression);
                             continue;
                         }
                     case SyntaxKind.DoStatement:
@@ -952,8 +1018,8 @@ namespace Roslynator.CSharp.Refactorings
                     AddBracesRefactoring.ComputeRefactoring(this, statement);
                     RemoveBracesRefactoring.ComputeRefactoring(this, statement);
 
-                    if (IsRefactoringEnabled(RefactoringIdentifiers.ExtractStatement))
-                        ExtractStatementRefactoring.ComputeRefactoring(this, statement);
+                    if (IsRefactoringEnabled(RefactoringDescriptors.RemoveContainingStatement))
+                        RemoveContainingStatementRefactoring.ComputeRefactoring(this, statement);
 
                     EmbeddedStatementRefactoring.ComputeRefactoring(this, statement);
                     flags.Set(Flag.Statement);
@@ -1018,14 +1084,10 @@ namespace Roslynator.CSharp.Refactorings
                 if (instance != null)
                 {
                     _cachedInstance = null;
-                    instance.Reset();
-                }
-                else
-                {
-                    instance = new RefactoringFlags();
+                    return instance;
                 }
 
-                return instance;
+                return new RefactoringFlags();
             }
 
             public static void Free(RefactoringFlags instance)
@@ -1079,26 +1141,27 @@ namespace Roslynator.CSharp.Refactorings
             ThrowExpression = 39,
             DeclarationExpression = 40,
             IsPatternExpression = 41,
+            SwitchExpression = 42,
 
-            MemberDeclaration = 42,
+            MemberDeclaration = 43,
 
-            Statement = 43,
-            ExpressionStatement = 44,
-            LoopStatement = 45,
-            IfStatement = 46,
-            LocalDeclarationStatement = 47,
-            ReturnStatement = 48,
-            SwitchStatement = 49,
-            UsingStatement = 50,
-            YieldStatement = 51,
-            LockStatement = 52,
-            Block = 53,
-            BlockOrSwitchStatement = 54,
-            ThrowStatement = 55,
-            LocalFunctionStatement = 56,
-            UnsafeStatement = 57,
+            Statement = 44,
+            ExpressionStatement = 45,
+            LoopStatement = 46,
+            IfStatement = 47,
+            LocalDeclarationStatement = 48,
+            ReturnStatement = 49,
+            SwitchStatement = 50,
+            UsingStatement = 51,
+            YieldStatement = 52,
+            LockStatement = 53,
+            Block = 54,
+            BlockOrSwitchStatement = 55,
+            ThrowStatement = 56,
+            LocalFunctionStatement = 57,
+            UnsafeStatement = 58,
 
-            Count = 58,
+            Count = 59,
         }
     }
 }

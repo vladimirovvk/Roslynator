@@ -1,7 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -25,7 +26,7 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
 
         public CancellationToken CancellationToken { get; set; }
 
-        public Dictionary<string, (SyntaxNode, ISymbol)> Symbols { get; } = new Dictionary<string, (SyntaxNode, ISymbol)>();
+        public Dictionary<string, (SyntaxNode, ISymbol)> Symbols { get; } = new();
 
         public static MakeMemberReadOnlyWalker GetInstance()
         {
@@ -33,6 +34,10 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
 
             if (walker != null)
             {
+                Debug.Assert(walker.Symbols.Count == 0);
+                Debug.Assert(walker.SemanticModel == null);
+                Debug.Assert(walker.CancellationToken == default);
+
                 _cachedInstance = null;
                 return walker;
             }
@@ -42,11 +47,11 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
 
         public static void Free(MakeMemberReadOnlyWalker walker)
         {
-            walker.Clear();
+            walker.Reset();
             _cachedInstance = walker;
         }
 
-        private void Clear()
+        private void Reset()
         {
             Symbols.Clear();
             SemanticModel = null;
@@ -92,7 +97,7 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
 
                 ISymbol symbol2 = SemanticModel.GetSymbol(identifierName, CancellationToken)?.OriginalDefinition;
 
-                if (symbol.Equals(symbol2))
+                if (SymbolEqualityComparer.Default.Equals(symbol, symbol2))
                     Symbols.Remove(symbol.Name);
             }
         }

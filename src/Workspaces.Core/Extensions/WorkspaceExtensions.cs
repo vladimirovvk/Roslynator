@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -16,26 +16,27 @@ namespace Roslynator
     public static class WorkspaceExtensions
     {
         #region Document
+        internal static Task<Document> WithTextChangeAsync(
+            this Document document,
+            TextSpan span,
+            string newText,
+            CancellationToken cancellationToken = default)
+        {
+            return WithTextChangeAsync(document, new TextChange(span, newText), cancellationToken);
+        }
+
         /// <summary>
         /// Creates a new document updated with the specified text change.
         /// </summary>
         /// <param name="document"></param>
         /// <param name="textChange"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public static async Task<Document> WithTextChangeAsync(
+        public static Task<Document> WithTextChangeAsync(
             this Document document,
             TextChange textChange,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
-            if (document == null)
-                throw new ArgumentNullException(nameof(document));
-
-            SourceText sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-
-            SourceText newSourceText = sourceText.WithChanges(new TextChange[] { textChange });
-
-            return document.WithText(newSourceText);
+            return WithTextChangesAsync(document, new TextChange[] { textChange }, cancellationToken);
         }
 
         /// <summary>
@@ -44,11 +45,10 @@ namespace Roslynator
         /// <param name="document"></param>
         /// <param name="textChanges"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> WithTextChangesAsync(
             this Document document,
             TextChange[] textChanges,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -69,11 +69,10 @@ namespace Roslynator
         /// <param name="document"></param>
         /// <param name="textChanges"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> WithTextChangesAsync(
             this Document document,
             IEnumerable<TextChange> textChanges,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -95,12 +94,11 @@ namespace Roslynator
         /// <param name="oldNode"></param>
         /// <param name="newNode"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> ReplaceNodeAsync(
             this Document document,
             SyntaxNode oldNode,
             SyntaxNode newNode,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -125,12 +123,11 @@ namespace Roslynator
         /// <param name="oldNode"></param>
         /// <param name="newNodes"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> ReplaceNodeAsync(
             this Document document,
             SyntaxNode oldNode,
             IEnumerable<SyntaxNode> newNodes,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -156,12 +153,11 @@ namespace Roslynator
         /// <param name="nodes"></param>
         /// <param name="computeReplacementNode"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> ReplaceNodesAsync<TNode>(
             this Document document,
             IEnumerable<TNode> nodes,
             Func<TNode, TNode, SyntaxNode> computeReplacementNode,
-            CancellationToken cancellationToken = default(CancellationToken)) where TNode : SyntaxNode
+            CancellationToken cancellationToken = default) where TNode : SyntaxNode
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -186,12 +182,11 @@ namespace Roslynator
         /// <param name="oldToken"></param>
         /// <param name="newToken"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> ReplaceTokenAsync(
             this Document document,
             SyntaxToken oldToken,
             SyntaxToken newToken,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -210,12 +205,11 @@ namespace Roslynator
         /// <param name="oldToken"></param>
         /// <param name="newTokens"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> ReplaceTokenAsync(
             this Document document,
             SyntaxToken oldToken,
             IEnumerable<SyntaxToken> newTokens,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -237,12 +231,11 @@ namespace Roslynator
         /// <param name="oldTrivia"></param>
         /// <param name="newTrivia"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> ReplaceTriviaAsync(
             this Document document,
             SyntaxTrivia oldTrivia,
             SyntaxTrivia newTrivia,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -261,12 +254,11 @@ namespace Roslynator
         /// <param name="oldTrivia"></param>
         /// <param name="newTrivia"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> ReplaceTriviaAsync(
             this Document document,
             SyntaxTrivia oldTrivia,
             IEnumerable<SyntaxTrivia> newTrivia,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -288,12 +280,11 @@ namespace Roslynator
         /// <param name="nodeInList"></param>
         /// <param name="newNode"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static Task<Document> InsertNodeBeforeAsync(
             this Document document,
             SyntaxNode nodeInList,
             SyntaxNode newNode,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (newNode == null)
                 throw new ArgumentNullException(nameof(newNode));
@@ -308,12 +299,11 @@ namespace Roslynator
         /// <param name="nodeInList"></param>
         /// <param name="newNodes"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> InsertNodesBeforeAsync(
             this Document document,
             SyntaxNode nodeInList,
             IEnumerable<SyntaxNode> newNodes,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -338,12 +328,11 @@ namespace Roslynator
         /// <param name="nodeInList"></param>
         /// <param name="newNode"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static Task<Document> InsertNodeAfterAsync(
             this Document document,
             SyntaxNode nodeInList,
             SyntaxNode newNode,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (newNode == null)
                 throw new ArgumentNullException(nameof(newNode));
@@ -358,12 +347,11 @@ namespace Roslynator
         /// <param name="nodeInList"></param>
         /// <param name="newNodes"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> InsertNodesAfterAsync(
             this Document document,
             SyntaxNode nodeInList,
             IEnumerable<SyntaxNode> newNodes,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -388,12 +376,11 @@ namespace Roslynator
         /// <param name="node"></param>
         /// <param name="options"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemoveNodeAsync(
             this Document document,
             SyntaxNode node,
             SyntaxRemoveOptions options,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -415,12 +402,11 @@ namespace Roslynator
         /// <param name="nodes"></param>
         /// <param name="options"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Document> RemoveNodesAsync(
             this Document document,
             IEnumerable<SyntaxNode> nodes,
             SyntaxRemoveOptions options,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -450,12 +436,11 @@ namespace Roslynator
         /// <param name="oldNode"></param>
         /// <param name="newNode"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Solution> ReplaceNodeAsync<TNode>(
             this Solution solution,
             TNode oldNode,
             TNode newNode,
-            CancellationToken cancellationToken = default(CancellationToken)) where TNode : SyntaxNode
+            CancellationToken cancellationToken = default) where TNode : SyntaxNode
         {
             if (solution == null)
                 throw new ArgumentNullException(nameof(solution));
@@ -483,12 +468,11 @@ namespace Roslynator
         /// <param name="nodes"></param>
         /// <param name="computeReplacementNodes"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static async Task<Solution> ReplaceNodesAsync<TNode>(
             this Solution solution,
             IEnumerable<TNode> nodes,
             Func<TNode, TNode, SyntaxNode> computeReplacementNodes,
-            CancellationToken cancellationToken = default(CancellationToken)) where TNode : SyntaxNode
+            CancellationToken cancellationToken = default) where TNode : SyntaxNode
         {
             if (solution == null)
                 throw new ArgumentNullException(nameof(solution));

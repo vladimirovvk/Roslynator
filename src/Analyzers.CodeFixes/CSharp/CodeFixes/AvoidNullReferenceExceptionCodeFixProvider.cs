@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -17,14 +17,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AvoidNullReferenceExceptionCodeFixProvider))]
     [Shared]
-    public class AvoidNullReferenceExceptionCodeFixProvider : BaseCodeFixProvider
+    public sealed class AvoidNullReferenceExceptionCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.AvoidNullReferenceException); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -59,7 +59,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Use conditional access",
-                cancellationToken => RefactorAsync(context.Document, expression, cancellationToken),
+                ct => RefactorAsync(context.Document, expression, ct),
                 GetEquivalenceKey(DiagnosticIdentifiers.AvoidNullReferenceException));
 
             context.RegisterCodeFix(codeAction, context.Diagnostics);
@@ -85,9 +85,7 @@ namespace Roslynator.CSharp.CodeFixes
         {
             var span = new TextSpan(expression.Span.End, 0);
 
-            var textChange = new TextChange(span, "?");
-
-            Document newDocument = await document.WithTextChangeAsync(textChange, cancellationToken).ConfigureAwait(false);
+            Document newDocument = await document.WithTextChangeAsync(span, "?", cancellationToken).ConfigureAwait(false);
 
             SyntaxNode root = await newDocument.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
@@ -100,9 +98,9 @@ namespace Roslynator.CSharp.CodeFixes
             ITypeSymbol type = typeInfo.Type;
             ITypeSymbol convertedType = typeInfo.ConvertedType;
 
-            if (!type.Equals(convertedType)
+            if (!SymbolEqualityComparer.Default.Equals(type, convertedType)
                 && type.IsNullableType()
-                && ((INamedTypeSymbol)type).TypeArguments[0].Equals(convertedType))
+                && SymbolEqualityComparer.Default.Equals(((INamedTypeSymbol)type).TypeArguments[0], convertedType))
             {
                 ExpressionSyntax defaultValue = convertedType.GetDefaultValueSyntax(document.GetDefaultSyntaxOptions());
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Text;
@@ -139,25 +139,6 @@ namespace Roslynator
             sb.Append(value, i, length - i);
 
             return StringBuilderCache.GetStringAndFree(sb);
-        }
-
-        public static bool IsCamelCasePrefixedWithUnderscore(string value)
-        {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
-            if (value[0] == '_')
-            {
-                if (value.Length > 1)
-                {
-                    return value[1] != '_'
-                        && !char.IsUpper(value[1]);
-                }
-
-                return true;
-            }
-
-            return false;
         }
 
         public static bool HasPrefix(string value, string prefix, StringComparison comparison = StringComparison.Ordinal)

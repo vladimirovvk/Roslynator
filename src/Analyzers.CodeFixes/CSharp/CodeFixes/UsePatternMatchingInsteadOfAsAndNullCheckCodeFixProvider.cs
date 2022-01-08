@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -20,16 +20,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UsePatternMatchingInsteadOfAsAndNullCheckCodeFixProvider))]
     [Shared]
-    public class UsePatternMatchingInsteadOfAsAndNullCheckCodeFixProvider : BaseCodeFixProvider
+    public sealed class UsePatternMatchingInsteadOfAsAndNullCheckCodeFixProvider : BaseCodeFixProvider
     {
-        private const string Title = "Use pattern matching";
-
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.UsePatternMatchingInsteadOfAsAndNullCheck); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -39,8 +37,8 @@ namespace Roslynator.CSharp.CodeFixes
             Diagnostic diagnostic = context.Diagnostics[0];
 
             CodeAction codeAction = CodeAction.Create(
-                Title,
-                cancellationToken => RefactorAsync(context.Document, localDeclaration, cancellationToken),
+                "Use pattern matching",
+                ct => RefactorAsync(context.Document, localDeclaration, ct),
                 GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);
@@ -71,13 +69,13 @@ namespace Roslynator.CSharp.CodeFixes
                             asExpressionInfo.Type,
                             SingleVariableDesignation(variableDeclarator.Identifier)))));
 
-            StatementListInfo statements = SyntaxInfo.StatementListInfo(localDeclaration);
+            StatementListInfo statementsInfo = SyntaxInfo.StatementListInfo(localDeclaration);
 
-            int index = statements.IndexOf(localDeclaration);
+            int index = statementsInfo.IndexOf(localDeclaration);
 
-            var ifStatement = (IfStatementSyntax)statements[index + 1];
+            var ifStatement = (IfStatementSyntax)statementsInfo[index + 1];
 
-            SyntaxTriviaList leadingTrivia = localDeclaration
+            SyntaxTriviaList leadingTrivia = statementsInfo.Parent
                 .DescendantTrivia(TextSpan.FromBounds(localDeclaration.SpanStart, ifStatement.SpanStart))
                 .ToSyntaxTriviaList()
                 .EmptyIfWhitespace();
@@ -99,9 +97,9 @@ namespace Roslynator.CSharp.CodeFixes
                 .WithLeadingTrivia(leadingTrivia)
                 .WithFormatterAnnotation();
 
-            StatementListInfo newStatements = statements.RemoveAt(index).ReplaceAt(index, newIfStatement);
+            SyntaxList<StatementSyntax> newStatements = statementsInfo.Statements.ReplaceRange(index, 2, newIfStatement);
 
-            return document.ReplaceStatementsAsync(statements, newStatements, cancellationToken);
+            return document.ReplaceStatementsAsync(statementsInfo, newStatements, cancellationToken);
         }
     }
 }

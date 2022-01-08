@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -10,7 +10,7 @@ namespace Roslynator.CSharp
 {
     internal static class CSharpOverriddenSymbolInfo
     {
-        private static OverriddenSymbolInfo Default { get; } = new OverriddenSymbolInfo();
+        private static OverriddenSymbolInfo Default { get; } = new();
 
         public static bool CanCreate(SyntaxNode node)
         {
@@ -40,7 +40,7 @@ namespace Roslynator.CSharp
         internal static OverriddenSymbolInfo Create(
             SyntaxNode node,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (node == null)
                 return Default;
@@ -132,7 +132,7 @@ namespace Roslynator.CSharp
             if (variableDeclarator.Parent.Parent?.Kind() != SyntaxKind.EventFieldDeclaration)
                 return Default;
 
-            if (!(semanticModel.GetDeclaredSymbol(variableDeclarator, cancellationToken) is IEventSymbol eventSymbol))
+            if (semanticModel.GetDeclaredSymbol(variableDeclarator, cancellationToken) is not IEventSymbol eventSymbol)
                 return Default;
 
             IEventSymbol overriddenEvent = eventSymbol.OverriddenEvent;

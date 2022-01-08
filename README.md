@@ -2,39 +2,51 @@
 
 A collection of 500+ [analyzers](src/Analyzers/README.md), [refactorings](src/Refactorings/README.md) and [fixes](src/CodeFixes/README.md) for C#, powered by [Roslyn](http://github.com/dotnet/roslyn).
 
+**PROMO: Try [Orang](https://github.com/JosefPihrt/Orang), cross-platform command-line tool from the author of Roslynator. Orang can search, replace, rename and delete directories, files and its content using the power of .NET regular expressions.**
+
 ### Features
 
 * [Extensions for Visual Studio](#extensions-for-visual-studio)
 * [NuGet Analyzers](#nuget-analyzers)
 * [Roslynator API](#roslynator-api)
 * [Roslynator Command-Line Interface](#roslynator-command-line-interface)
-* [Roslynator for VS Code](#roslynator-for-vs-code)
+* [Roslynator for VS Code](#extensions-for-visual-studio-code)
 * [Release notes](ChangeLog.md)
 * Follow on [Twitter](https://twitter.com/roslynator)
 
 ### New Features
 
+* [Roslynator for Visual Studio Code](#extensions-for-visual-studio-code)
 * [Fix all diagnostics in a solution](docs/HowToFixAllDiagnostics.md)
 * [Generate API documentation](docs/HowToGenerateDocumentation.md)
 
 ### Donation
 
-> "It's so good, that I made my first ever donation." Mateusz Piasecki, Roslynator user.
-
-Although Roslynator products are free of charge, any [donation](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BX85UA346VTN6) is welcome and supports further development.
+* Although Roslynator products are free of charge, any [donation](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BX85UA346VTN6) is welcome and supports further development.
+* [List of donations](Donations.md)
 
 ## Extensions for Visual Studio
 
 | Extension | Comment |
 | --- | --- |
+| [Roslynator 2022 (Preview)](https://marketplace.visualstudio.com/items?itemName=josefpihrt.Roslynator2022) | contains analyzers, refactorings and fixes for CS diagnostics. |
 | [Roslynator 2019](https://marketplace.visualstudio.com/items?itemName=josefpihrt.Roslynator2019) | contains analyzers, refactorings and fixes for CS diagnostics. |
-| [Roslynator 2017](https://marketplace.visualstudio.com/items?itemName=josefpihrt.Roslynator2017) | contains analyzers, refactorings and fixes for CS diagnostics. |
+
+## Extensions for Visual Studio Code
+
+| Extension | Comment |
+| --- | --- |
+| [Roslynator](https://marketplace.visualstudio.com/items?itemName=josefpihrt-vscode.roslynator) | contains analyzers, refactorings and fixes for CS diagnostics. |
 
 ## NuGet Analyzers
 
 | Package | Version | Comment |
 | --- | --- | --- |
-| [Roslynator.Analyzers](https://www.nuget.org/packages/Roslynator.Analyzers) | [![NuGet](https://img.shields.io/nuget/v/Roslynator.Analyzers.svg)](https://www.nuget.org/packages/Roslynator.Analyzers) | contains only analyzers |
+| [Roslynator.Analyzers](https://www.nuget.org/packages/Roslynator.Analyzers) | [![NuGet](https://img.shields.io/nuget/v/Roslynator.Analyzers.svg)](https://www.nuget.org/packages/Roslynator.Analyzers) | common analyzers (RCS1xxx) ([list](http://pihrt.net/Roslynator/Analyzers?Query=RCS1)) |
+| [Roslynator.CodeAnalysis.Analyzers](https://www.nuget.org/packages/Roslynator.CodeAnalysis.Analyzers) | [![NuGet](https://img.shields.io/nuget/v/Roslynator.CodeAnalysis.Analyzers.svg)](https://www.nuget.org/packages/Roslynator.CodeAnalysis.Analyzers) | analyzers for Roslyn API (RCS9xxx) ([list](http://pihrt.net/Roslynator/Analyzers?Query=RCS9)) |
+| [Roslynator.Formatting.Analyzers](https://www.nuget.org/packages/Roslynator.Formatting.Analyzers) | [![NuGet](https://img.shields.io/nuget/v/Roslynator.Formatting.Analyzers.svg)](https://www.nuget.org/packages/Roslynator.Formatting.Analyzers) | formatting analyzers (RCS0xxx) ([list](http://pihrt.net/Roslynator/Analyzers?Query=RCS0)) |
+
+*Note: All analyzers in package Roslynator.Formatting.Analyzers are disabled by default.*
 
 ## Roslynator API
 
@@ -49,16 +61,24 @@ Although Roslynator products are free of charge, any [donation](https://www.payp
 | [Roslynator.CSharp](https://www.nuget.org/packages/Roslynator.CSharp) | [![NuGet](https://img.shields.io/nuget/v/Roslynator.CSharp.svg)](https://www.nuget.org/packages/Roslynator.CSharp) | [Microsoft.CodeAnalysis.CSharp](https://www.nuget.org/packages/Microsoft.CodeAnalysis.CSharp) |
 | [Roslynator.CSharp.Workspaces](https://www.nuget.org/packages/Roslynator.CSharp.Workspaces) | [![NuGet](https://img.shields.io/nuget/v/Roslynator.CSharp.Workspaces.svg)](https://www.nuget.org/packages/Roslynator.CSharp.Workspaces) | [Microsoft.CodeAnalysis.CSharp.Workspaces](https://www.nuget.org/packages/Microsoft.CodeAnalysis.CSharp.Workspaces) |
 
-## Roslynator Command-Line Interface
+## Roslynator Command Line Tool &ensp;[![NuGet](https://img.shields.io/nuget/v/Roslynator.DotNet.Cli.svg)](https://www.nuget.org/packages/Roslynator.DotNet.Cli)
 
-* Roslynator CLI is distributed via NuGet package [Roslynator.CommandLine](https://www.nuget.org/packages/Roslynator.CommandLine). &ensp;[![NuGet](https://img.shields.io/nuget/v/Roslynator.CommandLine.svg)](https://www.nuget.org/packages/Roslynator.CommandLine)
-* See [documentation](docs/cli/README.md).
+Run following command to install Roslynator command line tool:
+```
+dotnet tool install -g roslynator.dotnet.cli
+```
 
-## Roslynator for VS Code
+* [Documentation](docs/cli/README.md)
+* [Change log](src/CommandLine/ChangeLog.md)
 
-Currently VS Code does not support distribution of Roslyn-based tools in an extension.
-Also it does not support analyzers at all.
-Please read the [tutorial](docs/RoslynatorForVisualStudioCode.md) how to install refactorings and code fixes for CS diagnostics.
+## Roslynator Testing Framework
+
+* Roslynator Testing Framework can be used for unit testing of analyzers, refactorings and code fixes.
+* Framework is distributed as NuGet [package](https://www.nuget.org/packages/Roslynator.Testing.CSharp.Xunit). &ensp;[![NuGet](https://img.shields.io/nuget/v/Roslynator.Testing.CSharp.Xunit.svg)](https://www.nuget.org/packages/Roslynator.Testing.CSharp.Xunit)
+* Learn how to use the framework from actual usages in Roslynator repo:
+  * Tests of analyzers are [here](src/Tests/Analyzers.Tests), [here](src/Tests/CodeAnalysis.Analyzers.Tests) and [here](src/Tests/Formatting.Analyzers.Tests)
+  * Tests of refactorings are [here](src/Tests/Refactorings.Tests)
+  * Tests of fixes of compiler diagnostics are [here](src/Tests/CodeFixes.Tests)
 
 ## Documentation
 

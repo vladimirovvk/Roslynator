@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -14,32 +14,32 @@ namespace Roslynator.CSharp.Refactorings
     internal static class ReplaceYieldReturnWithForEachRefactoring
     {
         public static void ComputeCodeFix(
-             CodeFixContext context,
-             Diagnostic diagnostic,
-             ExpressionSyntax expression,
-             SemanticModel semanticModel)
+            CodeFixContext context,
+            Diagnostic diagnostic,
+            ExpressionSyntax expression,
+            SemanticModel semanticModel)
         {
             TypeInfo typeInfo = semanticModel.GetTypeInfo(expression, context.CancellationToken);
 
             ITypeSymbol type = typeInfo.Type;
 
-            if (!(type is INamedTypeSymbol namedTypeSymbol))
+            if (type is not INamedTypeSymbol namedTypeSymbol)
                 return;
 
             ITypeSymbol convertedType = typeInfo.ConvertedType;
 
-            if (type == convertedType)
+            if (SymbolEqualityComparer.Default.Equals(type, convertedType))
                 return;
 
             if (namedTypeSymbol.ConstructedFrom.SpecialType != SpecialType.System_Collections_Generic_IEnumerable_T)
                 return;
 
-            if (!namedTypeSymbol.TypeArguments[0].Equals(convertedType))
+            if (!SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], convertedType))
                 return;
 
             CodeAction codeAction = CodeAction.Create(
                 "Replace yield return with foreach",
-                cancellationToken => RefactorAsync(context.Document, expression, semanticModel, cancellationToken),
+                ct => RefactorAsync(context.Document, expression, semanticModel, ct),
                 EquivalenceKey.Create(diagnostic, CodeFixIdentifiers.ReplaceYieldReturnWithForEach));
 
             context.RegisterCodeFix(codeAction, diagnostic);

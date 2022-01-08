@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -101,14 +101,14 @@ namespace Roslynator.CSharp.Refactorings
             {
                 ModifierFilter filter = SyntaxInfo.ModifierListInfo(member).GetFilter();
 
-                if (filter.Any(ModifierFilter.Partial))
+                if (filter.HasAnyFlag(ModifierFilter.Partial))
                 {
                     ISymbol symbol = semanticModel.GetDeclaredSymbol(member, cancellationToken);
 
                     foreach (SyntaxReference reference in symbol.DeclaringSyntaxReferences)
                         members.Add((MemberDeclarationSyntax)reference.GetSyntax(cancellationToken));
                 }
-                else if (filter.Any(ModifierFilter.AbstractVirtualOverride))
+                else if (filter.HasAnyFlag(ModifierFilter.AbstractVirtualOverride))
                 {
                     ISymbol symbol = GetBaseSymbolOrDefault(member, semanticModel, cancellationToken);
 
@@ -134,7 +134,8 @@ namespace Roslynator.CSharp.Refactorings
             return await solution.ReplaceNodesAsync(
                 members,
                 (node, _) => SyntaxAccessibility.WithExplicitAccessibility(node, newAccessibility),
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
 
         public static Task<Document> RefactorAsync(
@@ -152,7 +153,7 @@ namespace Roslynator.CSharp.Refactorings
             Solution solution,
             ISymbol symbol,
             Accessibility newAccessibility,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ImmutableArray<MemberDeclarationSyntax> memberDeclarations = GetMemberDeclarations(symbol, cancellationToken)
                 .Concat(await FindOverridingMemberDeclarationsAsync(symbol, solution, cancellationToken).ConfigureAwait(false))
@@ -164,7 +165,7 @@ namespace Roslynator.CSharp.Refactorings
         private static async Task<IEnumerable<MemberDeclarationSyntax>> FindOverridingMemberDeclarationsAsync(
             ISymbol symbol,
             Solution solution,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IEnumerable<ISymbol> symbols = await SymbolFinder.FindOverridesAsync(symbol, solution, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -173,7 +174,7 @@ namespace Roslynator.CSharp.Refactorings
 
         private static IEnumerable<MemberDeclarationSyntax> GetMemberDeclarations(
             ISymbol symbol,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             foreach (SyntaxReference syntaxReference in symbol.DeclaringSyntaxReferences)
             {

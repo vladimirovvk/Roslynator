@@ -2,20 +2,15 @@
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1241UseForEachInsteadOfForEachMethodTests : AbstractCSharpCodeFixVerifier
+    public class RCS_UseForEachInsteadOfForEachMethodTests : AbstractCSharpDiagnosticVerifier<InvocationExpressionAnalyzer, InvocationExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UseForEachInsteadOfForEachMethod;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new InvocationExpressionAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new InvocationExpressionCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UseForEachInsteadOfForEachMethod;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseForEachInsteadOfForEachMethod)]
         public async Task Test_List_SimpleLambda()

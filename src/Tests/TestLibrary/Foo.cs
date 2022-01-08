@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 #region usings
 using System;
@@ -13,13 +13,11 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Roslynator;
-using Roslynator.CSharp;
-using Roslynator.CSharp.Syntax;
 #endregion usings
 
 #pragma warning disable RCS1018, RCS1213, CA1822
 
-namespace Roslynator.Tests
+namespace Roslynator
 {
     class C
     {

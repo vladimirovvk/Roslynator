@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -21,7 +21,7 @@ namespace Roslynator.CSharp.Refactorings
             if (parameterList.Parameters.Count != 2)
                 return;
 
-            if (!(parenthesizedLambda.WalkUpParentheses().Parent is AssignmentExpressionSyntax assignmentExpression))
+            if (parenthesizedLambda.WalkUpParentheses().Parent is not AssignmentExpressionSyntax assignmentExpression)
                 return;
 
             if (assignmentExpression.Kind() != SyntaxKind.AddAssignmentExpression)
@@ -34,7 +34,7 @@ namespace Roslynator.CSharp.Refactorings
             if (methodSymbol?.MethodKind != MethodKind.EventAdd)
                 return;
 
-            if (!(semanticModel.GetSymbol(assignmentExpression.Left, context.CancellationToken) is IEventSymbol eventSymbol))
+            if (semanticModel.GetSymbol(assignmentExpression.Left, context.CancellationToken) is not IEventSymbol eventSymbol)
                 return;
 
             MemberDeclarationSyntax memberDeclaration = assignmentExpression.FirstAncestor<MemberDeclarationSyntax>();
@@ -44,7 +44,7 @@ namespace Roslynator.CSharp.Refactorings
 
             Debug.Assert(memberDeclaration.Parent is TypeDeclarationSyntax);
 
-            if (!(memberDeclaration.Parent is TypeDeclarationSyntax typeDeclaration))
+            if (memberDeclaration.Parent is not TypeDeclarationSyntax typeDeclaration)
                 return;
 
             context.CancellationToken.ThrowIfCancellationRequested();
@@ -52,7 +52,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 "Extract event handler method",
                 ct => RefactorAsync(context.Document, parenthesizedLambda, memberDeclaration, typeDeclaration, eventSymbol.Name, semanticModel, ct),
-                RefactoringIdentifiers.ExtractEventHandlerMethod);
+                RefactoringDescriptors.ExtractEventHandlerMethod);
         }
 
         public static Task<Document> RefactorAsync(
@@ -87,7 +87,8 @@ namespace Roslynator.CSharp.Refactorings
                 VoidType(),
                 Identifier(methodName).WithRenameAnnotation(),
                 parameterList.WithParameters(parameters),
-                CreateMethodBody(parenthesizedLambda.Body)).WithFormatterAnnotation();
+                CreateMethodBody(parenthesizedLambda.Body))
+                .WithFormatterAnnotation();
 
             SyntaxList<MemberDeclarationSyntax> newMembers = typeDeclaration.Members.Replace(memberDeclaration, newMemberDeclaration);
 
@@ -95,7 +96,7 @@ namespace Roslynator.CSharp.Refactorings
 
             return document.ReplaceNodeAsync(typeDeclaration, typeDeclaration.WithMembers(newMembers), cancellationToken);
 
-            BlockSyntax CreateMethodBody(CSharpSyntaxNode lambdaBody)
+            static BlockSyntax CreateMethodBody(CSharpSyntaxNode lambdaBody)
             {
                 switch (lambdaBody)
                 {

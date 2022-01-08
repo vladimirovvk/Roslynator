@@ -1,8 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeRefactorings;
-using Roslynator.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -27,12 +27,12 @@ class C
     }
 }
 ", @"
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         //[Theory, Trait(Traits.Refactoring, RefactoringIdentifiers.AddBraces)]
         //[InlineData("", "")]
-        public async Task Test2(string fromData, string toData)
+        public async Task Test2(string source, string expected)
         {
             await VerifyRefactoringAsync(@"
 using System;
@@ -46,7 +46,7 @@ class C
     {
     }
 }
-", fromData, toData, equivalenceKey: RefactoringId);
+", source, expected, equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         //[Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.AddBraces)]
@@ -64,7 +64,7 @@ class C
     {
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

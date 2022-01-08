@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,14 +14,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ObjectReferenceIsRequiredForNonStaticMemberCodeFixProvider))]
     [Shared]
-    public class ObjectReferenceIsRequiredForNonStaticMemberCodeFixProvider : BaseCodeFixProvider
+    public sealed class ObjectReferenceIsRequiredForNonStaticMemberCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.ObjectReferenceIsRequiredForNonStaticMember); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0120_ObjectReferenceIsRequiredForNonStaticMember); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -41,22 +41,22 @@ namespace Roslynator.CSharp.CodeFixes
                     if (symbol?.IsErrorType() != false)
                         return;
 
-                    Debug.Assert(SyntaxInfo.ModifierListInfo(memberDeclaration).IsStatic, memberDeclaration.ToString());
+                    SyntaxDebug.Assert(SyntaxInfo.ModifierListInfo(memberDeclaration).IsStatic, memberDeclaration);
 
                     if (SyntaxInfo.ModifierListInfo(memberDeclaration).IsStatic)
                     {
-                        if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeMemberNonStatic))
+                        if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeMemberNonStatic, context.Document, root.SyntaxTree))
                         {
                             ModifiersCodeFixRegistrator.RemoveModifier(
-                            context,
-                            diagnostic,
-                            memberDeclaration,
-                            SyntaxKind.StaticKeyword,
-                            title: $"Make containing {CSharpFacts.GetTitle(memberDeclaration)} non-static",
-                            additionalKey: CodeFixIdentifiers.MakeMemberNonStatic);
+                                context,
+                                diagnostic,
+                                memberDeclaration,
+                                SyntaxKind.StaticKeyword,
+                                title: $"Make containing {CSharpFacts.GetTitle(memberDeclaration)} non-static",
+                                additionalKey: CodeFixIdentifiers.MakeMemberNonStatic);
                         }
 
-                        if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddStaticModifier))
+                        if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddStaticModifier, context.Document, root.SyntaxTree))
                             AddStaticModifier(context, diagnostic, node, semanticModel);
                     }
 
@@ -64,7 +64,7 @@ namespace Roslynator.CSharp.CodeFixes
                 }
                 else if (parent is ConstructorInitializerSyntax)
                 {
-                    if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddStaticModifier))
+                    if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddStaticModifier, context.Document, root.SyntaxTree))
                     {
                         SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
@@ -95,9 +95,9 @@ namespace Roslynator.CSharp.CodeFixes
             if (syntax.Kind() == SyntaxKind.VariableDeclarator)
                 syntax = syntax.Parent?.Parent;
 
-            Debug.Assert(syntax.IsKind(SyntaxKind.EventDeclaration, SyntaxKind.EventFieldDeclaration, SyntaxKind.FieldDeclaration, SyntaxKind.MethodDeclaration, SyntaxKind.PropertyDeclaration), syntax.ToString());
+            SyntaxDebug.Assert(syntax.IsKind(SyntaxKind.EventDeclaration, SyntaxKind.EventFieldDeclaration, SyntaxKind.FieldDeclaration, SyntaxKind.MethodDeclaration, SyntaxKind.PropertyDeclaration), syntax);
 
-            if (!(syntax is MemberDeclarationSyntax memberDeclaration))
+            if (syntax is not MemberDeclarationSyntax memberDeclaration)
                 return;
 
             if (SyntaxInfo.ModifierListInfo(memberDeclaration).IsStatic)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -37,7 +37,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 (count == 1) ? "Remove enum value" : "Remove enum values",
                 ct => RefactorAsync(context.Document, enumDeclaration, selectedMembers, keepCompositeValue: false, ct),
-                RefactoringIdentifiers.RemoveEnumMemberValue);
+                RefactoringDescriptors.RemoveEnumMemberValue);
         }
 
         public static void ComputeRefactoring(
@@ -65,7 +65,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 (count == 1) ? "Remove explicit value" : "Remove explicit values",
                 ct => RefactorAsync(context.Document, enumDeclaration, members, keepCompositeValue: true, ct),
-                RefactoringIdentifiers.RemoveEnumMemberValue);
+                RefactoringDescriptors.RemoveEnumMemberValue);
         }
 
         private static async Task<Document> RefactorAsync(
@@ -95,7 +95,7 @@ namespace Roslynator.CSharp.Refactorings
                         return false;
 
                     if (keepCompositeValue
-                        && !(expression is LiteralExpressionSyntax))
+                        && expression is not LiteralExpressionSyntax)
                     {
                         IFieldSymbol fieldSymbol = semanticModel.GetDeclaredSymbol(enumMember, cancellationToken);
 

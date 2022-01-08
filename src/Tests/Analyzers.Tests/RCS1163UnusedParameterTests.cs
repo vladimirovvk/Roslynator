@@ -1,24 +1,33 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1163UnusedParameterTests : AbstractCSharpFixVerifier
+    public class RCS1163UnusedParameterTests : AbstractCSharpDiagnosticVerifier<UnusedParameter.UnusedParameterAnalyzer, UnusedParameterCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UnusedParameter;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UnusedParameter.UnusedParameterAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new UnusedParameterCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UnusedParameter;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedParameter)]
         public async Task Test_Method()
+        {
+            await VerifyDiagnosticAsync(@"
+class C
+{
+    void M([|object p|], __arglist)
+    {
+    }
+}
+"
+);
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedParameter)]
+        public async Task Test_Lambda()
         {
             await VerifyDiagnosticAndFixAsync(@"
 using System;
@@ -58,7 +67,7 @@ class C
         var memory = stackalloc byte[length];
     }
 }
-");
+", options: Options.WithAllowUnsafe(true));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedParameter)]
@@ -140,6 +149,57 @@ class C
     public static explicit operator C(string value)
     {
         throw new NotImplementedException();
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedParameter)]
+        public async Task TestNoDiagnostic_SwitchExpression()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+
+class C
+{
+    string M(StringSplitOptions options)
+    {
+        return options switch
+        {
+            _ => """"
+        };
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedParameter)]
+        public async Task TestNoDiagnostic_Discard()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+
+class C
+{
+    void M(string _, string __, string _1)
+    {
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnusedParameter)]
+        public async Task TestNoDiagnostic_ArgIterator()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+
+class C
+{
+    public static int GetCount(__arglist)
+    {
+        var argIterator = new ArgIterator(__arglist);
+        return argIterator.GetRemainingCount();
     }
 }
 ");

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -19,23 +19,27 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RemoveRedundantBooleanLiteralCodeFixProvider))]
     [Shared]
-    public class RemoveRedundantBooleanLiteralCodeFixProvider : BaseCodeFixProvider
+    public sealed class RemoveRedundantBooleanLiteralCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.RemoveRedundantBooleanLiteral); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
-            if (!TryFindFirstAncestorOrSelf(root, context.Span, out SyntaxNode node, predicate: f => f.IsKind(
-                SyntaxKind.TrueLiteralExpression,
-                SyntaxKind.EqualsExpression,
-                SyntaxKind.NotEqualsExpression,
-                SyntaxKind.LogicalAndExpression,
-                SyntaxKind.LogicalOrExpression)))
+            if (!TryFindFirstAncestorOrSelf(
+                root,
+                context.Span,
+                out SyntaxNode node,
+                predicate: f => f.IsKind(
+                    SyntaxKind.TrueLiteralExpression,
+                    SyntaxKind.EqualsExpression,
+                    SyntaxKind.NotEqualsExpression,
+                    SyntaxKind.LogicalAndExpression,
+                    SyntaxKind.LogicalOrExpression)))
             {
                 return;
             }
@@ -47,12 +51,12 @@ namespace Roslynator.CSharp.CodeFixes
                         RegisterCodeFix(
                             context,
                             node.ToString(),
-                            cancellationToken =>
+                            ct =>
                             {
                                 return RemoveRedundantBooleanLiteralRefactoring.RefactorAsync(
                                     context.Document,
                                     (ForStatementSyntax)node.Parent,
-                                    cancellationToken);
+                                    ct);
                             });
 
                         break;
@@ -69,12 +73,12 @@ namespace Roslynator.CSharp.CodeFixes
                         RegisterCodeFix(
                             context,
                             binaryExpression.ToString(span),
-                            cancellationToken =>
+                            ct =>
                             {
                                 return RemoveRedundantBooleanLiteralRefactoring.RefactorAsync(
                                     context.Document,
                                     binaryExpression,
-                                    cancellationToken);
+                                    ct);
                             });
 
                         break;

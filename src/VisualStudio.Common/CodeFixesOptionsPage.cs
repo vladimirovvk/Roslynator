@@ -1,15 +1,13 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Roslynator.CodeFixes;
 using Roslynator.Configuration;
-using Roslynator.CSharp;
 
 namespace Roslynator.VisualStudio
 {
@@ -23,40 +21,49 @@ namespace Roslynator.VisualStudio
         }
 
         [Browsable(false)]
-        public string DisabledCodeFixes
+        public string DisabledCodeFixes { get; set; }
+
+        [Browsable(false)]
+        public string CodeFixes
         {
-            get { return string.Join(",", DisabledItems); }
+            get { return string.Join(",", Items.Select(f => (f.Value) ? f.Key : (f.Key + "!"))); }
             set
             {
-                DisabledItems.Clear();
+                Items.Clear();
 
                 if (!string.IsNullOrEmpty(value))
                 {
-                    foreach (string id in value.Split(','))
+                    foreach (string s in value.Split(','))
                     {
-                        if (id.Contains("."))
+                        string id = s;
+                        var enabled = true;
+
+                        if (s.EndsWith("!"))
                         {
-                            DisabledItems.Add(id);
+                            id = s.Remove(s.Length - 1);
+                            enabled = false;
                         }
-                        else if (id.StartsWith(CodeFixIdentifiers.Prefix, StringComparison.Ordinal))
+
+                        if (id.Length > 0)
                         {
-                            if (CodeFixMap.CodeFixDescriptorsById.TryGetValue(id, out CodeFixDescriptor codeFixDescriptor))
+                            if (id.Contains("."))
                             {
-                                foreach (string compilerDiagnosticId in codeFixDescriptor.FixableDiagnosticIds)
-                                    DisabledItems.Add($"{compilerDiagnosticId}.{codeFixDescriptor.Id}");
+                                Items[id] = enabled;
                             }
-                        }
-                        else if (id.StartsWith("CS", StringComparison.Ordinal))
-                        {
-                            if (CodeFixMap.CodeFixDescriptorsByCompilerDiagnosticId.TryGetValue(id, out ReadOnlyCollection<CodeFixDescriptor> codeFixDescriptors))
+                            else if (id.StartsWith(CodeFixIdentifier.CodeFixIdPrefix, StringComparison.Ordinal))
                             {
-                                foreach (CodeFixDescriptor codeFixDescriptor in codeFixDescriptors)
-                                    DisabledItems.Add($"{id}.{codeFixDescriptor.Id}");
+                                foreach (string compilerDiagnosticId in CodeFixMap.GetCompilerDiagnosticIds(id))
+                                    Items[$"{compilerDiagnosticId}.{id}"] = enabled;
                             }
-                        }
-                        else
-                        {
-                            Debug.Fail(id);
+                            else if (id.StartsWith("CS", StringComparison.Ordinal))
+                            {
+                                foreach (string codeFixId in CodeFixMap.GetCodeFixIds(id))
+                                    Items[$"{id}.{codeFixId}"] = enabled;
+                            }
+                            else
+                            {
+                                Debug.Fail(id);
+                            }
                         }
                     }
                 }
@@ -69,27 +76,28 @@ namespace Roslynator.VisualStudio
 
             if (e.ApplyBehavior == ApplyKind.Apply)
             {
-                SettingsManager.Instance.UpdateVisualStudioSettings(this);
-                SettingsManager.Instance.ApplyTo(CodeFixSettings.Current);
+                UpdateConfig();
             }
         }
 
-        protected override void OnApply()
+        internal void UpdateConfig()
         {
-            foreach (BaseModel model in Control.Items)
-                SetIsEnabled(model.Id, model.Enabled);
+            CodeAnalysisConfig.UpdateVisualStudioConfig(f =>  f.WithCodeFixes(GetItems()));
         }
 
         protected override void Fill(ICollection<BaseModel> items)
         {
             items.Clear();
 
-            foreach ((CodeFixDescriptor codeFixDescriptor, string compilerDiagnosticId) in CodeFixMap.CodeFixDescriptorsById
-                .SelectMany(kvp => kvp.Value.FixableDiagnosticIds.Select(compilerDiagnosticId => (codeFixDescriptor: kvp.Value, compilerDiagnosticId: compilerDiagnosticId)))
-                .OrderBy(f => f.compilerDiagnosticId)
-                .ThenBy(f => f.codeFixDescriptor.Id))
+            foreach (CompilerDiagnosticFix compilerDiagnosticFix in CodeFixMap.GetCompilerDiagnosticFixes()
+                .OrderBy(f => f.CompilerDiagnosticId)
+                .ThenBy(f => f.CodeFixId))
             {
-                var model = new CodeFixModel(compilerDiagnosticId, CodeFixMap.CompilerDiagnosticsById[compilerDiagnosticId].Title.ToString(), codeFixDescriptor.Id, codeFixDescriptor.Title);
+                var model = new CodeFixModel(
+                    compilerDiagnosticFix.CompilerDiagnosticId,
+                    compilerDiagnosticFix.CompilerDiagnosticTitle,
+                    compilerDiagnosticFix.CodeFixId,
+                    compilerDiagnosticFix.CodeFixTitle);
 
                 model.Enabled = IsEnabled(model.Id);
 

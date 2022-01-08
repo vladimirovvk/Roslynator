@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -10,9 +10,9 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context, SwitchStatementSyntax switchStatement)
         {
-            bool fRemoveStatements = context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveStatementsFromSwitchSections);
-            bool fAddBraces = context.IsRefactoringEnabled(RefactoringIdentifiers.AddBracesToSwitchSections);
-            bool fRemoveBraces = context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveBracesFromSwitchSections);
+            bool fRemoveStatements = context.IsRefactoringEnabled(RefactoringDescriptors.MergeSwitchSections);
+            bool fAddBraces = context.IsRefactoringEnabled(RefactoringDescriptors.AddBracesToSwitchSections);
+            bool fRemoveBraces = context.IsRefactoringEnabled(RefactoringDescriptors.RemoveBracesFromSwitchSections);
 
             if (!fRemoveStatements && !fAddBraces && !fRemoveBraces)
                 return;
@@ -54,15 +54,15 @@ namespace Roslynator.CSharp.Refactorings
 
                     context.RegisterRefactoring(
                         title,
-                        cancellationToken =>
+                        ct =>
                         {
                             return AddBracesToSwitchSectionsRefactoring.RefactorAsync(
                                 context.Document,
                                 switchStatement,
                                 addBraces.ToArray(),
-                                cancellationToken);
+                                ct);
                         },
-                        RefactoringIdentifiers.AddBracesToSwitchSections);
+                        RefactoringDescriptors.AddBracesToSwitchSections);
                 }
 
                 if (fRemoveBraces
@@ -75,36 +75,36 @@ namespace Roslynator.CSharp.Refactorings
 
                     context.RegisterRefactoring(
                         title,
-                        cancellationToken =>
+                        ct =>
                         {
                             return RemoveBracesFromSwitchSectionsRefactoring.RefactorAsync(
                                 context.Document,
                                 switchStatement,
                                 removeBraces.ToArray(),
-                                cancellationToken);
+                                ct);
                         },
-                        RefactoringIdentifiers.RemoveBracesFromSwitchSections);
+                        RefactoringDescriptors.RemoveBracesFromSwitchSections);
                 }
             }
 
             if (fRemoveStatements)
             {
-                string title = "Remove statements from section";
+                var title = "Remove statements from section";
 
                 if (selectedSections.Count > 1)
                     title += "s";
 
                 context.RegisterRefactoring(
                     title,
-                    cancellationToken =>
+                    ct =>
                     {
-                        return RemoveStatementsFromSwitchSectionsRefactoring.RefactorAsync(
+                        return MergeSwitchSectionsRefactoring.RefactorAsync(
                             context.Document,
                             switchStatement,
                             selectedSections.ToImmutableArray(),
-                            cancellationToken);
+                            ct);
                     },
-                    RefactoringIdentifiers.RemoveStatementsFromSwitchSections);
+                    RefactoringDescriptors.MergeSwitchSections);
             }
         }
     }

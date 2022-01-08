@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace Roslynator
             Solution solution,
             NameGenerator nameGenerator,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (memberSymbol == null)
                 throw new ArgumentNullException(nameof(memberSymbol));
@@ -40,7 +40,7 @@ namespace Roslynator
             ISymbol memberSymbol,
             Solution solution,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (memberSymbol == null)
                 throw new ArgumentNullException(nameof(memberSymbol));
@@ -57,7 +57,7 @@ namespace Roslynator
             ISymbol memberSymbol,
             Solution solution,
             bool isCaseSensitive = true,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             HashSet<string> reservedNames = GetMemberNames(memberSymbol, isCaseSensitive);
 
@@ -72,7 +72,7 @@ namespace Roslynator
 
                         foreach (ISymbol symbol in semanticModel.LookupSymbols(referenceLocation.Location.SourceSpan.Start))
                         {
-                            if (!memberSymbol.Equals(symbol))
+                            if (!SymbolEqualityComparer.Default.Equals(memberSymbol, symbol))
                                 reservedNames.Add(symbol.Name);
                         }
                     }
@@ -92,7 +92,7 @@ namespace Roslynator
             {
                 IEnumerable<string> memberNames = containingType
                     .GetMembers()
-                    .Where(f => !memberSymbol.Equals(f))
+                    .Where(f => !SymbolEqualityComparer.Default.Equals(memberSymbol, f))
                     .Select(f => f.Name);
 
                 return CreateHashSet(memberNames, isCaseSensitive);

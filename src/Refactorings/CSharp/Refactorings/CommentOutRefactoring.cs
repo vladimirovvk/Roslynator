@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Text;
@@ -20,8 +20,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Comment out {CSharpFacts.GetTitle(member)}",
-                cancellationToken => RefactorAsync(context.Document, fileSpan.StartLine(), fileSpan.EndLine(), cancellationToken),
-                RefactoringIdentifiers.CommentOutMember);
+                ct => RefactorAsync(context.Document, fileSpan.StartLine(), fileSpan.EndLine(), ct),
+                RefactoringDescriptors.CommentOutMemberDeclaration);
         }
 
         public static void RegisterRefactoring(RefactoringContext context, LocalFunctionStatementSyntax localFunctionStatement)
@@ -30,8 +30,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Comment out {CSharpFacts.GetTitle(localFunctionStatement)}",
-                cancellationToken => RefactorAsync(context.Document, fileSpan.StartLine(), fileSpan.EndLine(), cancellationToken),
-                RefactoringIdentifiers.CommentOutMember);
+                ct => RefactorAsync(context.Document, fileSpan.StartLine(), fileSpan.EndLine(), ct),
+                RefactoringDescriptors.CommentOutMemberDeclaration);
         }
 
         public static void RegisterRefactoring(RefactoringContext context, StatementSyntax statement)
@@ -41,14 +41,14 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 "Comment out statement",
                 ct => RefactorAsync(context.Document, fileSpan.StartLine(), fileSpan.EndLine(), ct),
-                RefactoringIdentifiers.CommentOutStatement);
+                RefactoringDescriptors.CommentOutStatement);
         }
 
         private static async Task<Document> RefactorAsync(
             Document document,
             int startLine,
             int endLine,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SourceText sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
 
@@ -56,15 +56,11 @@ namespace Roslynator.CSharp.Refactorings
 
             if (minIndentLength >= 0)
             {
-                string newText = CommentOutLines(sourceText, startLine, endLine, minIndentLength);
-
-                TextSpan span = TextSpan.FromBounds(
-                    sourceText.Lines[startLine].Span.Start,
-                    sourceText.Lines[endLine].SpanIncludingLineBreak.End);
-
-                var textChange = new TextChange(span, newText);
-
-                SourceText newSourceText = sourceText.WithChanges(textChange);
+                SourceText newSourceText = sourceText.WithChange(
+                    TextSpan.FromBounds(
+                        sourceText.Lines[startLine].Span.Start,
+                        sourceText.Lines[endLine].SpanIncludingLineBreak.End),
+                    CommentOutLines(sourceText, startLine, endLine, minIndentLength));
 
                 return document.WithText(newSourceText);
             }

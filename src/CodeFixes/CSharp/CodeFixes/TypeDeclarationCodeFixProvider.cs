@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -17,20 +17,20 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(TypeDeclarationCodeFixProvider))]
     [Shared]
-    public class TypeDeclarationCodeFixProvider : BaseCodeFixProvider
+    public sealed class TypeDeclarationCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.TypeDefinesEqualityOperatorButDoesNotOverrideObjectEquals,
-                    CompilerDiagnosticIdentifiers.TypeDefinesEqualityOperatorButDoesNotOverrideObjectGetHashCode,
-                    CompilerDiagnosticIdentifiers.TypeOverridesObjectEqualsButDoesNotOverrideObjectGetHashCode);
+                    CompilerDiagnosticIdentifiers.CS0660_TypeDefinesEqualityOperatorButDoesNotOverrideObjectEquals,
+                    CompilerDiagnosticIdentifiers.CS0661_TypeDefinesEqualityOperatorButDoesNotOverrideObjectGetHashCode,
+                    CompilerDiagnosticIdentifiers.CS0659_TypeOverridesObjectEqualsButDoesNotOverrideObjectGetHashCode);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -41,9 +41,9 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.TypeDefinesEqualityOperatorButDoesNotOverrideObjectEquals:
+                    case CompilerDiagnosticIdentifiers.CS0660_TypeDefinesEqualityOperatorButDoesNotOverrideObjectEquals:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.DefineObjectEquals))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.DefineObjectEquals, context.Document, root.SyntaxTree))
                                 break;
 
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -55,7 +55,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                             CodeAction codeAction = CodeAction.Create(
                                 "Override object.Equals",
-                                cancellationToken =>
+                                ct =>
                                 {
                                     TypeSyntax type = typeSymbol.ToMinimalTypeSyntax(semanticModel, typeDeclaration.Identifier.SpanStart);
 
@@ -63,17 +63,17 @@ namespace Roslynator.CSharp.CodeFixes
 
                                     TypeDeclarationSyntax newNode = MemberDeclarationInserter.Default.Insert(typeDeclaration, methodDeclaration);
 
-                                    return context.Document.ReplaceNodeAsync(typeDeclaration, newNode, cancellationToken);
+                                    return context.Document.ReplaceNodeAsync(typeDeclaration, newNode, ct);
                                 },
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.TypeDefinesEqualityOperatorButDoesNotOverrideObjectGetHashCode:
-                    case CompilerDiagnosticIdentifiers.TypeOverridesObjectEqualsButDoesNotOverrideObjectGetHashCode:
+                    case CompilerDiagnosticIdentifiers.CS0661_TypeDefinesEqualityOperatorButDoesNotOverrideObjectGetHashCode:
+                    case CompilerDiagnosticIdentifiers.CS0659_TypeOverridesObjectEqualsButDoesNotOverrideObjectGetHashCode:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.DefineObjectGetHashCode))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.DefineObjectGetHashCode, context.Document, root.SyntaxTree))
                                 break;
 
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -82,11 +82,11 @@ namespace Roslynator.CSharp.CodeFixes
 
                             CodeAction codeAction = CodeAction.Create(
                                 "Override object.GetHashCode",
-                                cancellationToken =>
+                                ct =>
                                 {
                                     TypeDeclarationSyntax newNode = MemberDeclarationInserter.Default.Insert(typeDeclaration, methodDeclaration);
 
-                                    return context.Document.ReplaceNodeAsync(typeDeclaration, newNode, cancellationToken);
+                                    return context.Document.ReplaceNodeAsync(typeDeclaration, newNode, ct);
                                 },
                                 GetEquivalenceKey(diagnostic));
 
@@ -114,7 +114,8 @@ namespace Roslynator.CSharp.CodeFixes
                                 IdentifierName(parameterName),
                                 DeclarationPattern(
                                     type,
-                                    SingleVariableDesignation(Identifier(localName)))).Parenthesize()),
+                                    SingleVariableDesignation(Identifier(localName))))
+                                .Parenthesize()),
                         Block(ReturnStatement(FalseLiteralExpression()))),
                     ThrowNewStatement(NotImplementedException())));
         }

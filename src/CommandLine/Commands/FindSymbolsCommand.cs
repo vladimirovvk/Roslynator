@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ using static Roslynator.Logger;
 
 namespace Roslynator.CommandLine
 {
-    internal class FindSymbolsCommand : MSBuildWorkspaceCommand
+    internal class FindSymbolsCommand : MSBuildWorkspaceCommand<CommandResult>
     {
         private static readonly SymbolDisplayFormat _nameAndContainingTypesSymbolDisplayFormat = SymbolDisplayFormat.CSharpErrorMessageFormat.Update(
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypes,
@@ -68,10 +68,12 @@ namespace Roslynator.CommandLine
 
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
-                foreach (Project project in FilterProjects(solution, s => s
-                    .GetProjectDependencyGraph()
-                    .GetTopologicallySortedProjects(cancellationToken)
-                    .ToImmutableArray()))
+                foreach (Project project in FilterProjects(
+                    solution,
+                    s => s
+                        .GetProjectDependencyGraph()
+                        .GetTopologicallySortedProjects(cancellationToken)
+                        .ToImmutableArray()))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
@@ -109,7 +111,7 @@ namespace Roslynator.CommandLine
                         WriteSymbol(symbol, Verbosity.Normal, indentation: "    ", addCommentId: true, padding: maxKindLength);
                     }
 
-                        (symbols ?? (symbols = ImmutableArray.CreateBuilder<ISymbol>())).AddRange(projectSymbols);
+                    (symbols ??= ImmutableArray.CreateBuilder<ISymbol>()).AddRange(projectSymbols);
                 }
 
                 stopwatch.Stop();
@@ -147,10 +149,9 @@ namespace Roslynator.CommandLine
             }
 
             WriteLine(Verbosity.Minimal);
-            WriteLine($"{allSymbols.Length} {((allSymbols.Length == 1) ? "symbol" : "symbols")} found", ConsoleColor.Green, Verbosity.Minimal);
-            WriteLine(Verbosity.Minimal);
+            WriteLine($"{allSymbols.Length} {((allSymbols.Length == 1) ? "symbol" : "symbols")} found", ConsoleColors.Green, Verbosity.Minimal);
 
-            return CommandResult.Success;
+            return CommandResults.Success;
         }
 
         private static Task<ImmutableArray<ISymbol>> AnalyzeProject(
@@ -186,7 +187,7 @@ namespace Roslynator.CommandLine
 
             if (isObsolete)
             {
-                Write(kindText, ConsoleColor.DarkGray, verbosity);
+                Write(kindText, ConsoleColors.DarkGray, verbosity);
             }
             else
             {
@@ -201,8 +202,8 @@ namespace Roslynator.CommandLine
             {
                 if (colorNamespace || isObsolete)
                 {
-                    Write(namespaceText, ConsoleColor.DarkGray, verbosity);
-                    Write(".", ConsoleColor.DarkGray, verbosity);
+                    Write(namespaceText, ConsoleColors.DarkGray, verbosity);
+                    Write(".", ConsoleColors.DarkGray, verbosity);
                 }
                 else
                 {
@@ -215,7 +216,7 @@ namespace Roslynator.CommandLine
 
             if (isObsolete)
             {
-                Write(nameText, ConsoleColor.DarkGray, verbosity);
+                Write(nameText, ConsoleColors.DarkGray, verbosity);
             }
             else
             {
@@ -225,16 +226,14 @@ namespace Roslynator.CommandLine
             if (addCommentId
                 && ShouldWrite(Verbosity.Diagnostic))
             {
-                WriteLine(verbosity);
-                Write(indentation);
-                Write("ID:", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                WriteLine(Verbosity.Diagnostic);
+                Write(indentation, Verbosity.Diagnostic);
+                Write("ID:", ConsoleColors.DarkGray, Verbosity.Diagnostic);
                 Write(' ', padding - 2, Verbosity.Diagnostic);
-                WriteLine(symbol.GetDocumentationCommentId(), ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                Write(symbol.GetDocumentationCommentId(), ConsoleColors.DarkGray, Verbosity.Diagnostic);
             }
-            else
-            {
-                WriteLine(verbosity);
-            }
+
+            WriteLine(verbosity);
         }
 
         private class FindSymbolsProgress : IFindSymbolsProgress

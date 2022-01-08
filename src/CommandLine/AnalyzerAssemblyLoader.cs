@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -11,6 +11,8 @@ namespace Roslynator.CommandLine
 {
     internal static class AnalyzerAssemblyLoader
     {
+        public const string DefaultSearchPattern = "*.dll";
+
         public static AnalyzerAssembly LoadFile(
             string filePath,
             bool loadAnalyzers = true,
@@ -24,6 +26,7 @@ namespace Roslynator.CommandLine
 
         public static IEnumerable<AnalyzerAssemblyInfo> LoadFrom(
             string path,
+            string searchPattern = DefaultSearchPattern,
             bool loadAnalyzers = true,
             bool loadFixers = true,
             string language = null)
@@ -37,7 +40,7 @@ namespace Roslynator.CommandLine
             }
             else if (Directory.Exists(path))
             {
-                using (IEnumerator<string> en = Directory.EnumerateFiles(path, "*.dll", SearchOption.AllDirectories).GetEnumerator())
+                using (IEnumerator<string> en = Directory.EnumerateFiles(path, searchPattern, SearchOption.AllDirectories).GetEnumerator())
                 {
                     while (true)
                     {
@@ -56,19 +59,12 @@ namespace Roslynator.CommandLine
                                 break;
                             }
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (ex is IOException
+                            || ex is SecurityException
+                            || ex is UnauthorizedAccessException)
                         {
-                            if (ex is IOException
-                                || ex is SecurityException
-                                || ex is UnauthorizedAccessException)
-                            {
-                                WriteLine(ex.Message, ConsoleColor.DarkGray, Verbosity.Diagnostic);
-                                continue;
-                            }
-                            else
-                            {
-                                throw;
-                            }
+                            WriteError(ex, ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                            continue;
                         }
 
                         if (analyzerAssembly?.IsEmpty == false)
@@ -78,7 +74,7 @@ namespace Roslynator.CommandLine
             }
             else
             {
-                WriteLine($"File or directory not found: '{path}'", ConsoleColor.DarkGray, Verbosity.Normal);
+                WriteLine($"File or directory not found: '{path}'", ConsoleColors.DarkGray, Verbosity.Normal);
             }
 
             AnalyzerAssembly Load(string filePath)
@@ -87,20 +83,13 @@ namespace Roslynator.CommandLine
                 {
                     return LoadFile(filePath, loadAnalyzers, loadFixers, language);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is FileLoadException
+                    || ex is BadImageFormatException
+                    || ex is SecurityException)
                 {
-                    if (ex is FileLoadException
-                        || ex is BadImageFormatException
-                        || ex is SecurityException)
-                    {
-                        WriteLine($"Cannot load assembly '{filePath}'", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+                    WriteLine($"Cannot load assembly '{filePath}'", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
-                        return null;
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return null;
                 }
             }
         }

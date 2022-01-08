@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -14,15 +14,15 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class AttributeArgumentParameterNameRefactoring
     {
-        private static readonly SymbolDisplayFormat _symbolDisplayFormat = new SymbolDisplayFormat(
+        private static readonly SymbolDisplayFormat _symbolDisplayFormat = new(
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers,
             parameterOptions: SymbolDisplayParameterOptions.IncludeName);
 
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, AttributeArgumentListSyntax argumentList)
         {
             if (!context.IsAnyRefactoringEnabled(
-                RefactoringIdentifiers.AddParameterNameToArgument,
-                RefactoringIdentifiers.RemoveParameterNameFromArgument))
+                RefactoringDescriptors.AddArgumentName,
+                RefactoringDescriptors.RemoveArgumentName))
             {
                 return;
             }
@@ -37,7 +37,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (argument.Expression != null
                     && context.Span.Contains(argument.Expression.Span))
                 {
-                    (list ?? (list = new List<AttributeArgumentSyntax>())).Add(argument);
+                    (list ??= new List<AttributeArgumentSyntax>()).Add(argument);
                 }
             }
 
@@ -46,30 +46,30 @@ namespace Roslynator.CSharp.Refactorings
 
             AttributeArgumentSyntax[] arguments = list.ToArray();
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddParameterNameToArgument)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddArgumentName)
                 && await CanAddParameterNameAsync(context, arguments).ConfigureAwait(false))
             {
                 context.RegisterRefactoring(
-                    "Add parameter name",
-                    ct => AddParameterNameToArgumentsAsync(context.Document, argumentList, arguments, ct),
-                    RefactoringIdentifiers.AddParameterNameToArgument);
+                    "Add argument name",
+                    ct => AddArgumentNameAsync(context.Document, argumentList, arguments, ct),
+                    RefactoringDescriptors.AddArgumentName);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveParameterNameFromArgument)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveArgumentName)
                 && arguments.Any(f => f.NameColon != null))
             {
                 context.RegisterRefactoring(
-                    "Remove parameter name",
-                    ct => RemoveParameterNameFromArgumentsAsync(context.Document, argumentList, arguments, ct),
-                    RefactoringIdentifiers.RemoveParameterNameFromArgument);
+                    "Remove argument name",
+                    ct => RemoveArgumentNameAsync(context.Document, argumentList, arguments, ct),
+                    RefactoringDescriptors.RemoveArgumentName);
             }
         }
 
-        private static async Task<Document> AddParameterNameToArgumentsAsync(
+        private static async Task<Document> AddArgumentNameAsync(
             Document document,
             AttributeArgumentListSyntax argumentList,
             AttributeArgumentSyntax[] arguments,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
@@ -79,11 +79,11 @@ namespace Roslynator.CSharp.Refactorings
             return await document.ReplaceNodeAsync(argumentList, newArgumentList, cancellationToken).ConfigureAwait(false);
         }
 
-        private static Task<Document> RemoveParameterNameFromArgumentsAsync(
+        private static Task<Document> RemoveArgumentNameAsync(
             Document document,
             AttributeArgumentListSyntax argumentList,
             AttributeArgumentSyntax[] arguments,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             AttributeArgumentListSyntax newArgumentList = RemoveParameterNameSyntaxRewriter.VisitNode(argumentList, arguments)
                 .WithFormatterAnnotation();
@@ -94,7 +94,7 @@ namespace Roslynator.CSharp.Refactorings
         private static AttributeArgumentSyntax AddParameterName(
             AttributeArgumentSyntax argument,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (argument.NameColon?.IsMissing != false)
             {
@@ -169,13 +169,13 @@ namespace Roslynator.CSharp.Refactorings
 
         private class RemoveParameterNameSyntaxRewriter : CSharpSyntaxRewriter
         {
-            private static readonly RemoveParameterNameSyntaxRewriter _instance = new RemoveParameterNameSyntaxRewriter();
+            private static readonly RemoveParameterNameSyntaxRewriter _instance = new();
 
-            private readonly AttributeArgumentSyntax[] _argumments;
+            private readonly AttributeArgumentSyntax[] _arguments;
 
             private RemoveParameterNameSyntaxRewriter(AttributeArgumentSyntax[] arguments = null)
             {
-                _argumments = arguments;
+                _arguments = arguments;
             }
 
             public static AttributeArgumentListSyntax VisitNode(AttributeArgumentListSyntax argumentList, AttributeArgumentSyntax[] arguments = null)
@@ -193,7 +193,7 @@ namespace Roslynator.CSharp.Refactorings
 
             public override SyntaxNode VisitAttributeArgument(AttributeArgumentSyntax node)
             {
-                if (_argumments == null || Array.IndexOf(_argumments, node) != -1)
+                if (_arguments == null || Array.IndexOf(_arguments, node) != -1)
                 {
                     return node
                         .WithNameColon(null)

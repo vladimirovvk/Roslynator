@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -35,8 +35,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Split labels",
-                cancellationToken => RefactorAsync(context.Document, switchSection, selectedLabels, cancellationToken),
-                RefactoringIdentifiers.SplitSwitchLabels);
+                ct => RefactorAsync(context.Document, switchSection, selectedLabels, ct),
+                RefactoringDescriptors.SplitSwitchLabels);
         }
 
         private static Task<Document> RefactorAsync(

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,20 +15,20 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(BaseListCodeFixProvider))]
     [Shared]
-    public class BaseListCodeFixProvider : BaseCodeFixProvider
+    public sealed class BaseListCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.BaseClassMustComeBeforeAnyInterface,
-                    CompilerDiagnosticIdentifiers.StaticClassCannotDeriveFromType,
-                    CompilerDiagnosticIdentifiers.StaticClassCannotImplementInterfaces);
+                    CompilerDiagnosticIdentifiers.CS1722_BaseClassMustComeBeforeAnyInterface,
+                    CompilerDiagnosticIdentifiers.CS0713_StaticClassCannotDeriveFromType,
+                    CompilerDiagnosticIdentifiers.CS0714_StaticClassCannotImplementInterfaces);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -42,9 +42,9 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.BaseClassMustComeBeforeAnyInterface:
+                    case CompilerDiagnosticIdentifiers.CS1722_BaseClassMustComeBeforeAnyInterface:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.MoveBaseClassBeforeAnyInterface))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.MoveBaseClassBeforeAnyInterface, context.Document, root.SyntaxTree))
                                 return;
 
                             SeparatedSyntaxList<BaseTypeSyntax> types = baseList.Types;
@@ -55,7 +55,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                                 CodeAction codeAction = CodeAction.Create(
                                     $"Move '{baseType.Type}' before any interface",
-                                    cancellationToken =>
+                                    ct =>
                                     {
                                         BaseTypeSyntax firstType = types[0];
 
@@ -65,7 +65,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                                         BaseListSyntax newBaseList = baseList.WithTypes(newTypes);
 
-                                        return context.Document.ReplaceNodeAsync(baseList, newBaseList, cancellationToken);
+                                        return context.Document.ReplaceNodeAsync(baseList, newBaseList, ct);
                                     },
                                     GetEquivalenceKey(diagnostic));
 
@@ -74,13 +74,13 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.StaticClassCannotDeriveFromType:
-                    case CompilerDiagnosticIdentifiers.StaticClassCannotImplementInterfaces:
+                    case CompilerDiagnosticIdentifiers.CS0713_StaticClassCannotDeriveFromType:
+                    case CompilerDiagnosticIdentifiers.CS0714_StaticClassCannotImplementInterfaces:
                         {
-                            if (!(baseList.Parent is ClassDeclarationSyntax classDeclaration))
+                            if (baseList.Parent is not ClassDeclarationSyntax classDeclaration)
                                 break;
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeClassNonStatic))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeClassNonStatic, context.Document, root.SyntaxTree))
                             {
                                 ModifiersCodeFixRegistrator.RemoveModifier(
                                     context,
@@ -91,11 +91,11 @@ namespace Roslynator.CSharp.CodeFixes
                                     additionalKey: CodeFixIdentifiers.MakeClassNonStatic);
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveBaseList))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveBaseList, context.Document, root.SyntaxTree))
                             {
                                 CodeAction codeAction = CodeAction.Create(
                                     "Remove base list",
-                                    cancellationToken =>
+                                    ct =>
                                     {
                                         SyntaxToken token = baseList.GetFirstToken().GetPreviousToken();
 
@@ -107,9 +107,9 @@ namespace Roslynator.CSharp.CodeFixes
                                             .ReplaceToken(token, token.WithTrailingTrivia(trivia))
                                             .WithBaseList(null);
 
-                                        return context.Document.ReplaceNodeAsync(classDeclaration, newNode, cancellationToken);
+                                        return context.Document.ReplaceNodeAsync(classDeclaration, newNode, ct);
                                     },
-                                    base.GetEquivalenceKey(diagnostic, CodeFixIdentifiers.RemoveBaseList));
+                                    GetEquivalenceKey(diagnostic, CodeFixIdentifiers.RemoveBaseList));
 
                                 context.RegisterCodeFix(codeAction, diagnostic);
                             }

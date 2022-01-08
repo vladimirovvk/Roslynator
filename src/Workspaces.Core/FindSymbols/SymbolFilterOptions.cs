@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ namespace Roslynator.FindSymbols
 {
     internal class SymbolFilterOptions
     {
-        public static SymbolFilterOptions Default { get; } = new SymbolFilterOptions();
+        public static SymbolFilterOptions Default { get; } = new();
 
         internal SymbolFilterOptions(
             VisibilityFilter visibility = VisibilityFilter.All,
@@ -138,7 +138,7 @@ namespace Roslynator.FindSymbols
             if (symbol.IsImplicitlyDeclared)
                 return SymbolFilterReason.ImplicitlyDeclared;
 
-            var group = SymbolGroupFilter.None;
+            SymbolGroupFilter group;
 
             if (symbol.IsConst)
             {
@@ -174,7 +174,7 @@ namespace Roslynator.FindSymbols
 
         public virtual SymbolFilterReason GetReason(IMethodSymbol symbol)
         {
-            bool canBeImplicitlyDeclared = false;
+            var canBeImplicitlyDeclared = false;
 
             if (!Includes(SymbolGroupFilter.Method))
                 return SymbolFilterReason.SymbolGroup;

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading.Tasks;
@@ -15,20 +15,23 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, IdentifierNameSyntax identifierName)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RenameBackingFieldAccordingToPropertyName))
-                await RenameFieldAccordingToPropertyNameAsync(context, identifierName).ConfigureAwait(false);
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.SyncPropertyNameAndBackingFieldName))
+                await SyncPropertyNameAndBackingFieldNameAsync(context, identifierName).ConfigureAwait(false);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddUsingDirective)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddUsingDirective)
                 && context.Span.IsEmpty)
             {
                 await AddUsingDirectiveRefactoring.ComputeRefactoringsAsync(context, identifierName).ConfigureAwait(false);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.InlineProperty))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.InlineProperty))
                 await InlinePropertyRefactoring.ComputeRefactoringsAsync(context, identifierName).ConfigureAwait(false);
+
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertMethodGroupToLambda))
+                await ConvertMethodGroupToLambdaRefactoring.ComputeRefactoringAsync(context, identifierName).ConfigureAwait(false);
         }
 
-        private static async Task RenameFieldAccordingToPropertyNameAsync(
+        private static async Task SyncPropertyNameAndBackingFieldNameAsync(
             RefactoringContext context,
             IdentifierNameSyntax identifierName)
         {
@@ -58,10 +61,10 @@ namespace Roslynator.CSharp.Refactorings
             if (fieldSymbol.IsStatic != propertySymbol.IsStatic)
                 return;
 
-            if (fieldSymbol.ContainingType != propertySymbol.ContainingType)
+            if (!SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, propertySymbol.ContainingType))
                 return;
 
-            string newName = StringUtility.ToCamelCase(propertySymbol.Name, context.Settings.PrefixFieldIdentifierWithUnderscore);
+            string newName = StringUtility.ToCamelCase(propertySymbol.Name, context.PrefixFieldIdentifierWithUnderscore);
 
             if (string.Equals(fieldSymbol.Name, newName, StringComparison.Ordinal))
                 return;
@@ -70,15 +73,16 @@ namespace Roslynator.CSharp.Refactorings
                 newName,
                 fieldSymbol,
                 context.Solution,
-                cancellationToken: context.CancellationToken).ConfigureAwait(false))
+                cancellationToken: context.CancellationToken)
+                .ConfigureAwait(false))
             {
                 return;
             }
 
             context.RegisterRefactoring(
                 $"Rename '{fieldSymbol.Name}' to '{newName}'",
-                cancellationToken => Renamer.RenameSymbolAsync(context.Solution, fieldSymbol, newName, default(OptionSet), cancellationToken),
-                RefactoringIdentifiers.RenameBackingFieldAccordingToPropertyName);
+                ct => Renamer.RenameSymbolAsync(context.Solution, fieldSymbol, newName, default(OptionSet), ct),
+                RefactoringDescriptors.SyncPropertyNameAndBackingFieldName);
         }
 
         private static bool IsQualified(SimpleNameSyntax identifierName)

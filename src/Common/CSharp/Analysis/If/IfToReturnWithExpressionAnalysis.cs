@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -44,12 +44,12 @@ namespace Roslynator.CSharp.Analysis.If
             get
             {
                 if (IsYield)
-                    return "Replace if-else with yield return";
+                    return "Convert 'if' to 'yield return'";
 
                 if (IfStatement.IsSimpleIf())
-                    return "Replace if-return with return";
+                    return "Convert 'if-return' to 'return'";
 
-                return "Replace if-else with return";
+                return "Convert 'if' to 'return'";
             }
         }
     }

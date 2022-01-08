@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Roslynator.Diagnostics
 {
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "<Pending>")]
+    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
     public readonly struct AnalyzerDiagnosticInfo
     {
         public AnalyzerDiagnosticInfo(string fullName, int elapsed, int percent)

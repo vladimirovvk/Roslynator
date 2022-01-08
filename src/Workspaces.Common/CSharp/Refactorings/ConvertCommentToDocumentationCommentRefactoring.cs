@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -18,7 +18,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public const string Title = "Convert comment to documentation comment";
 
-        private static readonly Regex _leadingSlashesRegex = new Regex(@"^//\s*");
+        private static readonly Regex _leadingSlashesRegex = new(@"^//\s*");
 
         public static Task<Document> RefactorAsync(
             Document document,
@@ -53,7 +53,7 @@ namespace Roslynator.CSharp.Refactorings
             {
                 SyntaxTrivia trivia = declaration.FindTrivia(span.Start);
 
-                Debug.Assert(trivia != default(SyntaxTrivia));
+                Debug.Assert(trivia != default);
 
                 SyntaxToken token = trivia.Token;
 
@@ -88,7 +88,7 @@ namespace Roslynator.CSharp.Refactorings
             EnumMemberDeclarationSyntax enumMemberDeclaration = token
                 .GetPreviousToken()
                 .Parent
-                .FirstAncestor<EnumMemberDeclarationSyntax>();
+                .FirstAncestorOrSelf<EnumMemberDeclarationSyntax>();
 
             int enumMemberIndex = enumDeclaration.Members.IndexOf(enumMemberDeclaration);
 

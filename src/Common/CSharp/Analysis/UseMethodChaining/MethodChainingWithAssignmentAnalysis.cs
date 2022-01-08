@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -19,7 +19,7 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
             if (statement.SpanOrLeadingTriviaContainsDirectives())
                 return false;
 
-            if (!(statement is ExpressionStatementSyntax expressionStatement))
+            if (statement is not ExpressionStatementSyntax expressionStatement)
                 return false;
 
             SimpleAssignmentExpressionInfo assignmentInfo = SyntaxInfo.SimpleAssignmentExpressionInfo(expressionStatement.Expression);
@@ -35,7 +35,7 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
             if (!invocationInfo.Success)
                 return false;
 
-            if (!(WalkDownMethodChain(invocationInfo).Expression is IdentifierNameSyntax identifierName))
+            if (WalkDownMethodChain(invocationInfo).Expression is not IdentifierNameSyntax identifierName)
                 return false;
 
             if (name != identifierName.Identifier.ValueText)
@@ -46,7 +46,7 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
             if (methodSymbol == null)
                 return false;
 
-            if (!methodSymbol.ReturnType.Equals(typeSymbol))
+            if (!SymbolEqualityComparer.Default.Equals(methodSymbol.ReturnType, typeSymbol))
                 return false;
 
             if (IsReferenced(invocationInfo.InvocationExpression, identifierName, name, semanticModel, cancellationToken))
@@ -73,7 +73,7 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
                     if (symbol == null)
                         symbol = semanticModel.GetSymbol(identifierName, cancellationToken);
 
-                    if (semanticModel.GetSymbol(identifierName2, cancellationToken)?.Equals(symbol) == true)
+                    if (SymbolEqualityComparer.Default.Equals(semanticModel.GetSymbol(identifierName2, cancellationToken), symbol))
                         return true;
                 }
             }

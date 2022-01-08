@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -38,20 +38,20 @@ namespace Roslynator.CSharp.Refactorings.WrapSelectedLines
 
                 if (en.MoveNext())
                 {
-                    textChanges.Add(new TextChange(firstLine.SpanIncludingLineBreak, newText));
+                    textChanges.Add(firstLine.SpanIncludingLineBreak, newText);
 
                     TextLine lastLine = en.Current;
 
                     while (en.MoveNext())
                         lastLine = en.Current;
 
-                    textChanges.Add(new TextChange(lastLine.SpanIncludingLineBreak, lastLine.ToString() + Environment.NewLine + indent + GetLastLineText() + Environment.NewLine));
+                    textChanges.Add(lastLine.SpanIncludingLineBreak, lastLine.ToString() + Environment.NewLine + indent + GetLastLineText() + Environment.NewLine);
                 }
                 else
                 {
                     newText += indent + GetLastLineText() + Environment.NewLine;
 
-                    textChanges.Add(new TextChange(firstLine.SpanIncludingLineBreak, newText));
+                    textChanges.Add(firstLine.SpanIncludingLineBreak, newText);
                 }
             }
 

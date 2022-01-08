@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -20,8 +20,15 @@ namespace Roslynator.CSharp.Refactorings
             {
                 context.RegisterRefactoring(
                     "Swap operands",
-                    cancellationToken => DocumentRefactorings.SwapBinaryOperandsAsync(context.Document, binaryExpression, cancellationToken),
-                    RefactoringIdentifiers.SwapBinaryOperands);
+                    ct =>
+                    {
+                        BinaryExpressionSyntax newBinaryExpression = SyntaxRefactorings.SwapBinaryOperands(binaryExpression);
+
+                        newBinaryExpression = newBinaryExpression.WithOperatorToken(newBinaryExpression.OperatorToken.WithNavigationAnnotation());
+
+                        return context.Document.ReplaceNodeAsync(binaryExpression, newBinaryExpression, ct);
+                    },
+                    RefactoringDescriptors.SwapBinaryOperands);
             }
 
             bool CanRefactor()
@@ -32,6 +39,9 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     case SyntaxKind.LogicalAndExpression:
                     case SyntaxKind.LogicalOrExpression:
+                    case SyntaxKind.BitwiseAndExpression:
+                    case SyntaxKind.BitwiseOrExpression:
+                    case SyntaxKind.ExclusiveOrExpression:
                     case SyntaxKind.AddExpression:
                     case SyntaxKind.MultiplyExpression:
                         {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 #region usings
 using System;
@@ -10,13 +10,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Roslynator;
-using Roslynator.CSharp;
-using Roslynator.CSharp.Syntax;
-using Roslynator.CSharp.Tests;
 #endregion usings
 
-namespace Roslynator.Tests
+namespace Roslynator.Testing
 {
     internal static class Program
     {
@@ -36,13 +32,36 @@ class C
 ";
             using (Workspace workspace = new AdhocWorkspace())
             {
-                Project project = CSharpWorkspaceFactory.Instance.AddProject(workspace.CurrentSolution);
+                IEnumerable<PortableExecutableReference> metadataReferences = AppContext
+                    .GetData("TRUSTED_PLATFORM_ASSEMBLIES")
+                    .ToString()
+                    .Split(';')
+                    .Select(f => MetadataReference.CreateFromFile(f));
 
-                Document document = CSharpWorkspaceFactory.Instance.AddDocument(project, source);
+                Project project = workspace.CurrentSolution
+                    .AddProject("Test", "Test", LanguageNames.CSharp)
+                    .WithMetadataReferences(metadataReferences);
 
-                SemanticModel semanticModel = await document.GetSemanticModelAsync().ConfigureAwait(false);
-                SyntaxTree tree = await document.GetSyntaxTreeAsync().ConfigureAwait(false);
-                SyntaxNode root = await tree.GetRootAsync().ConfigureAwait(false);
+                var compilationOptions = ((CSharpCompilationOptions)project.CompilationOptions);
+
+                compilationOptions = ((CSharpCompilationOptions)project.CompilationOptions)
+                    .WithAllowUnsafe(true)
+                    .WithOutputKind(OutputKind.DynamicallyLinkedLibrary);
+
+                var parseOptions = ((CSharpParseOptions)project.ParseOptions);
+
+                parseOptions = parseOptions
+                    .WithLanguageVersion(LanguageVersion.CSharp8)
+                    .WithPreprocessorSymbols(parseOptions.PreprocessorSymbolNames.Concat(new[] { "DEBUG" }));
+
+                project = project
+                    .WithCompilationOptions(compilationOptions)
+                    .WithParseOptions(parseOptions);
+
+                Document document = project.AddDocument("Document", SourceText.From(source));
+                SemanticModel semanticModel = await document.GetSemanticModelAsync();
+                SyntaxTree tree = await document.GetSyntaxTreeAsync();
+                SyntaxNode root = await tree.GetRootAsync();
 
                 string s = document.GetSyntaxRootAsync().Result.ToFullString();
                 Console.WriteLine(s);

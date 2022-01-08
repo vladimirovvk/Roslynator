@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,7 +35,7 @@ namespace Roslynator.CSharp.Refactorings
                 ? UseConditionalAccessAnalyzer.FindExpressionThatCanBeConditionallyAccessed(nullCheck.Expression, castExpression.Expression, semanticModel, cancellationToken)
                 : UseConditionalAccessAnalyzer.FindExpressionThatCanBeConditionallyAccessed(nullCheck.Expression, whenNotNull, semanticModel, cancellationToken);
 
-            bool coalesce = false;
+            var coalesce = false;
 
             ExpressionSyntax newNode = null;
 
@@ -69,8 +69,8 @@ namespace Roslynator.CSharp.Refactorings
                             if (castExpression != null)
                             {
                                 newNode = castExpression
-                                   .WithExpression(newNode.Parenthesize())
-                                   .WithSimplifierAnnotation();
+                                    .WithExpression(newNode.Parenthesize())
+                                    .WithSimplifierAnnotation();
                             }
                         }
                     }
@@ -80,8 +80,12 @@ namespace Roslynator.CSharp.Refactorings
             if (newNode == null)
                 newNode = ParseExpression(whenNotNull.ToString().Insert(expression.Span.End - whenNotNull.SpanStart, "?"));
 
-            if (coalesce || !semanticModel.GetTypeSymbol(whenNotNull, cancellationToken).IsReferenceTypeOrNullableType())
+            if (coalesce
+                || (!semanticModel.GetTypeSymbol(whenNotNull, cancellationToken).IsReferenceTypeOrNullableType()
+                    && (whenNull as DefaultExpressionSyntax)?.Type.IsKind(SyntaxKind.NullableType) != true))
+            {
                 newNode = CoalesceExpression(newNode.Parenthesize(), whenNull.Parenthesize());
+            }
 
             newNode = newNode
                 .WithTriviaFrom(conditionalExpression)

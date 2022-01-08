@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using System.Threading;
@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Roslynator.CSharp.Analysis
 {
@@ -43,7 +44,7 @@ namespace Roslynator.CSharp.Analysis
                 return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseRegexInstanceInsteadOfStaticMethod, invocationInfo.Name);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseRegexInstanceInsteadOfStaticMethod, invocationInfo.Name);
 
             bool ValidateArgument(ArgumentSyntax argument)
             {
@@ -60,7 +61,9 @@ namespace Roslynator.CSharp.Analysis
 
                 ISymbol symbol = semanticModel.GetSymbol(expression, cancellationToken);
 
-                Debug.Assert(symbol != null);
+                SyntaxDebug.Assert(
+                    symbol != null || expression.WalkDownParentheses().IsKind(SyntaxKind.InterpolatedStringExpression),
+                    expression);
 
                 if (symbol == null)
                     return true;

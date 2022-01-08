@@ -1,22 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
-using Roslynator.CSharp.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1146UseConditionalAccessTests : AbstractCSharpFixVerifier
+    public class RCS1146UseConditionalAccessTests : AbstractCSharpDiagnosticVerifier<UseConditionalAccessAnalyzer, UseConditionalAccessCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UseConditionalAccess;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UseConditionalAccessAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new UseConditionalAccessCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UseConditionalAccess;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseConditionalAccess)]
         public async Task Test_IfStatement_ReferenceType()
@@ -104,6 +98,10 @@ class Foo
 
         if ([|x != null && x.Equals(x)|]) { }
 
+        if ([|x != default(Foo) && x.Equals(x)|]) { }
+
+        if ([|x != default && x.Equals(x)|]) { }
+
         if ([|null != x && x.Equals(x)|]) { }
 
         if ([|x != null && (x.Equals(x)|])) { }
@@ -151,6 +149,10 @@ class Foo
 
         if (x?.Equals(x) == true) { }
 
+        if (x?.Equals(x) == true) { }
+
+        if (x?.Equals(x) == true) { }
+
         if ((x?.Equals(x) == true)) { }
 
         if (x?.Equals(x) == true && f) { }
@@ -193,6 +195,10 @@ class Foo
 
         if ([|x == null || x.Equals(x)|]) { }
 
+        if ([|x == default(Foo) || x.Equals(x)|]) { }
+
+        if ([|x == default || x.Equals(x)|]) { }
+
         if ([|x == null || (x.Equals(x)|])) { }
 
         if ([|x == null || !x.Equals(x)|]) { }
@@ -206,6 +212,10 @@ class Foo
     void M()
     {
         Foo x = null;
+
+        if (x?.Equals(x) != false) { }
+
+        if (x?.Equals(x) != false) { }
 
         if (x?.Equals(x) != false) { }
 
@@ -672,6 +682,30 @@ if (dic != null && dic.TryGetValue(0, out value)) { }
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseConditionalAccess)]
+        public async Task TestNoDiagnostic_LogicalAnd_OutParameter2()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Collections.Generic;
+
+class C
+{
+    Dictionary<string, string> _dic;
+
+    bool TryGetValue(string key, out string value)
+    {
+        if (this._dic != null && this._dic.TryGetValue(key, out value))
+        {
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseConditionalAccess)]
         public async Task TestNoDiagnostic_LogicalOr_OutParameter()
         {
             await VerifyNoDiagnosticAsync(@"
@@ -726,6 +760,23 @@ class C
         string s = null;
 
         M(() => s == null || s.Equals(s));
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseConditionalAccess)]
+        public async Task TestNoDiagnostic_LocalDeclaration_ExpressionTree()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+using System.Linq.Expressions;
+
+class C
+{
+    public void M()
+    {
+        Expression<Func<string, bool>> expression = x => x != null && x.Equals(x);
     }
 }
 ");
@@ -816,7 +867,7 @@ unsafe class C
         }
     }
 }
-");
+", options: Options.WithAllowUnsafe(true));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseConditionalAccess)]
@@ -835,7 +886,27 @@ class C
         }
     }
 }
-", options: CSharpCodeVerificationOptions.DefaultWithCSharp5);
+", options: WellKnownCSharpTestOptions.Default_CSharp5);
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseConditionalAccess)]
+        public async Task TestNoDiagnostic_IsNotPattern()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+    C P { get; }
+
+    C(C p) => P = p;
+
+    void M()
+    {
+        var x = new C(null);
+
+        var y = x.P != null && x.P.P is not C;
+    }
+}
+");
         }
     }
 }

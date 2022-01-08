@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -16,12 +16,12 @@ namespace Roslynator.CSharp.Refactorings
     internal static class ChangeTypeAccordingToInitializerRefactoring
     {
         public static CodeFixRegistrationResult ComputeCodeFix(
-             CodeFixContext context,
-             Diagnostic diagnostic,
-             ExpressionSyntax expression,
-             SemanticModel semanticModel)
+            CodeFixContext context,
+            Diagnostic diagnostic,
+            ExpressionSyntax expression,
+            SemanticModel semanticModel)
         {
-            if (!(expression.Parent is EqualsValueClauseSyntax equalsValueClause))
+            if (expression.Parent is not EqualsValueClauseSyntax equalsValueClause)
                 return default;
 
             switch (equalsValueClause.Parent)
@@ -36,7 +36,7 @@ namespace Roslynator.CSharp.Refactorings
                     }
                 default:
                     {
-                        Debug.Fail(equalsValueClause.Parent.Kind().ToString());
+                        SyntaxDebug.Fail(equalsValueClause.Parent);
                         break;
                     }
             }
@@ -51,7 +51,7 @@ namespace Roslynator.CSharp.Refactorings
             VariableDeclaratorSyntax variableDeclarator,
             SemanticModel semanticModel)
         {
-            if (!(variableDeclarator.Parent is VariableDeclarationSyntax variableDeclaration))
+            if (variableDeclarator.Parent is not VariableDeclarationSyntax variableDeclaration)
                 return default;
 
             TypeSyntax type = variableDeclaration.Type;
@@ -66,7 +66,7 @@ namespace Roslynator.CSharp.Refactorings
             }
 
             CodeFixRegistrationResult result = default;
-            CodeFixRegistrationResult result2 = default;
+            CodeFixRegistrationResult result2;
 
             if (typeSymbol?.SupportsExplicitDeclaration() == true)
             {

@@ -1,22 +1,17 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.Analysis.MakeMemberReadOnly;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1169MakeFieldReadOnlyTests : AbstractCSharpFixVerifier
+    public class RCS1169MakeFieldReadOnlyTests : AbstractCSharpDiagnosticVerifier<MakeMemberReadOnlyAnalyzer, MemberDeclarationCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.MakeFieldReadOnly;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new MakeMemberReadOnlyAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new MemberDeclarationCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.MakeFieldReadOnly;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MakeFieldReadOnly)]
         public async Task Test_InstanceField()
@@ -103,6 +98,40 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MakeFieldReadOnly)]
+        public async Task Test_InstanceField_ReadOnlyStruct()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    [|private B _f;|]
+
+    public C()
+    {
+        _f = default;
+    }
+}
+
+readonly struct B
+{
+}
+", @"
+class C
+{
+    private readonly B _f;
+
+    public C()
+    {
+        _f = default;
+    }
+}
+
+readonly struct B
+{
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MakeFieldReadOnly)]
         public async Task Test_StaticField()
         {
             await VerifyDiagnosticAndFixAsync(@"
@@ -148,11 +177,13 @@ class C
         public async Task TestNoDiagnostic_Struct()
         {
             await VerifyNoDiagnosticAsync(@"
-using System;
-
 class C
 {
-    DateTime _f;
+    B _f;
+}
+
+struct B
+{
 }
 ");
         }

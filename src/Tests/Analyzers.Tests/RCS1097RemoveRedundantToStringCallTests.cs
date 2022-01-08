@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1097RemoveRedundantToStringCallTests : AbstractCSharpFixVerifier
+    public class RCS1097RemoveRedundantToStringCallTests : AbstractCSharpDiagnosticVerifier<InvocationExpressionAnalyzer, InvocationExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.RemoveRedundantToStringCall;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new InvocationExpressionAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new InvocationExpressionCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.RemoveRedundantToStringCall;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantToStringCall)]
         public async Task Test_StringVariable()
@@ -104,6 +99,21 @@ class C
     {
         string s = null;
         s = $""{s}"";
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantToStringCall)]
+        public async Task TestNoDiagnostic_ValueType()
+        {
+            await VerifyNoDiagnosticAsync(@"
+class C
+{
+    void M()
+    {
+        int i = 10;
+        string s = $""'{i.ToString()}'"";
     }
 }
 ");

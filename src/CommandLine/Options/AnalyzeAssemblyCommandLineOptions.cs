@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using CommandLine;
@@ -10,14 +10,21 @@ namespace Roslynator.CommandLine
 #endif
     public class AnalyzeAssemblyCommandLineOptions : AbstractCommandLineOptions
     {
-        [Value(index: 0,
+        [Value(
+            index: 0,
             Required = true,
             HelpText = "The path to file or directory to analyze.",
-            MetaValue = "<PATH>")]
+            MetaName = "<PATH>")]
         public string Path { get; set; }
 
         [Option(longName: "additional-paths")]
         public IEnumerable<string> AdditionalPaths { get; set; }
+
+        [Option(longName: "culture")]
+        public string Culture { get; set; }
+
+        [Option(longName: "file-name-pattern")]
+        public string FileNamePattern { get; set; }
 
         [Option(longName: "language")]
         public string Language { get; set; }
@@ -28,10 +35,8 @@ namespace Roslynator.CommandLine
         [Option(longName: "no-fixers")]
         public bool NoFixers { get; set; }
 
-        [Option(longName: "output",
-            HelpText = "Defines path to file that will store reported diagnostics in XML format.",
-            MetaValue = "<OUTPUT_FILE>")]
-        public string Output { get; set; }
+        [Option(longName: "output")]
+        public IEnumerable<string> Output { get; set; }
 
         internal IEnumerable<string> GetPaths()
         {

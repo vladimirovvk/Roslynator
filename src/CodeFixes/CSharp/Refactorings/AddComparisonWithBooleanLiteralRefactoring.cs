@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,15 +32,20 @@ namespace Roslynator.CSharp.Refactorings
             }
         }
 
+        public static string GetEquivalenceKey(ExpressionSyntax expression)
+        {
+            return (expression.IsKind(SyntaxKind.LogicalNotExpression)) ? "False" : "True";
+        }
+
         public static string GetTitle(ExpressionSyntax expression)
         {
-            return (expression.IsKind(SyntaxKind.LogicalNotExpression)) ? "Add ' == false'" : "Add ' == true'";
+            return (expression.IsKind(SyntaxKind.LogicalNotExpression)) ? "Replace '!' with ' == false'" : "Add ' == true'";
         }
 
         public static Task<Document> RefactorAsync(
             Document document,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ExpressionSyntax newNode = CreateNewExpression(expression)
                 .WithTriviaFrom(expression)

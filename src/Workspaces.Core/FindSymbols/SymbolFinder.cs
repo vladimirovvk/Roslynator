@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Roslynator.FindSymbols;
 using Roslynator.Host.Mef;
 
 namespace Roslynator.FindSymbols
@@ -49,7 +48,7 @@ namespace Roslynator.FindSymbols
                         continue;
                     }
 
-                    bool isUnused = false;
+                    var isUnused = false;
 
                     if (!options.UnusedOnly
                         || UnusedSymbolUtility.CanBeUnusedSymbol(symbol))
@@ -61,12 +60,13 @@ namespace Roslynator.FindSymbols
                             case SymbolFilterReason.None:
                                 {
                                     if (options.IgnoreGeneratedCode
-                                        && GeneratedCodeUtility.IsGeneratedCode(symbol, generatedCodeAttribute, MefWorkspaceServices.Default.GetService<ISyntaxFactsService>(compilation.Language).IsComment, cancellationToken))
+                                        && GeneratedCodeUtility.IsGeneratedCode(symbol, generatedCodeAttribute, f => MefWorkspaceServices.Default.GetService<ISyntaxFactsService>(compilation.Language).IsComment(f), cancellationToken))
                                     {
                                         continue;
                                     }
 
-                                    if (options.UnusedOnly)
+                                    if (options.UnusedOnly
+                                        && !symbol.IsImplicitlyDeclared)
                                     {
                                         isUnused = await UnusedSymbolUtility.IsUnusedSymbolAsync(symbol, project.Solution, cancellationToken).ConfigureAwait(false);
                                     }
@@ -76,20 +76,20 @@ namespace Roslynator.FindSymbols
                                     {
                                         progress?.OnSymbolFound(symbol);
 
-                                        (symbols ?? (symbols = ImmutableArray.CreateBuilder<ISymbol>())).Add(symbol);
+                                        (symbols ??= ImmutableArray.CreateBuilder<ISymbol>()).Add(symbol);
                                     }
 
                                     break;
                                 }
                             case SymbolFilterReason.Visibility:
-                            case SymbolFilterReason.WithoutAttibute:
+                            case SymbolFilterReason.WithoutAttribute:
                             case SymbolFilterReason.ImplicitlyDeclared:
                                 {
                                     continue;
                                 }
                             case SymbolFilterReason.SymbolGroup:
                             case SymbolFilterReason.Ignored:
-                            case SymbolFilterReason.WithAttibute:
+                            case SymbolFilterReason.WithAttribute:
                             case SymbolFilterReason.Other:
                                 {
                                     break;

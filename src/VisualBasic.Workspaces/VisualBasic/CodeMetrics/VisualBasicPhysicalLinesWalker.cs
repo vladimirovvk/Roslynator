@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -44,7 +44,7 @@ namespace Roslynator.VisualBasic.CodeMetrics
 
             base.VisitEndBlockStatement(node);
 
-            bool AnalyzeTrailingTrivia(in SyntaxTriviaList trailingTrivia)
+            static bool AnalyzeTrailingTrivia(in SyntaxTriviaList trailingTrivia)
             {
                 SyntaxTriviaList.Enumerator en = trailingTrivia.GetEnumerator();
 

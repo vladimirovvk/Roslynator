@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Roslynator.CSharp.Syntax;
+using Roslynator.CSharp.SyntaxWalkers;
 using static Roslynator.CSharp.CSharpFactory;
 using static Roslynator.CSharp.CSharpFacts;
 
@@ -16,7 +17,7 @@ namespace Roslynator.CSharp.Analysis.If
 {
     internal abstract class IfAnalysis
     {
-        public static IfAnalysisOptions DefaultOptions { get; } = new IfAnalysisOptions();
+        public static IfAnalysisOptions DefaultOptions { get; } = new();
 
         private static ImmutableArray<IfAnalysis> Empty
         {
@@ -41,7 +42,7 @@ namespace Roslynator.CSharp.Analysis.If
             IfStatementSyntax ifStatement,
             IfAnalysisOptions options,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (!ifStatement.IsTopmostIf())
                 return Empty;
@@ -55,7 +56,7 @@ namespace Roslynator.CSharp.Analysis.If
 
             if (elseClause != null)
             {
-                if (!options.CheckSpanDirectives(ifStatement))
+                if (!CheckDirectivesAndComments(ifStatement, options))
                     return Empty;
 
                 StatementSyntax statement1 = ifStatement.SingleNonBlockStatementOrDefault();
@@ -455,7 +456,7 @@ namespace Roslynator.CSharp.Analysis.If
             if (!string.Equals(identifier1, declarator.Identifier.ValueText, StringComparison.Ordinal))
                 return Empty;
 
-            if (!options.CheckSpanDirectives(ifStatement.Parent, TextSpan.FromBounds(localDeclarationStatement.SpanStart, ifStatement.Span.End)))
+            if (!CheckDirectivesAndComments(localDeclarationStatement, ifStatement, options))
                 return Empty;
 
             if (IsNullLiteralConvertedToNullableOfT(assignment1.Right, semanticModel, cancellationToken)
@@ -511,7 +512,7 @@ namespace Roslynator.CSharp.Analysis.If
                     return Empty;
             }
 
-            if (!options.CheckSpanDirectives(ifStatement.Parent, TextSpan.FromBounds(expressionStatement.SpanStart, ifStatement.Span.End)))
+            if (!CheckDirectivesAndComments(expressionStatement, ifStatement, options))
                 return Empty;
 
             ExpressionSyntax whenTrue = assignment1.Right;
@@ -528,7 +529,8 @@ namespace Roslynator.CSharp.Analysis.If
                 ifStatement,
                 whenTrue,
                 whenFalse,
-                semanticModel).ToImmutableArray();
+                semanticModel)
+                .ToImmutableArray();
         }
 
         private static ImmutableArray<IfAnalysis> Analyze(
@@ -548,7 +550,7 @@ namespace Roslynator.CSharp.Analysis.If
             if (statement?.IsKind(SyntaxKind.ReturnStatement) != true)
                 return Empty;
 
-            if (!options.CheckSpanDirectives(ifStatement, TextSpan.FromBounds(ifStatement.SpanStart, returnStatement.Span.End)))
+            if (!CheckDirectivesAndComments(ifStatement, returnStatement, options))
                 return Empty;
 
             return Analyze(
@@ -598,7 +600,7 @@ namespace Roslynator.CSharp.Analysis.If
 
             var memberAccessExpression = (MemberAccessExpressionSyntax)expression;
 
-            if (!(memberAccessExpression.Name is IdentifierNameSyntax identifierName))
+            if (memberAccessExpression.Name is not IdentifierNameSyntax identifierName)
                 return null;
 
             if (!string.Equals(identifierName.Identifier.ValueText, "Value", StringComparison.Ordinal))
@@ -618,6 +620,77 @@ namespace Roslynator.CSharp.Analysis.If
                     .ConvertedType?
                     .OriginalDefinition
                     .SpecialType == SpecialType.System_Nullable_T;
+        }
+
+        public static bool CheckDirectivesAndComments(
+            SyntaxNode node1,
+            SyntaxNode node2,
+            AnalysisOptions options)
+        {
+            return CheckDirectivesAndComments(node1, options, includeTrailingTrivia: true)
+                && CheckDirectivesAndComments(node2, options, includeLeadingTrivia: true);
+        }
+
+        public static bool CheckDirectivesAndComments(
+            SyntaxNode node,
+            AnalysisOptions options,
+            bool includeLeadingTrivia = false,
+            bool includeTrailingTrivia = false)
+        {
+            if (!options.CanContainDirectives)
+            {
+                if (includeLeadingTrivia)
+                {
+                    if (includeTrailingTrivia)
+                    {
+                        if (node.ContainsDirectives)
+                            return false;
+                    }
+                    else if (node.SpanOrLeadingTriviaContainsDirectives())
+                    {
+                        return false;
+                    }
+                }
+                else if (includeTrailingTrivia)
+                {
+                    if (node.SpanOrTrailingTriviaContainsDirectives())
+                        return false;
+                }
+                else if (node.SpanContainsDirectives())
+                {
+                    return false;
+                }
+            }
+
+            if (!options.CanContainComments)
+            {
+                TextSpan span;
+
+                if (includeLeadingTrivia)
+                {
+                    if (includeTrailingTrivia)
+                    {
+                        span = node.FullSpan;
+                    }
+                    else
+                    {
+                        span = TextSpan.FromBounds(node.FullSpan.Start, node.Span.End);
+                    }
+                }
+                else if (includeTrailingTrivia)
+                {
+                    span = TextSpan.FromBounds(node.SpanStart, node.FullSpan.End);
+                }
+                else
+                {
+                    span = node.Span;
+                }
+
+                if (ContainsCommentWalker.ContainsComment(node, span))
+                    return false;
+            }
+
+            return true;
         }
     }
 }

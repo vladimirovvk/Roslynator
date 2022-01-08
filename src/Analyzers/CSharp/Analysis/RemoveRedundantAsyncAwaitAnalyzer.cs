@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -7,45 +7,76 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp;
-using Roslynator.CSharp.Analysis.RemoveAsyncAwait;
 
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantAsyncAwaitAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantAsyncAwaitAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.RemoveRedundantAsyncAwait,
-                    DiagnosticDescriptors.RemoveRedundantAsyncAwaitFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.RemoveRedundantAsyncAwait,
+                        DiagnosticRules.RemoveRedundantAsyncAwaitFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveRedundantAsyncAwait))
-                    return;
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantAsyncAwait.IsEffective(c))
+                        AnalyzeMethodDeclaration(c);
+                },
+                SyntaxKind.MethodDeclaration);
 
-                startContext.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
-                startContext.RegisterSyntaxNodeAction(AnalyzeLocalFunctionStatement, SyntaxKind.LocalFunctionStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeAnonymousMethodExpression, SyntaxKind.AnonymousMethodExpression);
-                startContext.RegisterSyntaxNodeAction(AnalyzeLambdaExpression, SyntaxKind.SimpleLambdaExpression);
-                startContext.RegisterSyntaxNodeAction(AnalyzeLambdaExpression, SyntaxKind.ParenthesizedLambdaExpression);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantAsyncAwait.IsEffective(c))
+                        AnalyzeLocalFunctionStatement(c);
+                },
+                SyntaxKind.LocalFunctionStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantAsyncAwait.IsEffective(c))
+                        AnalyzeAnonymousMethodExpression(c);
+                },
+                SyntaxKind.AnonymousMethodExpression);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantAsyncAwait.IsEffective(c))
+                        AnalyzeLambdaExpression(c);
+                },
+                SyntaxKind.SimpleLambdaExpression);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantAsyncAwait.IsEffective(c))
+                        AnalyzeLambdaExpression(c);
+                },
+                SyntaxKind.ParenthesizedLambdaExpression);
         }
 
-        public static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
@@ -57,15 +88,14 @@ namespace Roslynator.CSharp.Analysis
             if (!asyncKeyword.IsKind(SyntaxKind.AsyncKeyword))
                 return;
 
-            RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(methodDeclaration, context.SemanticModel, context.CancellationToken);
-
-            if (!analysis.Success)
-                return;
-
-            ReportDiagnostic(context, asyncKeyword, analysis);
+            using (RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(methodDeclaration, context.SemanticModel, context.CancellationToken))
+            {
+                if (analysis.Success)
+                    ReportDiagnostic(context, asyncKeyword, analysis);
+            }
         }
 
-        public static void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
         {
             var localFunction = (LocalFunctionStatementSyntax)context.Node;
 
@@ -77,15 +107,14 @@ namespace Roslynator.CSharp.Analysis
             if (!asyncKeyword.IsKind(SyntaxKind.AsyncKeyword))
                 return;
 
-            RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(localFunction, context.SemanticModel, context.CancellationToken);
-
-            if (!analysis.Success)
-                return;
-
-            ReportDiagnostic(context, asyncKeyword, analysis);
+            using (RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(localFunction, context.SemanticModel, context.CancellationToken))
+            {
+                if (analysis.Success)
+                    ReportDiagnostic(context, asyncKeyword, analysis);
+            }
         }
 
-        public static void AnalyzeAnonymousMethodExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeAnonymousMethodExpression(SyntaxNodeAnalysisContext context)
         {
             var anonymousMethod = (AnonymousMethodExpressionSyntax)context.Node;
 
@@ -97,15 +126,14 @@ namespace Roslynator.CSharp.Analysis
             if (!asyncKeyword.IsKind(SyntaxKind.AsyncKeyword))
                 return;
 
-            RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(anonymousMethod, context.SemanticModel, context.CancellationToken);
-
-            if (!analysis.Success)
-                return;
-
-            ReportDiagnostic(context, asyncKeyword, analysis);
+            using (RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(anonymousMethod, context.SemanticModel, context.CancellationToken))
+            {
+                if (analysis.Success)
+                    ReportDiagnostic(context, asyncKeyword, analysis);
+            }
         }
 
-        public static void AnalyzeLambdaExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLambdaExpression(SyntaxNodeAnalysisContext context)
         {
             var lambda = (LambdaExpressionSyntax)context.Node;
 
@@ -117,18 +145,17 @@ namespace Roslynator.CSharp.Analysis
             if (!asyncKeyword.IsKind(SyntaxKind.AsyncKeyword))
                 return;
 
-            RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(lambda, context.SemanticModel, context.CancellationToken);
-
-            if (!analysis.Success)
-                return;
-
-            ReportDiagnostic(context, asyncKeyword, analysis);
+            using (RemoveAsyncAwaitAnalysis analysis = RemoveAsyncAwaitAnalysis.Create(lambda, context.SemanticModel, context.CancellationToken))
+            {
+                if (analysis.Success)
+                    ReportDiagnostic(context, asyncKeyword, analysis);
+            }
         }
 
-        private static void ReportDiagnostic(SyntaxNodeAnalysisContext context, SyntaxToken asyncKeyword, in RemoveAsyncAwaitAnalysis analysis)
+        private static void ReportDiagnostic(SyntaxNodeAnalysisContext context, SyntaxToken asyncKeyword, RemoveAsyncAwaitAnalysis analysis)
         {
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantAsyncAwait, asyncKeyword);
-            DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.RemoveRedundantAsyncAwaitFadeOut, asyncKeyword);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantAsyncAwait, asyncKeyword);
+            DiagnosticHelpers.ReportToken(context, DiagnosticRules.RemoveRedundantAsyncAwaitFadeOut, asyncKeyword);
 
             if (analysis.AwaitExpression != null)
             {
@@ -138,13 +165,11 @@ namespace Roslynator.CSharp.Analysis
             {
                 foreach (AwaitExpressionSyntax awaitExpression in analysis.Walker.AwaitExpressions)
                     ReportAwaitAndConfigureAwait(awaitExpression);
-
-                RemoveAsyncAwaitWalker.Free(analysis.Walker);
             }
 
             void ReportAwaitAndConfigureAwait(AwaitExpressionSyntax awaitExpression)
             {
-                DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.RemoveRedundantAsyncAwaitFadeOut, awaitExpression.AwaitKeyword);
+                DiagnosticHelpers.ReportToken(context, DiagnosticRules.RemoveRedundantAsyncAwaitFadeOut, awaitExpression.AwaitKeyword);
 
                 ExpressionSyntax expression = awaitExpression.Expression;
 
@@ -157,9 +182,9 @@ namespace Roslynator.CSharp.Analysis
 
                     if (string.Equals(memberAccess?.Name?.Identifier.ValueText, "ConfigureAwait", StringComparison.Ordinal))
                     {
-                        DiagnosticHelpers.ReportNode(context, DiagnosticDescriptors.RemoveRedundantAsyncAwaitFadeOut, memberAccess.Name);
-                        DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.RemoveRedundantAsyncAwaitFadeOut, memberAccess.OperatorToken);
-                        DiagnosticHelpers.ReportNode(context, DiagnosticDescriptors.RemoveRedundantAsyncAwaitFadeOut, invocation.ArgumentList);
+                        DiagnosticHelpers.ReportNode(context, DiagnosticRules.RemoveRedundantAsyncAwaitFadeOut, memberAccess.Name);
+                        DiagnosticHelpers.ReportToken(context, DiagnosticRules.RemoveRedundantAsyncAwaitFadeOut, memberAccess.OperatorToken);
+                        DiagnosticHelpers.ReportNode(context, DiagnosticRules.RemoveRedundantAsyncAwaitFadeOut, invocation.ArgumentList);
                     }
                 }
             }

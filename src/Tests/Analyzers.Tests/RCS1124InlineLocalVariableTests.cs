@@ -1,26 +1,46 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
-
-#pragma warning disable RCS1090
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1124InlineLocalVariableTests : AbstractCSharpFixVerifier
+    public class RCS1124InlineLocalVariableTests : AbstractCSharpDiagnosticVerifier<InlineLocalVariableAnalyzer, LocalDeclarationStatementCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.InlineLocalVariable;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new InlineLocalVariableAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new LocalDeclarationStatementCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.InlineLocalVariable;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.InlineLocalVariable)]
-        public async Task Test()
+        public async Task Test_LocalDeclaration()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    void M()
+    {
+        // a
+        [|int x = 1 // b
+            + 1;|]
+        int y = x;
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        // a
+        int y = 1 // b
+            + 1;
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.InlineLocalVariable)]
+        public async Task Test_YieldReturn()
         {
             await VerifyDiagnosticAndFixAsync(@"
 using System.Collections.Generic;
@@ -41,6 +61,41 @@ class C
     IEnumerable<string> M()
     {
         yield return """";
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.InlineLocalVariable)]
+        public async Task Test_VarType()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+#nullable enable
+
+class C
+{
+    public string P { get; set; } = null!;
+
+    void M()
+    {
+        var c = new C();
+
+        [|var p = c.P;|]
+        var s = p;
+    }
+}
+", @"
+#nullable enable
+
+class C
+{
+    public string P { get; set; } = null!;
+
+    void M()
+    {
+        var c = new C();
+
+        var s = c.P;
     }
 }
 ");

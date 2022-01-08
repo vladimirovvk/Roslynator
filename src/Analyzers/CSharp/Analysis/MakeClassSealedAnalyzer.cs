@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,21 +10,26 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class MakeClassSealedAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class MakeClassSealedAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.MakeClassSealed); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.MakeClassSealed);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+            context.RegisterSymbolAction(f => AnalyzeNamedType(f), SymbolKind.NamedType);
         }
 
         private static void AnalyzeNamedType(SymbolAnalysisContext context)
@@ -54,7 +59,7 @@ namespace Roslynator.CSharp.Analysis
             if (namedTypeSymbol.TypeKind != TypeKind.Class)
                 return;
 
-            bool isAnyExplicit = false;
+            var isAnyExplicit = false;
 
             foreach (IMethodSymbol constructor in namedTypeSymbol.InstanceConstructors)
             {
@@ -76,7 +81,7 @@ namespace Roslynator.CSharp.Analysis
 
             var classDeclaration = (ClassDeclarationSyntax)namedTypeSymbol.GetSyntax(context.CancellationToken);
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.MakeClassSealed, classDeclaration.Identifier);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.MakeClassSealed, classDeclaration.Identifier);
         }
 
         private static bool ContainsDerivedType(
@@ -86,7 +91,7 @@ namespace Roslynator.CSharp.Analysis
             foreach (INamedTypeSymbol typeMember in typeMembers)
             {
                 if (typeMember.TypeKind == TypeKind.Class
-                    && typeMember.OriginalDefinition.BaseType?.Equals(typeSymbol) == true)
+                    && SymbolEqualityComparer.Default.Equals(typeMember.OriginalDefinition.BaseType, typeSymbol))
                 {
                     return true;
                 }

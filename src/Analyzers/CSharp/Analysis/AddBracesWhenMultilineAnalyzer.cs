@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,33 +11,37 @@ using static Roslynator.CSharp.Analysis.EmbeddedStatementAnalysis;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AddBracesWhenMultilineAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AddBracesWhenMultilineAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AddBracesWhenExpressionSpansOverMultipleLines); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AddBracesWhenExpressionSpansOverMultipleLines);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeIfStatement, SyntaxKind.IfStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeCommonForEachStatement, SyntaxKind.ForEachStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeCommonForEachStatement, SyntaxKind.ForEachVariableStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeForStatement, SyntaxKind.ForStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeUsingStatement, SyntaxKind.UsingStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeWhileStatement, SyntaxKind.WhileStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeDoStatement, SyntaxKind.DoStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeLockStatement, SyntaxKind.LockStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeFixedStatement, SyntaxKind.FixedStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIfStatement(f), SyntaxKind.IfStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeCommonForEachStatement(f), SyntaxKind.ForEachStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeCommonForEachStatement(f), SyntaxKind.ForEachVariableStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeForStatement(f), SyntaxKind.ForStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeUsingStatement(f), SyntaxKind.UsingStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeWhileStatement(f), SyntaxKind.WhileStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeDoStatement(f), SyntaxKind.DoStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeLockStatement(f), SyntaxKind.LockStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeFixedStatement(f), SyntaxKind.FixedStatement);
         }
 
-        public static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
         {
             var ifStatement = (IfStatementSyntax)context.Node;
 
@@ -58,7 +62,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, ifStatement, statement);
         }
 
-        public static void AnalyzeCommonForEachStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeCommonForEachStatement(SyntaxNodeAnalysisContext context)
         {
             var forEachStatement = (CommonForEachStatementSyntax)context.Node;
 
@@ -76,7 +80,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, forEachStatement, statement);
         }
 
-        public static void AnalyzeForStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeForStatement(SyntaxNodeAnalysisContext context)
         {
             var forStatement = (ForStatementSyntax)context.Node;
 
@@ -94,7 +98,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, forStatement, statement);
         }
 
-        public static void AnalyzeUsingStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeUsingStatement(SyntaxNodeAnalysisContext context)
         {
             var usingStatement = (UsingStatementSyntax)context.Node;
 
@@ -112,7 +116,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, usingStatement, statement);
         }
 
-        public static void AnalyzeWhileStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeWhileStatement(SyntaxNodeAnalysisContext context)
         {
             var whileStatement = (WhileStatementSyntax)context.Node;
 
@@ -130,7 +134,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, whileStatement, statement);
         }
 
-        public static void AnalyzeDoStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeDoStatement(SyntaxNodeAnalysisContext context)
         {
             var doStatement = (DoStatementSyntax)context.Node;
 
@@ -148,7 +152,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, doStatement, statement);
         }
 
-        public static void AnalyzeLockStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLockStatement(SyntaxNodeAnalysisContext context)
         {
             var lockStatement = (LockStatementSyntax)context.Node;
 
@@ -166,7 +170,7 @@ namespace Roslynator.CSharp.Analysis
             ReportDiagnostic(context, lockStatement, statement);
         }
 
-        public static void AnalyzeFixedStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeFixedStatement(SyntaxNodeAnalysisContext context)
         {
             var fixedStatement = (FixedStatementSyntax)context.Node;
 
@@ -186,8 +190,9 @@ namespace Roslynator.CSharp.Analysis
 
         private static void ReportDiagnostic(SyntaxNodeAnalysisContext context, StatementSyntax statement, StatementSyntax embeddedStatement)
         {
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.AddBracesWhenExpressionSpansOverMultipleLines,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.AddBracesWhenExpressionSpansOverMultipleLines,
                 embeddedStatement,
                 CSharpFacts.GetTitle(statement));
         }

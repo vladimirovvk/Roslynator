@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,14 +25,14 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Expand ??",
-                cancellationToken => RefactorAsync(context.Document, binaryExpression, cancellationToken),
-                RefactoringIdentifiers.ExpandCoalesceExpression);
+                ct => RefactorAsync(context.Document, binaryExpression, ct),
+                RefactoringDescriptors.ExpandCoalesceExpression);
         }
 
         public static Task<Document> RefactorAsync(
             Document document,
             BinaryExpressionSyntax binaryExpression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ExpressionSyntax left = binaryExpression.Left.WithoutTrivia();
             ExpressionSyntax right = binaryExpression.Right.WithoutTrivia();

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,7 +10,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context, LockStatementSyntax lockStatement)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceFieldToLockOn))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceFieldToLockOn))
             {
                 ExpressionSyntax expression = lockStatement.Expression;
 
@@ -22,8 +22,8 @@ namespace Roslynator.CSharp.Refactorings
                         {
                             context.RegisterRefactoring(
                                 "Introduce field to lock on",
-                                cancellationToken => IntroduceFieldToLockOnRefactoring.RefactorAsync(context.Document, lockStatement, cancellationToken),
-                                RefactoringIdentifiers.IntroduceFieldToLockOn);
+                                ct => IntroduceFieldToLockOnRefactoring.RefactorAsync(context.Document, lockStatement, ct),
+                                RefactoringDescriptors.IntroduceFieldToLockOn);
                         }
                     }
                 }

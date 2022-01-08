@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -22,7 +22,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactoring(RefactoringContext context, ParameterSyntax parameter, SemanticModel semanticModel)
         {
-            if (!IsValid(parameter))
+            if (!IsValid(parameter, semanticModel, context.CancellationToken))
                 return;
 
             if (!CanRefactor(parameter, semanticModel, context.CancellationToken))
@@ -31,7 +31,7 @@ namespace Roslynator.CSharp.Refactorings
             RegisterRefactoring(context, parameter, semanticModel);
         }
 
-        [SuppressMessage("Simplification", "RCS1180:Inline lazy initialization.", Justification = "<Pending>")]
+        [SuppressMessage("Simplification", "RCS1180:Inline lazy initialization.")]
         public static void ComputeRefactoring(RefactoringContext context, SeparatedSyntaxListSelection<ParameterSyntax> selectedParameters, SemanticModel semanticModel)
         {
             ParameterSyntax singleParameter = null;
@@ -39,7 +39,7 @@ namespace Roslynator.CSharp.Refactorings
 
             foreach (ParameterSyntax parameter in selectedParameters)
             {
-                if (IsValid(parameter)
+                if (IsValid(parameter, semanticModel, context.CancellationToken)
                     && CanRefactor(parameter, semanticModel, context.CancellationToken))
                 {
                     if (singleParameter == null)
@@ -79,19 +79,19 @@ namespace Roslynator.CSharp.Refactorings
             SemanticModel semanticModel)
         {
             context.RegisterRefactoring(
-            $"Check {name} for null",
-            cancellationToken => RefactorAsync(
-                context.Document,
-                parameters,
-                semanticModel,
-                cancellationToken),
-            RefactoringIdentifiers.CheckParameterForNull);
+                $"Check {name} for null",
+                ct => RefactorAsync(
+                    context.Document,
+                    parameters,
+                    semanticModel,
+                    ct),
+                RefactoringDescriptors.CheckParameterForNull);
         }
 
         public static bool CanRefactor(
             ParameterSyntax parameter,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             BlockSyntax body = GetBody(parameter);
 
@@ -125,7 +125,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             ImmutableArray<ParameterSyntax> parameters,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             BlockSyntax body = GetBody(parameters[0]);
 
@@ -203,9 +203,9 @@ namespace Roslynator.CSharp.Refactorings
         private static NullCheckExpressionInfo GetNullCheckExpressionInfo(
             StatementSyntax statement,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
-            if (!(statement is IfStatementSyntax ifStatement))
+            if (statement is not IfStatementSyntax ifStatement)
                 return default;
 
             NullCheckExpressionInfo nullCheck = SyntaxInfo.NullCheckExpressionInfo(ifStatement.Condition, NullCheckStyles.EqualsToNull | NullCheckStyles.IsNull);
@@ -255,24 +255,36 @@ namespace Roslynator.CSharp.Refactorings
                 case SyntaxKind.ConstructorDeclaration:
                     return ((ConstructorDeclarationSyntax)parent).Body;
             }
-
-            Debug.Assert(parent.IsKind(
-                SyntaxKind.ParenthesizedLambdaExpression,
-                SyntaxKind.AnonymousMethodExpression,
-                SyntaxKind.LocalFunctionStatement,
-                SyntaxKind.DelegateDeclaration,
-                SyntaxKind.OperatorDeclaration,
-                SyntaxKind.ConversionOperatorDeclaration), parent.Kind().ToString());
-
+#if DEBUG
+            switch (parent.Kind())
+            {
+                case SyntaxKind.ParenthesizedLambdaExpression:
+                case SyntaxKind.AnonymousMethodExpression:
+                case SyntaxKind.LocalFunctionStatement:
+                case SyntaxKind.DelegateDeclaration:
+                case SyntaxKind.OperatorDeclaration:
+                case SyntaxKind.ConversionOperatorDeclaration:
+                case SyntaxKind.RecordDeclaration:
+                    {
+                        break;
+                    }
+                default:
+                    {
+                        SyntaxDebug.Fail(parent);
+                        break;
+                    }
+            }
+#endif
             return null;
         }
 
-        private static bool IsValid(ParameterSyntax parameter)
+        private static bool IsValid(ParameterSyntax parameter, SemanticModel semanticModel, CancellationToken cancellationToken)
         {
             return parameter.Type != null
                 && !parameter.Identifier.IsMissing
                 && parameter.IsParentKind(SyntaxKind.ParameterList)
-                && parameter.Default?.Value?.IsKind(SyntaxKind.NullLiteralExpression, SyntaxKind.DefaultLiteralExpression, SyntaxKind.DefaultExpression) != true;
+                && parameter.Default?.Value?.IsKind(SyntaxKind.NullLiteralExpression, SyntaxKind.DefaultLiteralExpression, SyntaxKind.DefaultExpression) != true
+                && !CSharpUtility.IsNullableReferenceType(parameter.Type, semanticModel, cancellationToken);
         }
     }
 }

@@ -1,5 +1,6 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -13,11 +14,14 @@ namespace Roslynator.CSharp.Analysis.UnusedMember
 {
     internal class UnusedMemberWalker : CSharpSyntaxNodeWalker
     {
+        [ThreadStatic]
+        private static UnusedMemberWalker _cachedInstance;
+
         private bool _isEmpty;
 
         private IMethodSymbol _containingMethodSymbol;
 
-        public Collection<NodeSymbolInfo> Nodes { get; } = new Collection<NodeSymbolInfo>();
+        public Collection<NodeSymbolInfo> Nodes { get; } = new();
 
         public SemanticModel SemanticModel { get; set; }
 
@@ -114,8 +118,8 @@ namespace Roslynator.CSharp.Analysis.UnusedMember
 
                         symbol = symbol.OriginalDefinition;
 
-                        if (info.Symbol.Equals(symbol)
-                            && _containingMethodSymbol?.Equals(symbol) != true)
+                        if (SymbolEqualityComparer.Default.Equals(info.Symbol, symbol)
+                            && !SymbolEqualityComparer.Default.Equals(_containingMethodSymbol, symbol))
                         {
                             RemoveNodeAt(i);
                         }
@@ -133,8 +137,8 @@ namespace Roslynator.CSharp.Analysis.UnusedMember
                         {
                             ISymbol symbol = candidateSymbols[j].OriginalDefinition;
 
-                            if (info.Symbol.Equals(symbol)
-                                && _containingMethodSymbol?.Equals(symbol) != true)
+                            if (SymbolEqualityComparer.Default.Equals(info.Symbol, symbol)
+                                && !SymbolEqualityComparer.Default.Equals(_containingMethodSymbol, symbol))
                             {
                                 RemoveNodeAt(i);
                             }
@@ -240,6 +244,12 @@ namespace Roslynator.CSharp.Analysis.UnusedMember
             VisitMembers(node.Members);
         }
 
+        public override void VisitRecordDeclaration(RecordDeclarationSyntax node)
+        {
+            VisitAttributeLists(node.AttributeLists);
+            VisitMembers(node.Members);
+        }
+
         public override void VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
             VisitAttributeLists(node.AttributeLists);
@@ -256,6 +266,27 @@ namespace Roslynator.CSharp.Analysis.UnusedMember
                 return;
 
             VisitParameterList(node.ParameterList);
+        }
+
+        public override void VisitEventDeclaration(EventDeclarationSyntax node)
+        {
+            VisitAttributeLists(node.AttributeLists);
+
+            if (!ShouldVisit)
+                return;
+
+            TypeSyntax type = node.Type;
+
+            if (type != null)
+                VisitType(type);
+
+            if (!ShouldVisit)
+                return;
+
+            AccessorListSyntax accessorList = node.AccessorList;
+
+            if (accessorList != null)
+                VisitAccessorList(accessorList);
         }
 
         public override void VisitEventFieldDeclaration(EventFieldDeclarationSyntax node)
@@ -430,6 +461,31 @@ namespace Roslynator.CSharp.Analysis.UnusedMember
             _containingMethodSymbol = null;
         }
 
+        public override void VisitStackAllocArrayCreationExpression(StackAllocArrayCreationExpressionSyntax node)
+        {
+            TypeSyntax type = node.Type;
+
+            if (type != null)
+            {
+                if (type.IsKind(SyntaxKind.ArrayType))
+                {
+                    VisitArrayType((ArrayTypeSyntax)type);
+                }
+                else
+                {
+                    VisitType(type);
+                }
+            }
+
+            if (!ShouldVisit)
+                return;
+
+            InitializerExpressionSyntax initializer = node.Initializer;
+
+            if (initializer != null)
+                VisitInitializerExpression(initializer);
+        }
+
         private void VisitMembers(SyntaxList<MemberDeclarationSyntax> members)
         {
             foreach (MemberDeclarationSyntax memberDeclaration in members)
@@ -450,6 +506,31 @@ namespace Roslynator.CSharp.Analysis.UnusedMember
 
                 VisitAttributeList(attributeList);
             }
+        }
+
+        public static UnusedMemberWalker GetInstance()
+        {
+            UnusedMemberWalker walker = _cachedInstance;
+
+            if (walker != null)
+            {
+                Debug.Assert(walker._containingMethodSymbol == null);
+                Debug.Assert(walker.Nodes.Count == 0);
+                Debug.Assert(walker.SemanticModel == null);
+                Debug.Assert(walker.CancellationToken == default);
+
+                _cachedInstance = null;
+                return walker;
+            }
+
+            return new UnusedMemberWalker();
+        }
+
+        public static void Free(UnusedMemberWalker walker)
+        {
+            walker.Reset();
+
+            _cachedInstance = walker;
         }
     }
 }

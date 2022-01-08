@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -10,17 +10,17 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, ConstructorDeclarationSyntax constructorDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseExpressionBodiedMember)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertBlockBodyToExpressionBody)
                 && context.SupportsCSharp6
-                && UseExpressionBodiedMemberRefactoring.CanRefactor(constructorDeclaration, context.Span))
+                && ConvertBlockBodyToExpressionBodyRefactoring.CanRefactor(constructorDeclaration, context.Span))
             {
                 context.RegisterRefactoring(
-                    UseExpressionBodiedMemberRefactoring.Title,
-                    cancellationToken => UseExpressionBodiedMemberRefactoring.RefactorAsync(context.Document, constructorDeclaration, cancellationToken),
-                    RefactoringIdentifiers.UseExpressionBodiedMember);
+                    ConvertBlockBodyToExpressionBodyRefactoring.Title,
+                    ct => ConvertBlockBodyToExpressionBodyRefactoring.RefactorAsync(context.Document, constructorDeclaration, ct),
+                    RefactoringDescriptors.ConvertBlockBodyToExpressionBody);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.CopyDocumentationCommentFromBaseMember)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.CopyDocumentationCommentFromBaseMember)
                 && constructorDeclaration.HeaderSpan().Contains(context.Span)
                 && !constructorDeclaration.HasDocumentationComment())
             {

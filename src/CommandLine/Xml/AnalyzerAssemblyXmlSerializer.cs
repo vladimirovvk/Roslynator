@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -18,24 +18,26 @@ namespace Roslynator.CommandLine.Xml
     internal static class AnalyzerAssemblyXmlSerializer
     {
         public static void Serialize(
+            string filePath,
             IList<AnalyzerAssemblyInfo> analyzerAssemblies,
-            string filePath)
+            IFormatProvider formatProvider = null)
         {
-            var analyzerAssemblyElements = new XElement("AnalyzerAssemblies", analyzerAssemblies.Select(f => SerializeAnalyzerAssembly(f)));
+            var analyzerAssemblyElements = new XElement("AnalyzerAssemblies", analyzerAssemblies.Select(f => SerializeAnalyzerAssembly(f, formatProvider)));
 
             DiagnosticMap map = DiagnosticMap.Create(analyzerAssemblies.Select(f => f.AnalyzerAssembly));
 
             XElement diagnosticsElement = SerializeDiagnostics(
                 map,
                 allProperties: true,
-                useAssemblyQualifiedName: true);
+                useAssemblyQualifiedName: true,
+                formatProvider: formatProvider);
 
             XElement fixAllProvidersElement = SerializeFixAllProviders(map.FixAllProviders);
 
             SerializeDocument(filePath, analyzerAssemblyElements, diagnosticsElement, fixAllProvidersElement);
         }
 
-        private static XElement SerializeAnalyzerAssembly(AnalyzerAssemblyInfo analyzerAssemblyInfo)
+        private static XElement SerializeAnalyzerAssembly(AnalyzerAssemblyInfo analyzerAssemblyInfo, IFormatProvider formatProvider)
         {
             AnalyzerAssembly analyzerAssembly = analyzerAssemblyInfo.AnalyzerAssembly;
 
@@ -48,40 +50,48 @@ namespace Roslynator.CommandLine.Xml
                 new XElement("Summary", SerializeSummary()),
                 new XElement("Analyzers", SerializeDiagnosticAnalyzers()),
                 new XElement("Fixers", SerializeCodeFixProviders()),
-                SerializeDiagnostics(map, allProperties: false, useAssemblyQualifiedName: false));
+                SerializeDiagnostics(map, allProperties: false, useAssemblyQualifiedName: false, formatProvider: formatProvider));
 
             IEnumerable<XElement> SerializeSummary()
             {
                 if (analyzerAssembly.HasAnalyzers)
                 {
-                    yield return new XElement("Analyzers",
+                    yield return new XElement(
+                        "Analyzers",
                         new XAttribute("Count", map.Analyzers.Length),
-                        new XElement("Languages",
+                        new XElement(
+                            "Languages",
                             analyzerAssembly.AnalyzersByLanguage
                                 .OrderBy(f => f.Key)
                                 .Select(f => new XElement("Language", new XAttribute("Name", f.Key), new XAttribute("Count", f.Value.Length)))),
-                        new XElement("SupportedDiagnostics",
-                        new XAttribute("Count", map.SupportedDiagnostics.Length),
-                        new XElement("Prefixes",
-                            map.SupportedDiagnosticsByPrefix
-                                .OrderBy(f => f.Key)
-                                .Select(f => new XElement("Prefix", new XAttribute("Value", f.Key), new XAttribute("Count", f.Value.Length))))));
+                        new XElement(
+                            "SupportedDiagnostics",
+                            new XAttribute("Count", map.SupportedDiagnostics.Length),
+                            new XElement(
+                                "Prefixes",
+                                map.SupportedDiagnosticsByPrefix
+                                    .OrderBy(f => f.Key)
+                                    .Select(f => new XElement("Prefix", new XAttribute("Value", f.Key), new XAttribute("Count", f.Value.Length))))));
                 }
 
                 if (analyzerAssembly.HasFixers)
                 {
-                    yield return new XElement("Fixers",
+                    yield return new XElement(
+                        "Fixers",
                         new XAttribute("Count", map.Fixers.Length),
-                        new XElement("Languages",
+                        new XElement(
+                            "Languages",
                             analyzerAssembly.FixersByLanguage
                                 .OrderBy(f => f.Key)
                                 .Select(f => new XElement("Language", new XAttribute("Name", f.Key), new XAttribute("Count", f.Value.Length)))),
-                        new XElement("FixableDiagnostics",
-                        new XAttribute("Count", map.FixableDiagnosticIds.Length),
-                        new XElement("Prefixes",
-                            map.FixableDiagnosticIdsByPrefix
-                                .OrderBy(f => f.Key)
-                                .Select(f => new XElement("Prefix", new XAttribute("Value", f.Key), new XAttribute("Count", f.Value.Length))))));
+                        new XElement(
+                            "FixableDiagnostics",
+                            new XAttribute("Count", map.FixableDiagnosticIds.Length),
+                            new XElement(
+                                "Prefixes",
+                                map.FixableDiagnosticIdsByPrefix
+                                    .OrderBy(f => f.Key)
+                                    .Select(f => new XElement("Prefix", new XAttribute("Value", f.Key), new XAttribute("Count", f.Value.Length))))));
                 }
             }
 
@@ -93,10 +103,12 @@ namespace Roslynator.CommandLine.Xml
 
                     DiagnosticAnalyzerAttribute attribute = type.GetCustomAttribute<DiagnosticAnalyzerAttribute>();
 
-                    yield return new XElement("Analyzer",
+                    yield return new XElement(
+                        "Analyzer",
                         new XAttribute("Name", type.FullName),
                         new XElement("Languages", attribute.Languages.Select(f => new XElement("Language", f))),
-                        new XElement("SupportedDiagnostics",
+                        new XElement(
+                            "SupportedDiagnostics",
                             analyzer.SupportedDiagnostics
                                 .Select(f => f.Id)
                                 .Distinct()
@@ -113,17 +125,20 @@ namespace Roslynator.CommandLine.Xml
 
                     ExportCodeFixProviderAttribute attribute = type.GetCustomAttribute<ExportCodeFixProviderAttribute>();
 
-                    yield return new XElement("Fixer",
+                    yield return new XElement(
+                        "Fixer",
                         new XAttribute("Name", type.FullName),
                         new XElement("Languages", attribute.Languages.Select(f => new XElement("Language", f))),
-                        new XElement("FixableDiagnostics", fixer.FixableDiagnosticIds
-                            .Distinct()
-                            .OrderBy(f => f)
-                            .Select(f => new XElement("Id", f))),
+                        new XElement(
+                            "FixableDiagnostics",
+                            fixer.FixableDiagnosticIds
+                                .Distinct()
+                                .OrderBy(f => f)
+                                .Select(f => new XElement("Id", f))),
                         CreateFixAllProviderElement(fixer));
                 }
 
-                XElement CreateFixAllProviderElement(CodeFixProvider fixer)
+                static XElement CreateFixAllProviderElement(CodeFixProvider fixer)
                 {
                     FixAllProvider fixAllProvider = fixer.GetFixAllProvider();
 
@@ -140,12 +155,14 @@ namespace Roslynator.CommandLine.Xml
         private static XElement SerializeDiagnostics(
             DiagnosticMap map,
             bool allProperties = true,
-            bool useAssemblyQualifiedName = false)
+            bool useAssemblyQualifiedName = false,
+            IFormatProvider formatProvider = null)
         {
-            return new XElement("Diagnostics",
+            return new XElement(
+                "Diagnostics",
                 map.DiagnosticsById
                     .OrderBy(f => f.Key)
-                    .Select(f => SerializeDiagnostic(f.Key, f.Value, map, allProperties: allProperties, useAssemblyQualifiedName: useAssemblyQualifiedName)));
+                    .Select(f => SerializeDiagnostic(f.Key, f.Value, map, allProperties: allProperties, useAssemblyQualifiedName: useAssemblyQualifiedName, formatProvider)));
         }
 
         private static XElement SerializeDiagnostic(
@@ -153,19 +170,20 @@ namespace Roslynator.CommandLine.Xml
             DiagnosticDescriptor descriptor,
             DiagnosticMap map,
             bool allProperties = true,
-            bool useAssemblyQualifiedName = false)
+            bool useAssemblyQualifiedName = false,
+            IFormatProvider formatProvider = null)
         {
             var element = new XElement("Diagnostic", new XAttribute("Id", diagnosticId));
 
             if (descriptor != null)
             {
-                string title = descriptor.Title?.ToString();
-                string messageFormat = descriptor.MessageFormat?.ToString();
+                string title = descriptor.Title?.ToString(formatProvider);
+                string messageFormat = descriptor.MessageFormat?.ToString(formatProvider);
 
                 if (string.IsNullOrEmpty(title))
                     title = messageFormat;
 
-                string description = descriptor.Description?.ToString();
+                string description = descriptor.Description?.ToString(formatProvider);
 
                 element.Add(new XAttribute("Title", title));
 
@@ -216,7 +234,8 @@ namespace Roslynator.CommandLine.Xml
 
         private static XElement SerializeFixAllProvider(FixAllProvider fixAllProvider)
         {
-            return new XElement("FixAllProvider",
+            return new XElement(
+                "FixAllProvider",
                 new XAttribute("Name", fixAllProvider.GetType().AssemblyQualifiedName),
                 new XElement("Scopes", fixAllProvider.GetSupportedFixAllScopes().Select(f => f.ToString()).OrderBy(f => f).Select(f => new XElement("Scope", f))));
         }
@@ -228,13 +247,15 @@ namespace Roslynator.CommandLine.Xml
             XElement fixAllProviders)
         {
             var document = new XDocument(
-                new XElement("Roslynator",
-                new XElement("AnalyzerAssemblyAnalysis",
-                    analyzerAssemblies,
-                    diagnostics,
-                    fixAllProviders)));
+                new XElement(
+                    "Roslynator",
+                    new XElement(
+                        "AnalyzerAssemblyAnalysis",
+                        analyzerAssemblies,
+                        diagnostics,
+                        fixAllProviders)));
 
-            WriteLine($"Save analyzer assembly analysis to '{filePath}'", ConsoleColor.DarkGray, Verbosity.Diagnostic);
+            WriteLine($"Save analyzer assembly analysis to '{filePath}'", ConsoleColors.DarkGray, Verbosity.Diagnostic);
 
             using (var fileStream = new FileStream(filePath, FileMode.Create))
             using (XmlWriter xmlWriter = XmlWriter.Create(fileStream, new XmlWriterSettings() { Indent = true, CloseOutput = false }))

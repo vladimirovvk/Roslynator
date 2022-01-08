@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ namespace Roslynator.Documentation
             AdditionalOptions = additionalOptions;
         }
 
-        internal static SymbolComparer TypeWithoutNamespace { get; } = new SymbolComparer(TypeSymbolDisplayFormats.Name_ContainingTypes_TypeParameters, systemNamespaceFirst: false, includeNamespaces: false, SymbolDisplayAdditionalMemberOptions.None);
+        internal static SymbolComparer TypeWithoutNamespace { get; } = new(TypeSymbolDisplayFormats.Name_ContainingTypes_TypeParameters, systemNamespaceFirst: false, includeNamespaces: false, SymbolDisplayAdditionalMemberOptions.None);
 
         public static SymbolComparer Create(
             bool systemNamespaceFirst = true,
@@ -49,7 +49,7 @@ namespace Roslynator.Documentation
             if (y == null)
                 return 1;
 
-            int diff = 0;
+            int diff;
 
             if (IncludeNamespaces)
             {

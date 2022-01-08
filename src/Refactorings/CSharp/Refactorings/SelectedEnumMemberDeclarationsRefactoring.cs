@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -16,10 +16,10 @@ namespace Roslynator.CSharp.Refactorings
 
             if (selection.Count > 1)
             {
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.SortMemberDeclarations))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.SortMemberDeclarations))
                     await SortEnumMemberDeclarationsRefactoring.ComputeRefactoringAsync(context, enumDeclaration, selection).ConfigureAwait(false);
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.GenerateCombinedEnumMember))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.GenerateCombinedEnumMember))
                 {
                     SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
@@ -27,7 +27,7 @@ namespace Roslynator.CSharp.Refactorings
                 }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveEnumMemberValue))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveEnumMemberValue))
                 RemoveEnumMemberValueRefactoring.ComputeRefactoring(context, enumDeclaration, selection);
         }
     }

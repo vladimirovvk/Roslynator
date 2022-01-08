@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -18,6 +18,8 @@ namespace Roslynator
         public static SymbolDefinitionComparer Default { get; } = new DefaultSymbolDefinitionComparer(SymbolDefinitionSortOptions.None);
 
         public static SymbolDefinitionComparer SystemFirst { get; } = new DefaultSymbolDefinitionComparer(SymbolDefinitionSortOptions.SystemFirst);
+
+        public static SymbolDefinitionComparer OmitContainingNamespace { get; } = new DefaultSymbolDefinitionComparer(SymbolDefinitionSortOptions.OmitContainingNamespace);
 
         public static SymbolDefinitionComparer SystemFirstOmitContainingNamespace { get; } = new DefaultSymbolDefinitionComparer(SymbolDefinitionSortOptions.SystemFirst | SymbolDefinitionSortOptions.OmitContainingNamespace);
 

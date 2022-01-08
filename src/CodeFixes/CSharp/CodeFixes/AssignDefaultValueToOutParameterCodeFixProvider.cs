@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -22,21 +22,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AssignDefaultValueToOutParameterCodeFixProvider))]
     [Shared]
-    public class AssignDefaultValueToOutParameterCodeFixProvider : BaseCodeFixProvider
+    public sealed class AssignDefaultValueToOutParameterCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.OutParameterMustBeAssignedToBeforeControlLeavesCurrentMethod); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0177_OutParameterMustBeAssignedToBeforeControlLeavesCurrentMethod); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AssignDefaultValueToOutParameter))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AssignDefaultValueToOutParameter, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(
                 root,
@@ -87,7 +87,7 @@ namespace Roslynator.CSharp.CodeFixes
             ImmutableArray<ISymbol> alwaysAssigned = dataFlowAnalysis.AlwaysAssigned;
 
             IParameterSymbol singleParameter = null;
-            bool isAny = false;
+            var isAny = false;
             foreach (IParameterSymbol parameter in parameters)
             {
                 if (parameter.RefKind == RefKind.Out
@@ -115,8 +115,8 @@ namespace Roslynator.CSharp.CodeFixes
                 (singleParameter != null)
                     ? $"Assign default value to parameter '{singleParameter.Name}'"
                     : "Assign default value to parameters",
-                cancellationToken => RefactorAsync(context.Document, node, statement, bodyOrExpressionBody, parameters, alwaysAssigned, semanticModel, cancellationToken),
-                base.GetEquivalenceKey(diagnostic));
+                ct => RefactorAsync(context.Document, node, statement, bodyOrExpressionBody, parameters, alwaysAssigned, semanticModel, ct),
+                GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);
         }
@@ -139,7 +139,7 @@ namespace Roslynator.CSharp.CodeFixes
             ImmutableArray<IParameterSymbol> parameterSymbols,
             ImmutableArray<ISymbol> alwaysAssigned,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IEnumerable<ExpressionStatementSyntax> expressionStatements = parameterSymbols
                 .Where(f => f.RefKind == RefKind.Out && !alwaysAssigned.Contains(f))
@@ -156,7 +156,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             if (bodyOrExpressionBody is ArrowExpressionClauseSyntax expressionBody)
             {
-                newNode = ExpandExpressionBodyRefactoring.Refactor(expressionBody, semanticModel, cancellationToken);
+                newNode = ConvertExpressionBodyToBlockBodyRefactoring.Refactor(expressionBody, semanticModel, cancellationToken);
 
                 newNode = InsertStatements(newNode, expressionStatements);
             }

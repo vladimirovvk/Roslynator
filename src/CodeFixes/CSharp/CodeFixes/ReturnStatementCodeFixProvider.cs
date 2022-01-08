@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,20 +15,20 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ReturnStatementCodeFixProvider))]
     [Shared]
-    public class ReturnStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class ReturnStatementCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.CannotReturnValueFromIterator,
-                    CompilerDiagnosticIdentifiers.SinceMethodReturnsVoidReturnKeywordMustNotBeFollowedByObjectExpression,
-                    CompilerDiagnosticIdentifiers.SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression);
+                    CompilerDiagnosticIdentifiers.CS1622_CannotReturnValueFromIterator,
+                    CompilerDiagnosticIdentifiers.CS0127_SinceMethodReturnsVoidReturnKeywordMustNotBeFollowedByObjectExpression,
+                    CompilerDiagnosticIdentifiers.CS1997_SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -39,9 +39,9 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.CannotReturnValueFromIterator:
+                    case CompilerDiagnosticIdentifiers.CS1622_CannotReturnValueFromIterator:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseYieldReturnInsteadOfReturn))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseYieldReturnInsteadOfReturn, context.Document, root.SyntaxTree))
                                 break;
 
                             ExpressionSyntax expression = returnStatement.Expression;
@@ -96,7 +96,7 @@ namespace Roslynator.CSharp.CodeFixes
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Use yield return instead of return",
-                                            cancellationToken => UseYieldReturnInsteadOfReturnRefactoring.RefactorAsync(context.Document, returnStatement, replacementKind, semanticModel, cancellationToken),
+                                            ct => UseYieldReturnInsteadOfReturnRefactoring.RefactorAsync(context.Document, returnStatement, replacementKind, semanticModel, ct),
                                             GetEquivalenceKey(diagnostic));
 
                                         context.RegisterCodeFix(codeAction, diagnostic);
@@ -106,76 +106,14 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.SinceMethodReturnsVoidReturnKeywordMustNotBeFollowedByObjectExpression:
-                    case CompilerDiagnosticIdentifiers.SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression:
+                    case CompilerDiagnosticIdentifiers.CS0127_SinceMethodReturnsVoidReturnKeywordMustNotBeFollowedByObjectExpression:
+                    case CompilerDiagnosticIdentifiers.CS1997_SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression:
                         {
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression, context.Document, root.SyntaxTree))
                             {
                                 ChangeMemberTypeRefactoring.ComputeCodeFix(context, diagnostic, returnStatement.Expression, semanticModel);
-                            }
-
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveReturnExpression))
-                            {
-                                ISymbol symbol = semanticModel.GetEnclosingSymbol(returnStatement.SpanStart, context.CancellationToken);
-
-                                if (symbol?.Kind == SymbolKind.Method)
-                                {
-                                    var methodSymbol = (IMethodSymbol)symbol;
-
-                                    if (methodSymbol.ReturnsVoid
-                                        || methodSymbol.ReturnType.HasMetadataName(MetadataNames.System_Threading_Tasks_Task))
-                                    {
-                                        CodeAction codeAction = CodeAction.Create(
-                                            "Remove return expression",
-                                            cancellationToken =>
-                                            {
-                                                ReturnStatementSyntax newNode = returnStatement
-                                                    .WithExpression(null)
-                                                    .WithFormatterAnnotation();
-
-                                                return context.Document.ReplaceNodeAsync(returnStatement, newNode, cancellationToken);
-                                            },
-                                            GetEquivalenceKey(diagnostic, CodeFixIdentifiers.RemoveReturnExpression));
-
-                                        context.RegisterCodeFix(codeAction, diagnostic);
-                                    }
-                                }
-                            }
-
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveReturnKeyword))
-                            {
-                                ExpressionSyntax expression = returnStatement.Expression;
-
-                                if (expression.IsKind(
-                                        SyntaxKind.InvocationExpression,
-                                        SyntaxKind.ObjectCreationExpression,
-                                        SyntaxKind.PreDecrementExpression,
-                                        SyntaxKind.PreIncrementExpression,
-                                        SyntaxKind.PostDecrementExpression,
-                                        SyntaxKind.PostIncrementExpression)
-                                    || expression is AssignmentExpressionSyntax)
-                                {
-                                    CodeAction codeAction = CodeAction.Create(
-                                        "Remove 'return'",
-                                        cancellationToken =>
-                                        {
-                                            SyntaxTriviaList leadingTrivia = returnStatement
-                                                .GetLeadingTrivia()
-                                                .AddRange(returnStatement.ReturnKeyword.TrailingTrivia.EmptyIfWhitespace())
-                                                .AddRange(expression.GetLeadingTrivia().EmptyIfWhitespace());
-
-                                            ExpressionStatementSyntax newNode = SyntaxFactory.ExpressionStatement(
-                                                expression.WithLeadingTrivia(leadingTrivia),
-                                                returnStatement.SemicolonToken);
-
-                                            return context.Document.ReplaceNodeAsync(returnStatement, newNode, cancellationToken);
-                                        },
-                                        GetEquivalenceKey(diagnostic, CodeFixIdentifiers.RemoveReturnKeyword));
-
-                                    context.RegisterCodeFix(codeAction, diagnostic);
-                                }
                             }
 
                             break;

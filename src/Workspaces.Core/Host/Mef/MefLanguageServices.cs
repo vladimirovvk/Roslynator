@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -48,15 +48,18 @@ namespace Roslynator.Host.Mef
         {
             if (!_serviceMap.TryGetValue(serviceType, out service))
             {
-                service = ImmutableInterlocked.GetOrAdd(ref _serviceMap, serviceType, type =>
-                {
-                    string fullName = type.FullName;
+                service = ImmutableInterlocked.GetOrAdd(
+                    ref _serviceMap,
+                    serviceType,
+                    type =>
+                    {
+                        string fullName = type.FullName;
 
-                    return _services.SingleOrDefault(lz => lz.Metadata.ServiceType == fullName, shouldThrow: false);
-                });
+                        return _services.SingleOrDefault(lz => lz.Metadata.ServiceType == fullName, shouldThrow: false);
+                    });
             }
 
-            return service != default(Lazy<ILanguageService, LanguageServiceMetadata>);
+            return service != default;
         }
     }
 }

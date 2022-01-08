@@ -1,26 +1,21 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1202AvoidNullReferenceExceptionTests2 : AbstractCSharpFixVerifier
+    public class RCS1202AvoidNullReferenceExceptionTests2 : AbstractCSharpDiagnosticVerifier<AvoidNullReferenceExceptionAnalyzer, AvoidNullReferenceExceptionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.AvoidNullReferenceException;
-
-        public override CodeFixProvider FixProvider { get; } = new AvoidNullReferenceExceptionCodeFixProvider();
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new AvoidNullReferenceExceptionAnalyzer();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.AvoidNullReferenceException;
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.AvoidNullReferenceException)]
         [InlineData("(x as string)[|.|]ToString()", "(x as string)?.ToString()")]
         [InlineData("(x as string)[|[[|]0]", "(x as string)?[0]")]
-        public async Task Test_AsExpression(string fromData, string toData)
+        public async Task Test_AsExpression(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 using System.Collections.Generic;
@@ -34,13 +29,31 @@ class C
         var y = [||];
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AvoidNullReferenceException)]
         public async Task Test_AwaitExpression()
         {
             await VerifyDiagnosticAsync(@"
+using System.Threading.Tasks;
+
+static class C
+{
+    public static async Task M(object x)
+    {
+        await (x as string)[|.|]M2().ConfigureAwait(true);
+    }
+
+    public static async Task M2(this string s) => await Task.CompletedTask;
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AvoidNullReferenceException)]
+        public async Task TestNoFix_AwaitExpression()
+        {
+            await VerifyDiagnosticAndNoFixAsync(@"
 using System.Threading.Tasks;
 
 static class C
@@ -97,19 +110,41 @@ class B<T>
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AvoidNullReferenceException)]
-        public async Task TestNoFix_AwaitExpression()
+        public async Task TestNoDiagnostic_ExtensionMethod()
         {
-            await VerifyNoFixAsync(@"
-using System.Threading.Tasks;
-
-static class C
+            await VerifyNoDiagnosticAsync(@"
+class C
 {
-    public static async Task M(object x)
+    void M()
     {
-        await (x as string).M2().ConfigureAwait(true);
-    }
+        object x = null;
 
-    public static async Task M2(this string s) => await Task.CompletedTask;
+        (x as C).EM();
+    }
+}
+
+static class E
+{
+    public static C EM(this C c) => c;
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.AvoidNullReferenceException)]
+        public async Task TestNoDiagnostic_ThisCastedToItsInterface()
+        {
+            await VerifyNoDiagnosticAsync(@"
+interface I
+{
+    void M();
+}
+
+class C : I
+{
+    public void M() 
+    {
+        (this as I).M();
+    }
 }
 ");
         }

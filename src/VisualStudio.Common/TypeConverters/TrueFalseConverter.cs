@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.ComponentModel;
@@ -14,10 +14,10 @@ namespace Roslynator.VisualStudio.TypeConverters
 
         public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
         {
-            if (value is bool
+            if (value is bool boolValue
                 && destinationType == typeof(string))
             {
-                return ((bool)value) ? TrueText : FalseText;
+                return boolValue ? TrueText : FalseText;
             }
 
             return base.ConvertTo(context, culture, value, destinationType);

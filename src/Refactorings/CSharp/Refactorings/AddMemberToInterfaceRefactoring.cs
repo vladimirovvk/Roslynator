@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -71,7 +71,7 @@ namespace Roslynator.CSharp.Refactorings
                 : null;
 
             ISymbol memberSymbol = (memberDeclaration is EventFieldDeclarationSyntax eventFieldDeclaration)
-                ? semanticModel.GetDeclaredSymbol(eventFieldDeclaration.Declaration.Variables.First())
+                ? semanticModel.GetDeclaredSymbol(eventFieldDeclaration.Declaration.Variables[0])
                 : semanticModel.GetDeclaredSymbol(memberDeclaration);
 
             if (memberSymbol == null)
@@ -112,10 +112,10 @@ namespace Roslynator.CSharp.Refactorings
             if (interfaceSymbol.Language != LanguageNames.CSharp)
                 return false;
 
-            if (!(interfaceSymbol.GetSyntaxOrDefault(context.CancellationToken) is InterfaceDeclarationSyntax interfaceDeclaration))
+            if (interfaceSymbol.GetSyntaxOrDefault(context.CancellationToken) is not InterfaceDeclarationSyntax interfaceDeclaration)
                 return false;
 
-            if (interfaceSymbol.Equals(explicitInterfaceSymbol))
+            if (SymbolEqualityComparer.Default.Equals(interfaceSymbol, explicitInterfaceSymbol))
                 return false;
 
             ImmutableArray<ISymbol> members = interfaceSymbol.GetMembers();
@@ -128,26 +128,26 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     ISymbol symbol = memberSymbol.ContainingType.FindImplementationForInterfaceMember(members[i]);
 
-                    if (memberSymbol.OriginalDefinition.Equals(symbol?.OriginalDefinition))
+                    if (SymbolEqualityComparer.Default.Equals(memberSymbol.OriginalDefinition, symbol?.OriginalDefinition))
                         return false;
                 }
             }
 
-            string displayName = SymbolDisplay.ToMinimalDisplayString(interfaceSymbol.OriginalDefinition, semanticModel, type.SpanStart, SymbolDisplayFormats.Default);
+            string displayName = SymbolDisplay.ToMinimalDisplayString(interfaceSymbol.OriginalDefinition, semanticModel, type.SpanStart, SymbolDisplayFormats.DisplayName);
 
             Document document = context.Document;
             string title = $"Add to interface '{displayName}'";
-            string equivalenceKey = RefactoringIdentifiers.AddMemberToInterface + "." + displayName;
+            string equivalenceKey = RefactoringDescriptors.AddMemberToInterface + "." + displayName;
 
             if (memberDeclaration.SyntaxTree == interfaceDeclaration.SyntaxTree)
             {
                 context.RegisterRefactoring(
                     title,
-                    cancellationToken =>
+                    ct =>
                     {
                         InterfaceDeclarationSyntax newNode = CreateNewNode(memberDeclaration, interfaceDeclaration);
 
-                        return document.ReplaceNodeAsync(interfaceDeclaration, newNode, cancellationToken);
+                        return document.ReplaceNodeAsync(interfaceDeclaration, newNode, ct);
                     },
                     equivalenceKey);
             }
@@ -155,11 +155,11 @@ namespace Roslynator.CSharp.Refactorings
             {
                 context.RegisterRefactoring(
                     title,
-                    cancellationToken =>
+                    ct =>
                     {
                         InterfaceDeclarationSyntax newNode = CreateNewNode(memberDeclaration, interfaceDeclaration);
 
-                        return document.Solution().ReplaceNodeAsync(interfaceDeclaration, newNode, cancellationToken);
+                        return document.Solution().ReplaceNodeAsync(interfaceDeclaration, newNode, ct);
                     },
                     equivalenceKey);
             }

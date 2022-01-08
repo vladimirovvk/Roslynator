@@ -1,7 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -23,7 +24,7 @@ class C
 {
     internal string M() => null;
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, nameof(Accessibility.Internal)));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Internal)));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
@@ -47,7 +48,7 @@ class C : B
 {
     internal override string M() => null;
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, nameof(Accessibility.Internal)));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Internal)));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
@@ -65,7 +66,43 @@ class C
     public override string ToString() => null;
     public string M() => null;
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, nameof(Accessibility.Public)));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Public)));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
+        public async Task Test_MultipleDeclarations_AllImplicit()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+[|    object M1() => null;
+    object M2() => null;|]
+}
+", @"
+class C
+{
+    private object M1() => null;
+    private object M2() => null;
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Private)));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
+        public async Task Test_MultipleDeclarations_AnyImplicit()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+[|    private object M1() => null;
+    object M2() => null;|]
+}
+", @"
+class C
+{
+    private object M1() => null;
+    private object M2() => null;
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Private)));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
@@ -76,7 +113,7 @@ class C
 {
     [||]public override string ToString() => null;
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
@@ -88,7 +125,7 @@ class C
 [|    public override string ToString() => null;
     public override int GetHashCode() => 0;|]
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
@@ -99,7 +136,7 @@ abstract class C
 {
     [||]public abstract string M();
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, nameof(Accessibility.Private)));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Private)));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
@@ -110,7 +147,7 @@ class C
 {
     [||]public virtual string M() => null;
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, nameof(Accessibility.Private)));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Private)));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeAccessibility)]
@@ -124,7 +161,7 @@ class B
 class C : B
 {
     [||]public override string M() => null;
-}", equivalenceKey: EquivalenceKey.Join(RefactoringId, nameof(Accessibility.Private)));
+}", equivalenceKey: EquivalenceKey.Create(RefactoringId, nameof(Accessibility.Private)));
         }
     }
 }

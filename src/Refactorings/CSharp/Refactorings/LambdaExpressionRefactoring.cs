@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,38 +10,38 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, LambdaExpressionSyntax lambda)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ExpandLambdaExpressionBody)
-                && ExpandLambdaExpressionBodyRefactoring.CanRefactor(context, lambda))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertLambdaExpressionBodyToBlockBody)
+                && ConvertLambdaExpressionBodyToBlockBodyRefactoring.CanRefactor(context, lambda))
             {
                 context.RegisterRefactoring(
-                    "Expand lambda expression body",
-                    cancellationToken =>
+                    "Use block body for lambda expressions",
+                    ct =>
                     {
-                        return ExpandLambdaExpressionBodyRefactoring.RefactorAsync(
+                        return ConvertLambdaExpressionBodyToBlockBodyRefactoring.RefactorAsync(
                             context.Document,
                             lambda,
                             (ExpressionSyntax)lambda.Body,
-                            cancellationToken);
+                            ct);
                     },
-                    RefactoringIdentifiers.ExpandLambdaExpressionBody);
+                    RefactoringDescriptors.ConvertLambdaExpressionBodyToBlockBody);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SimplifyLambdaExpression)
-                && SimplifyLambdaExpressionAnalysis.IsFixable(lambda))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertLambdaBlockBodyToExpressionBody)
+                && ConvertLambdaExpressionBodyToExpressionBodyAnalysis.IsFixable(lambda))
             {
                 context.RegisterRefactoring(
-                    "Simplify lambda expression",
-                    cancellationToken =>
+                    ConvertLambdaBlockBodyToExpressionBodyRefactoring.Title,
+                    ct =>
                     {
-                        return SimplifyLambdaExpressionRefactoring.RefactorAsync(
+                        return ConvertLambdaBlockBodyToExpressionBodyRefactoring.RefactorAsync(
                             context.Document,
                             lambda,
-                            cancellationToken);
+                            ct);
                     },
-                    RefactoringIdentifiers.SimplifyLambdaExpression);
+                    RefactoringDescriptors.ConvertLambdaBlockBodyToExpressionBody);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ExtractEventHandlerMethod)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ExtractEventHandlerMethod)
                 && context.Span.IsBetweenSpans(lambda)
                 && lambda is ParenthesizedLambdaExpressionSyntax parenthesizedLambda)
             {

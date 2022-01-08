@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,44 +14,42 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RemoveDuplicateAttributeCodeFixProvider))]
     [Shared]
-    public class RemoveDuplicateAttributeCodeFixProvider : BaseCodeFixProvider
+    public sealed class RemoveDuplicateAttributeCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.DuplicateAttribute); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0579_DuplicateAttribute); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveDuplicateAttribute))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveDuplicateAttribute, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out AttributeSyntax attribute))
                 return;
 
             SyntaxNode parent = attribute.Parent;
 
-            if (parent.IsKind(SyntaxKind.AttributeList))
+            if (parent is AttributeListSyntax attributeList)
             {
-                var attributeList = (AttributeListSyntax)parent;
-
                 CodeAction codeAction = CodeAction.Create(
                     "Remove duplicate attribute",
-                    cancellationToken =>
+                    ct =>
                     {
                         SeparatedSyntaxList<AttributeSyntax> attributes = attributeList.Attributes;
 
                         if (attributes.Count == 1)
                         {
-                            return context.Document.RemoveNodeAsync(attributeList, SyntaxRemoveOptions.KeepUnbalancedDirectives, cancellationToken);
+                            return context.Document.RemoveNodeAsync(attributeList, SyntaxRemoveOptions.KeepUnbalancedDirectives, ct);
                         }
                         else
                         {
-                            return context.Document.RemoveNodeAsync(attribute, SyntaxRemoveOptions.KeepUnbalancedDirectives, cancellationToken);
+                            return context.Document.RemoveNodeAsync(attribute, SyntaxRemoveOptions.KeepUnbalancedDirectives, ct);
                         }
                     },
                     GetEquivalenceKey(diagnostic));

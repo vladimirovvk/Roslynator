@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -18,11 +18,10 @@ namespace Roslynator
         /// <param name="syntaxTree"></param>
         /// <param name="span"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static int GetStartLine(
             this SyntaxTree syntaxTree,
             TextSpan span,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (syntaxTree == null)
                 throw new ArgumentNullException(nameof(syntaxTree));
@@ -36,11 +35,10 @@ namespace Roslynator
         /// <param name="syntaxTree"></param>
         /// <param name="span"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static int GetEndLine(
             this SyntaxTree syntaxTree,
             TextSpan span,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (syntaxTree == null)
                 throw new ArgumentNullException(nameof(syntaxTree));
@@ -54,11 +52,10 @@ namespace Roslynator
         /// <param name="syntaxTree"></param>
         /// <param name="span"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static bool IsMultiLineSpan(
             this SyntaxTree syntaxTree,
             TextSpan span,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (syntaxTree == null)
                 throw new ArgumentNullException(nameof(syntaxTree));
@@ -72,11 +69,10 @@ namespace Roslynator
         /// <param name="syntaxTree"></param>
         /// <param name="span"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static bool IsSingleLineSpan(
             this SyntaxTree syntaxTree,
             TextSpan span,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (syntaxTree == null)
                 throw new ArgumentNullException(nameof(syntaxTree));
@@ -87,7 +83,7 @@ namespace Roslynator
         internal static int GetLineCount(
             this SyntaxTree syntaxTree,
             TextSpan span,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (syntaxTree == null)
                 throw new ArgumentNullException(nameof(syntaxTree));

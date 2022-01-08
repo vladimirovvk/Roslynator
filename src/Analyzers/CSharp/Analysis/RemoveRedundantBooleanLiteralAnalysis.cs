@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,7 +16,7 @@ namespace Roslynator.CSharp.Analysis
             ExpressionSyntax left,
             ExpressionSyntax right)
         {
-            if (context.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveRedundantBooleanLiteral))
+            if (!DiagnosticRules.RemoveRedundantBooleanLiteral.IsEffective(context))
                 return;
 
             if (binaryExpression.SpanContainsDirectives())
@@ -24,8 +24,9 @@ namespace Roslynator.CSharp.Analysis
 
             TextSpan span = GetSpanToRemove(binaryExpression, left, right);
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.RemoveRedundantBooleanLiteral,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.RemoveRedundantBooleanLiteral,
                 Location.Create(binaryExpression.SyntaxTree, span),
                 binaryExpression.ToString(span));
         }

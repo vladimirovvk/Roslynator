@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using System.Linq;
@@ -15,10 +15,10 @@ namespace Roslynator.CSharp.Refactorings
     internal static class ChangeMemberTypeRefactoring
     {
         public static void ComputeCodeFix(
-             CodeFixContext context,
-             Diagnostic diagnostic,
-             ExpressionSyntax expression,
-             SemanticModel semanticModel)
+            CodeFixContext context,
+            Diagnostic diagnostic,
+            ExpressionSyntax expression,
+            SemanticModel semanticModel)
         {
             TypeInfo typeInfo = semanticModel.GetTypeInfo(expression, context.CancellationToken);
 
@@ -32,7 +32,7 @@ namespace Roslynator.CSharp.Refactorings
 
             (ISymbol symbol, ITypeSymbol typeSymbol) = GetContainingSymbolAndType(expression, semanticModel, context.CancellationToken);
 
-            Debug.Assert(symbol != null, expression.ToString());
+            SyntaxDebug.Assert(symbol != null, expression);
 
             if (symbol == null)
                 return;
@@ -57,9 +57,9 @@ namespace Roslynator.CSharp.Refactorings
 
             string additionalKey = null;
 
-            bool isAsyncMethod = false;
-            bool insertAwait = false;
-            bool isYield = false;
+            var isAsyncMethod = false;
+            var insertAwait = false;
+            var isYield = false;
 
             if (symbol.IsAsyncMethod())
             {
@@ -74,7 +74,7 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     newTypeSymbol = taskOfT.Construct(expressionTypeSymbol);
                 }
-                else if (expressionTypeSymbol.OriginalDefinition.Equals(taskOfT))
+                else if (SymbolEqualityComparer.Default.Equals(expressionTypeSymbol, taskOfT))
                 {
                     insertAwait = true;
                     additionalKey = "InsertAwait";
@@ -124,44 +124,49 @@ namespace Roslynator.CSharp.Refactorings
         {
             Document document = context.Document;
 
-            string typeName = SymbolDisplay.ToMinimalDisplayString(newTypeSymbol, semanticModel, type.SpanStart, SymbolDisplayFormats.Default);
+            string displayName = SymbolDisplay.ToMinimalDisplayString(newTypeSymbol, semanticModel, type.SpanStart, SymbolDisplayFormats.DisplayName);
 
-            string title = $"Change {GetText(node)} type to '{typeName}'";
+            string title = $"Change {GetText(node)} type to '{displayName}'";
 
             if (insertAwait)
                 title += " and insert 'await'";
 
             CodeAction codeAction = CodeAction.Create(
                 title,
-                cancellationToken =>
+                ct =>
                 {
                     SyntaxNode newNode = null;
 
-                    TypeSyntax newType = ParseTypeName(typeName).WithTriviaFrom(type);
+                    TypeSyntax newType = newTypeSymbol
+                        .ToTypeSyntax()
+                        .WithSimplifierAnnotation()
+                        .WithTriviaFrom(type);
 
                     if (insertAwait)
                     {
                         var nodes = new SyntaxNode[] { type, expression };
 
-                        newNode = node.ReplaceNodes(nodes, (f, _) =>
-                        {
-                            if (f == type)
+                        newNode = node.ReplaceNodes(
+                            nodes,
+                            (f, _) =>
                             {
-                                return newType;
-                            }
-                            else
-                            {
-                                return AwaitExpression(
-                                    Token(expression.GetLeadingTrivia(), SyntaxKind.AwaitKeyword, TriviaList(Space)),
-                                    expression.WithoutLeadingTrivia());
-                            }
-                        });
+                                if (f == type)
+                                {
+                                    return newType;
+                                }
+                                else
+                                {
+                                    return AwaitExpression(
+                                        Token(expression.GetLeadingTrivia(), SyntaxKind.AwaitKeyword, TriviaList(Space)),
+                                        expression.WithoutLeadingTrivia());
+                                }
+                            });
 
-                        return document.ReplaceNodeAsync(node, newNode, cancellationToken);
+                        return document.ReplaceNodeAsync(node, newNode, ct);
                     }
                     else
                     {
-                        return document.ReplaceNodeAsync(type, newType, cancellationToken);
+                        return document.ReplaceNodeAsync(type, newType, ct);
                     }
                 },
                 EquivalenceKey.Create(diagnostic, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression, additionalKey));
@@ -172,7 +177,7 @@ namespace Roslynator.CSharp.Refactorings
         private static (ISymbol symbol, ITypeSymbol typeSymbol) GetContainingSymbolAndType(
             ExpressionSyntax expression,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             switch (semanticModel.GetEnclosingSymbol(expression.SpanStart, cancellationToken))
             {
@@ -201,7 +206,7 @@ namespace Roslynator.CSharp.Refactorings
                     }
             }
 
-            Debug.Fail(expression.ToString());
+            SyntaxDebug.Fail(expression);
 
             return default((ISymbol, ITypeSymbol));
         }

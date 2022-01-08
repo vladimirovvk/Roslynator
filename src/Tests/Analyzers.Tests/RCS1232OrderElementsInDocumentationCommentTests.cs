@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1232OrderElementsInDocumentationCommentTests : AbstractCSharpFixVerifier
+    public class RCS1232OrderElementsInDocumentationCommentTests : AbstractCSharpDiagnosticVerifier<SingleLineDocumentationCommentTriviaAnalyzer, OrderElementsInDocumentationCommentCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.OrderElementsInDocumentationComment;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new SingleLineDocumentationCommentTriviaAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new OrderElementsInDocumentationCommentCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.OrderElementsInDocumentationComment;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.OrderElementsInDocumentationComment)]
         public async Task Test_Parameters()

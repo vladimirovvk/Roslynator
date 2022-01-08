@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 namespace Roslynator.VisualStudio
 {
@@ -23,7 +23,7 @@ namespace Roslynator.VisualStudio
 
         public string CodeFixTitle { get; }
 
-        public override string Id => _id ?? (_id = $"{CompilerDiagnosticId}.{CodeFixId}");
+        public override string Id => _id ??= $"{CompilerDiagnosticId}.{CodeFixId}";
 
         public override string NameToolTip => CompilerDiagnosticTitle;
     }

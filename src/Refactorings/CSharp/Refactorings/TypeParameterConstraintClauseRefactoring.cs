@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -8,10 +8,10 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactoring(RefactoringContext context, TypeParameterConstraintClauseSyntax constraintClause)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.FormatConstraintClauses)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.WrapConstraintClauses)
                 && (context.Span.IsEmptyAndContainedInSpanOrBetweenSpans(constraintClause)))
             {
-                FormatConstraintClausesRefactoring.ComputeRefactoring(context, constraintClause);
+                WrapConstraintClausesRefactoring.ComputeRefactoring(context, constraintClause);
             }
         }
     }

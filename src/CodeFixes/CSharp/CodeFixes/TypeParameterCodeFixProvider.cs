@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,21 +14,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(TypeParameterCodeFixProvider))]
     [Shared]
-    public class TypeParameterCodeFixProvider : BaseCodeFixProvider
+    public sealed class TypeParameterCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.TypeParameterHasSameNameAsTypeParameterFromOuterType); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0693_TypeParameterHasSameNameAsTypeParameterFromOuterType); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveTypeParameter))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveTypeParameter, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out TypeParameterSyntax typeParameter))
                 return;
@@ -40,7 +40,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 $"Remove type parameter '{name}'",
-                cancellationToken =>
+                ct =>
                 {
                     GenericInfo genericInfo = SyntaxInfo.GenericInfo(typeParameter);
 
@@ -51,7 +51,7 @@ namespace Roslynator.CSharp.CodeFixes
                     if (constraintClause != null)
                         newGenericInfo = newGenericInfo.RemoveConstraintClause(constraintClause);
 
-                    return context.Document.ReplaceNodeAsync(genericInfo.Node, newGenericInfo.Node, cancellationToken);
+                    return context.Document.ReplaceNodeAsync(genericInfo.Node, newGenericInfo.Node, ct);
                 },
                 GetEquivalenceKey(diagnostic));
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
@@ -23,7 +23,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
                 var newNode = (ExpressionSyntax)newValue;
 
                 if (!newNode.IsKind(SyntaxKind.IdentifierName, SyntaxKind.PredefinedType)
-                    && !node.IsParentKind(SyntaxKind.TypeArgumentList))
+                    && !node.IsParentKind(SyntaxKind.TypeArgumentList, SyntaxKind.TypeOfExpression))
                 {
                     newNode = newNode.Parenthesize();
                 }

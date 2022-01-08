@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -29,7 +29,7 @@ namespace Roslynator.CSharp.Refactorings
             ExpressionSyntax expression = invocation.Expression;
             ArgumentListSyntax argumentList = invocation.ArgumentList;
             SeparatedSyntaxList<ArgumentSyntax> arguments = argumentList.Arguments;
-            ArgumentSyntax argument = arguments.First();
+            ArgumentSyntax argument = arguments[0];
 
             MemberAccessExpressionSyntax newMemberAccess = CreateNewMemberAccessExpression();
 

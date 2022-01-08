@@ -1,26 +1,21 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Roslynator.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.CodeFixes.Tests
 {
-    public class CS1983ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfTTests : AbstractCSharpCompilerDiagnosticFixVerifier
+    public class CS1983ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfTTests : AbstractCSharpCompilerDiagnosticFixVerifier<ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfTCodeFixProvider>
     {
-        public CS1983ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfTTests()
+        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.CS1983_ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT;
+
+        public override CSharpTestOptions Options
         {
-            Options = base.Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression);
+            get { return base.Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.CS1997_SinceMethodIsAsyncMethodThatReturnsTaskReturnKeywordMustNotBeFollowedByObjectExpression); }
         }
 
-        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT;
-
-        public override CodeFixProvider FixProvider { get; } = new ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfTCodeFixProvider();
-
-        public override CodeVerificationOptions Options { get; }
-
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1983_ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT)]
         public async Task Test_Task()
         {
             await VerifyFixAsync(@"
@@ -110,7 +105,7 @@ public class Foo
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId, "Task"));
         }
 
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1983_ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT)]
         public async Task Test_TaskOfT()
         {
             await VerifyFixAsync(@"
@@ -216,7 +211,7 @@ public class Foo
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId, "TaskOfT"));
         }
 
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1983_ReturnTypeOfAsyncMethodMustBeVoidOrTaskOrTaskOfT)]
         public async Task TestNoFix()
         {
             const string source = @"

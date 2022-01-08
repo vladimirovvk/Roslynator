@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -72,22 +72,22 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
 
                 if (expression != null)
                 {
-                    context.RegisterRefactoring($"Inline {title}", cancellationToken => refactoring.InlineAsync(nodeIncludingConditionalAccess, expression, cancellationToken), GetEquivalenceKey());
+                    context.RegisterRefactoring($"Inline {title}", ct => refactoring.InlineAsync(nodeIncludingConditionalAccess, expression, ct), GetDescriptor());
 
-                    context.RegisterRefactoring($"Inline and remove {title}", cancellationToken => refactoring.InlineAndRemoveAsync(nodeIncludingConditionalAccess, expression, cancellationToken), EquivalenceKey.Join(GetEquivalenceKey(), "Remove"));
+                    context.RegisterRefactoring($"Inline and remove {title}", ct => refactoring.InlineAndRemoveAsync(nodeIncludingConditionalAccess, expression, ct), GetDescriptor(), "Remove");
                 }
                 else
                 {
                     var expressionStatement = (ExpressionStatementSyntax)nodeIncludingConditionalAccess.Parent;
 
-                    context.RegisterRefactoring($"Inline {title}", cancellationToken => refactoring.InlineAsync(expressionStatement, statements, cancellationToken), GetEquivalenceKey());
+                    context.RegisterRefactoring($"Inline {title}", ct => refactoring.InlineAsync(expressionStatement, statements, ct), GetDescriptor());
 
-                    context.RegisterRefactoring($"Inline and remove {title}", cancellationToken => refactoring.InlineAndRemoveAsync(expressionStatement, statements, cancellationToken), EquivalenceKey.Join(GetEquivalenceKey(), "Remove"));
+                    context.RegisterRefactoring($"Inline and remove {title}", ct => refactoring.InlineAndRemoveAsync(expressionStatement, statements, ct), GetDescriptor(), "Remove");
                 }
             }
         }
 
-        protected abstract string GetEquivalenceKey();
+        protected abstract RefactoringDescriptor GetDescriptor();
 
         protected abstract bool ValidateNode(TNode node, TextSpan span);
 

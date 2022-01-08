@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace Roslynator.CSharp
     /// Represents a list of modifiers.
     /// </summary>
     /// <typeparam name="TNode"></typeparam>
-    [SuppressMessage("Usage", "RCS1223:Use DebuggerDisplay attribute for publicly visible type.", Justification = "<Pending>")]
+    [SuppressMessage("Usage", "RCS1223:Use DebuggerDisplay attribute for publicly visible type.")]
     public abstract class ModifierList<TNode> where TNode : SyntaxNode
     {
         internal ModifierList()
@@ -94,6 +94,9 @@ namespace Roslynator.CSharp
             if (typeof(TNode) == typeof(IncompleteMemberSyntax))
                 return new IncompleteMemberModifierList();
 
+            if (typeof(TNode) == typeof(RecordDeclarationSyntax))
+                return new RecordDeclarationModifierList();
+
             throw new InvalidOperationException();
         }
 
@@ -103,7 +106,6 @@ namespace Roslynator.CSharp
         /// <param name="node"></param>
         /// <param name="kind"></param>
         /// <param name="comparer"></param>
-        /// <returns></returns>
         public TNode Insert(TNode node, SyntaxKind kind, IComparer<SyntaxKind> comparer = null)
         {
             if (node == null)
@@ -122,7 +124,6 @@ namespace Roslynator.CSharp
         /// <param name="node"></param>
         /// <param name="modifier"></param>
         /// <param name="comparer"></param>
-        /// <returns></returns>
         public TNode Insert(TNode node, SyntaxToken modifier, IComparer<SyntaxToken> comparer = null)
         {
             if (node == null)
@@ -165,7 +166,7 @@ namespace Roslynator.CSharp
                 token = modifiers[index];
             }
 
-            if (token != default(SyntaxToken))
+            if (token != default)
             {
                 SyntaxTriviaList newLeadingTrivia = token.LeadingTrivia;
 
@@ -205,7 +206,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="node"></param>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public TNode Remove(TNode node, SyntaxKind kind)
         {
             if (node == null)
@@ -230,7 +230,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="node"></param>
         /// <param name="modifier"></param>
-        /// <returns></returns>
         public TNode Remove(TNode node, SyntaxToken modifier)
         {
             if (node == null)
@@ -255,7 +254,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="node"></param>
         /// <param name="index"></param>
-        /// <returns></returns>
         public TNode RemoveAt(TNode node, int index)
         {
             if (node == null)
@@ -335,7 +333,6 @@ namespace Roslynator.CSharp
         /// Creates a new node with all modifiers removed.
         /// </summary>
         /// <param name="node"></param>
-        /// <returns></returns>
         public TNode RemoveAll(TNode node)
         {
             SyntaxTokenList modifiers = GetModifiers(node);
@@ -343,7 +340,7 @@ namespace Roslynator.CSharp
             if (!modifiers.Any())
                 return node;
 
-            SyntaxToken firstModifier = modifiers.First();
+            SyntaxToken firstModifier = modifiers[0];
 
             if (modifiers.Count == 1)
                 return Remove(node, firstModifier);
@@ -386,7 +383,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="node"></param>
         /// <param name="predicate"></param>
-        /// <returns></returns>
         public TNode RemoveAll(TNode node, Func<SyntaxToken, bool> predicate)
         {
             SyntaxTokenList modifiers = GetModifiers(node);
@@ -640,7 +636,7 @@ namespace Roslynator.CSharp
         {
             internal override SyntaxList<AttributeListSyntax> GetAttributeLists(LocalDeclarationStatementSyntax node)
             {
-                return default(SyntaxList<AttributeListSyntax>);
+                return default;
             }
 
             internal override SyntaxTokenList GetModifiers(LocalDeclarationStatementSyntax node)
@@ -658,7 +654,7 @@ namespace Roslynator.CSharp
         {
             internal override SyntaxList<AttributeListSyntax> GetAttributeLists(LocalFunctionStatementSyntax node)
             {
-                return default(SyntaxList<AttributeListSyntax>);
+                return default;
             }
 
             internal override SyntaxTokenList GetModifiers(LocalFunctionStatementSyntax node)
@@ -757,6 +753,24 @@ namespace Roslynator.CSharp
             }
 
             internal override StructDeclarationSyntax WithModifiers(StructDeclarationSyntax node, SyntaxTokenList modifiers)
+            {
+                return node.WithModifiers(modifiers);
+            }
+        }
+
+        private class RecordDeclarationModifierList : ModifierList<RecordDeclarationSyntax>
+        {
+            internal override SyntaxList<AttributeListSyntax> GetAttributeLists(RecordDeclarationSyntax node)
+            {
+                return node.AttributeLists;
+            }
+
+            internal override SyntaxTokenList GetModifiers(RecordDeclarationSyntax node)
+            {
+                return node.Modifiers;
+            }
+
+            internal override RecordDeclarationSyntax WithModifiers(RecordDeclarationSyntax node, SyntaxTokenList modifiers)
             {
                 return node.WithModifiers(modifiers);
             }

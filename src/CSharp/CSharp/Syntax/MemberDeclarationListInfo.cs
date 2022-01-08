@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -47,6 +47,38 @@ namespace Roslynator.CSharp.Syntax
         public int Count
         {
             get { return Members.Count; }
+        }
+
+        /// <summary>
+        /// Gets a open brace token.
+        /// </summary>
+        public SyntaxToken? OpenBraceToken
+        {
+            get
+            {
+                return Parent switch
+                {
+                    NamespaceDeclarationSyntax namespaceDeclaration => namespaceDeclaration.OpenBraceToken,
+                    TypeDeclarationSyntax typeDeclaration => typeDeclaration.OpenBraceToken,
+                    _ => null,
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets a close brace token.
+        /// </summary>
+        public SyntaxToken? CloseBraceToken
+        {
+            get
+            {
+                return Parent switch
+                {
+                    NamespaceDeclarationSyntax namespaceDeclaration => namespaceDeclaration.CloseBraceToken,
+                    TypeDeclarationSyntax typeDeclaration => typeDeclaration.CloseBraceToken,
+                    _ => null,
+                };
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -141,12 +173,15 @@ namespace Roslynator.CSharp.Syntax
                         return new MemberDeclarationListInfo(compilationUnit, compilationUnit.Members);
                     }
                 case SyntaxKind.NamespaceDeclaration:
+                case SyntaxKind.FileScopedNamespaceDeclaration:
                     {
-                        var namespaceDeclaration = (NamespaceDeclarationSyntax)node;
+                        var namespaceDeclaration = (BaseNamespaceDeclarationSyntax)node;
                         return new MemberDeclarationListInfo(namespaceDeclaration, namespaceDeclaration.Members);
                     }
                 case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.RecordDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
                 case SyntaxKind.InterfaceDeclaration:
                     {
                         var typeDeclaration = (TypeDeclarationSyntax)node;
@@ -188,26 +223,31 @@ namespace Roslynator.CSharp.Syntax
                         return new MemberDeclarationListInfo(compilationUnit, compilationUnit.Members);
                     }
                 case SyntaxKind.NamespaceDeclaration:
+                case SyntaxKind.FileScopedNamespaceDeclaration:
                     {
-                        var declaration = (NamespaceDeclarationSyntax)Parent;
+                        var declaration = (BaseNamespaceDeclarationSyntax)Parent;
                         declaration = declaration.WithMembers(members);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
                 case SyntaxKind.ClassDeclaration:
                     {
                         var declaration = (ClassDeclarationSyntax)Parent;
                         declaration = declaration.WithMembers(members);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var declaration = (RecordDeclarationSyntax)Parent;
+                        declaration = declaration.WithMembers(members);
+                        return new MemberDeclarationListInfo(declaration, declaration.Members);
+                    }
                 case SyntaxKind.StructDeclaration:
                     {
                         var declaration = (StructDeclarationSyntax)Parent;
                         declaration = declaration.WithMembers(members);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
                 case SyntaxKind.InterfaceDeclaration:
                     {
                         var declaration = (InterfaceDeclarationSyntax)Parent;
@@ -237,26 +277,31 @@ namespace Roslynator.CSharp.Syntax
                         return new MemberDeclarationListInfo(compilationUnit, compilationUnit.Members);
                     }
                 case SyntaxKind.NamespaceDeclaration:
+                case SyntaxKind.FileScopedNamespaceDeclaration:
                     {
-                        var declaration = (NamespaceDeclarationSyntax)Parent;
+                        var declaration = (BaseNamespaceDeclarationSyntax)Parent;
                         declaration = declaration.RemoveNode(node, options);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
                 case SyntaxKind.ClassDeclaration:
                     {
                         var declaration = (ClassDeclarationSyntax)Parent;
                         declaration = declaration.RemoveNode(node, options);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var declaration = (RecordDeclarationSyntax)Parent;
+                        declaration = declaration.RemoveNode(node, options);
+                        return new MemberDeclarationListInfo(declaration, declaration.Members);
+                    }
                 case SyntaxKind.StructDeclaration:
                     {
                         var declaration = (StructDeclarationSyntax)Parent;
                         declaration = declaration.RemoveNode(node, options);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
                 case SyntaxKind.InterfaceDeclaration:
                     {
                         var declaration = (InterfaceDeclarationSyntax)Parent;
@@ -286,26 +331,31 @@ namespace Roslynator.CSharp.Syntax
                         return new MemberDeclarationListInfo(compilationUnit, compilationUnit.Members);
                     }
                 case SyntaxKind.NamespaceDeclaration:
+                case SyntaxKind.FileScopedNamespaceDeclaration:
                     {
-                        var declaration = (NamespaceDeclarationSyntax)Parent;
+                        var declaration = (BaseNamespaceDeclarationSyntax)Parent;
                         declaration = declaration.ReplaceNode(oldNode, newNode);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
                 case SyntaxKind.ClassDeclaration:
                     {
                         var declaration = (ClassDeclarationSyntax)Parent;
                         declaration = declaration.ReplaceNode(oldNode, newNode);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var declaration = (RecordDeclarationSyntax)Parent;
+                        declaration = declaration.ReplaceNode(oldNode, newNode);
+                        return new MemberDeclarationListInfo(declaration, declaration.Members);
+                    }
                 case SyntaxKind.StructDeclaration:
                     {
                         var declaration = (StructDeclarationSyntax)Parent;
                         declaration = declaration.ReplaceNode(oldNode, newNode);
                         return new MemberDeclarationListInfo(declaration, declaration.Members);
                     }
-
                 case SyntaxKind.InterfaceDeclaration:
                     {
                         var declaration = (InterfaceDeclarationSyntax)Parent;
@@ -348,7 +398,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public MemberDeclarationSyntax First()
         {
-            return Members.First();
+            return Members[0];
         }
 
         /// <summary>
@@ -360,7 +410,7 @@ namespace Roslynator.CSharp.Syntax
         }
 
         /// <summary>
-        /// Searches for a member that matches the predicate and returns returns zero-based index of the first occurrence in the list.
+        /// Searches for a member that matches the predicate and returns zero-based index of the first occurrence in the list.
         /// </summary>
         /// <param name="predicate"></param>
         public int IndexOf(Func<MemberDeclarationSyntax, bool> predicate)
@@ -414,7 +464,7 @@ namespace Roslynator.CSharp.Syntax
         }
 
         /// <summary>
-        /// Searches for a member that matches the predicate and returns returns zero-based index of the last occurrence in the list.
+        /// Searches for a member that matches the predicate and returns zero-based index of the last occurrence in the list.
         /// </summary>
         /// <param name="predicate"></param>
         public int LastIndexOf(Func<MemberDeclarationSyntax, bool> predicate)

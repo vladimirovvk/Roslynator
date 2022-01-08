@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,20 +14,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ParameterCodeFixProvider))]
     [Shared]
-    public class ParameterCodeFixProvider : BaseCodeFixProvider
+    public sealed class ParameterCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.ParamsParameterMustBeSingleDimensionalArray,
-                    CompilerDiagnosticIdentifiers.CannotSpecifyDefaultValueForParameterArray,
-                    CompilerDiagnosticIdentifiers.CannotSpecifyDefaultValueForThisParameter);
+                    CompilerDiagnosticIdentifiers.CS0225_ParamsParameterMustBeSingleDimensionalArray,
+                    CompilerDiagnosticIdentifiers.CS1751_CannotSpecifyDefaultValueForParameterArray,
+                    CompilerDiagnosticIdentifiers.CS1741_RefOrOutParameterCannotHaveDefaultValue,
+                    CompilerDiagnosticIdentifiers.CS1743_CannotSpecifyDefaultValueForThisParameter);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -38,9 +39,9 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.ParamsParameterMustBeSingleDimensionalArray:
+                    case CompilerDiagnosticIdentifiers.CS0225_ParamsParameterMustBeSingleDimensionalArray:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeTypeOfParamsParameter))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeTypeOfParamsParameter, context.Document, root.SyntaxTree))
                                 break;
 
                             TypeSyntax type = parameter.Type;
@@ -59,7 +60,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                                     CodeAction codeAction = CodeAction.Create(
                                         $"Change parameter type to '{newType}'",
-                                        cancellationToken => context.Document.ReplaceNodeAsync(type, newType.WithTriviaFrom(type), cancellationToken),
+                                        ct => context.Document.ReplaceNodeAsync(type, newType.WithTriviaFrom(type), ct),
                                         GetEquivalenceKey(diagnostic));
 
                                     context.RegisterCodeFix(codeAction, diagnostic);
@@ -68,23 +69,24 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.CannotSpecifyDefaultValueForParameterArray:
-                    case CompilerDiagnosticIdentifiers.CannotSpecifyDefaultValueForThisParameter:
+                    case CompilerDiagnosticIdentifiers.CS1751_CannotSpecifyDefaultValueForParameterArray:
+                    case CompilerDiagnosticIdentifiers.CS1741_RefOrOutParameterCannotHaveDefaultValue:
+                    case CompilerDiagnosticIdentifiers.CS1743_CannotSpecifyDefaultValueForThisParameter:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveDefaultValueFromParameter))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveDefaultValueFromParameter, context.Document, root.SyntaxTree))
                                 break;
 
                             EqualsValueClauseSyntax defaultValue = parameter.Default;
 
                             CodeAction codeAction = CodeAction.Create(
                                 "Remove default value from parameter",
-                                cancellationToken =>
+                                ct =>
                                 {
                                     ParameterSyntax newParameter = parameter
                                         .RemoveNode(defaultValue)
                                         .WithFormatterAnnotation();
 
-                                    return context.Document.ReplaceNodeAsync(parameter, newParameter, cancellationToken);
+                                    return context.Document.ReplaceNodeAsync(parameter, newParameter, ct);
                                 },
                                 GetEquivalenceKey(diagnostic));
 

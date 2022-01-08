@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,21 +14,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(OperatorCannotBeAppliedToOperandsCodeFixProvider))]
     [Shared]
-    public class OperatorCannotBeAppliedToOperandsCodeFixProvider : BaseCodeFixProvider
+    public sealed class OperatorCannotBeAppliedToOperandsCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.OperatorCannotBeAppliedToOperands); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0019_OperatorCannotBeAppliedToOperands); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddComparisonWithBooleanLiteral))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddComparisonWithBooleanLiteral, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindNode(root, context.Span, out BinaryExpressionSyntax binaryExpression))
                 return;
@@ -52,7 +52,7 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 CodeAction codeAction = CodeAction.Create(
                     AddComparisonWithBooleanLiteralRefactoring.GetTitle(expression),
-                    cancellationToken => AddComparisonWithBooleanLiteralRefactoring.RefactorAsync(context.Document, expression, cancellationToken),
+                    ct => AddComparisonWithBooleanLiteralRefactoring.RefactorAsync(context.Document, expression, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);

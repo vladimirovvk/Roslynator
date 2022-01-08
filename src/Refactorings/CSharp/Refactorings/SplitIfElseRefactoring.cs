@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -42,8 +42,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Split if-else",
-                cancellationToken => RefactorAsync(context.Document, ifStatement, cancellationToken),
-                RefactoringIdentifiers.SplitIfElse);
+                ct => RefactorAsync(context.Document, ifStatement, ct),
+                RefactoringDescriptors.SplitIfElse);
         }
 
         private static Task<Document> RefactorAsync(

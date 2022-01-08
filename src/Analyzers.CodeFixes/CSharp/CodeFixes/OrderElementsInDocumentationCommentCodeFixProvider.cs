@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -18,14 +18,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(OrderElementsInDocumentationCommentCodeFixProvider))]
     [Shared]
-    public class OrderElementsInDocumentationCommentCodeFixProvider : BaseCodeFixProvider
+    public sealed class OrderElementsInDocumentationCommentCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.OrderElementsInDocumentationComment); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -138,9 +138,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                     if (ranks.TryGetValue(node1, out int rank1))
                     {
-                        int k = j + 1;
-
-                        while (k < xmlNodes.Count - i - 1)
+                        for (int k = j + 1; k < xmlNodes.Count - i - 1; k++)
                         {
                             XmlNodeSyntax node2 = xmlNodes[k];
                             if (ranks.TryGetValue(node2, out int rank2))
@@ -153,8 +151,6 @@ namespace Roslynator.CSharp.CodeFixes
 
                                 break;
                             }
-
-                            k++;
                         }
                     }
                 }

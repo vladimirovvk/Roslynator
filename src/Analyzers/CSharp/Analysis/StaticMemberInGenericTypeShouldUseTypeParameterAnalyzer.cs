@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,24 +10,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class StaticMemberInGenericTypeShouldUseTypeParameterAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class StaticMemberInGenericTypeShouldUseTypeParameterAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.StaticMemberInGenericTypeShouldUseTypeParameter); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.StaticMemberInGenericTypeShouldUseTypeParameter);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+            context.RegisterSymbolAction(f => AnalyzeNamedType(f), SymbolKind.NamedType);
         }
 
-        public static void AnalyzeNamedType(SymbolAnalysisContext context)
+        private static void AnalyzeNamedType(SymbolAnalysisContext context)
         {
             var namedType = (INamedTypeSymbol)context.Symbol;
 
@@ -143,7 +148,7 @@ namespace Roslynator.CSharp.Analysis
                     {
                         foreach (ITypeParameterSymbol typeParameter in typeParameters)
                         {
-                            if (typeParameter.Equals(typeSymbol))
+                            if (SymbolEqualityComparer.Default.Equals(typeParameter, typeSymbol))
                                 return true;
                         }
 
@@ -176,7 +181,7 @@ namespace Roslynator.CSharp.Analysis
                 {
                     foreach (ITypeParameterSymbol typeParameter in typeParameters)
                     {
-                        if (typeParameter.Equals(typeArgument))
+                        if (SymbolEqualityComparer.Default.Equals(typeParameter, typeArgument))
                             return true;
                     }
                 }
@@ -201,14 +206,15 @@ namespace Roslynator.CSharp.Analysis
 
             SyntaxToken identifier = CSharpUtility.GetIdentifier(node);
 
-            Debug.Assert(!identifier.IsKind(SyntaxKind.None), node.ToString());
+            SyntaxDebug.Assert(!identifier.IsKind(SyntaxKind.None), node);
 
             if (identifier.Kind() == SyntaxKind.None)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-               DiagnosticDescriptors.StaticMemberInGenericTypeShouldUseTypeParameter,
-               identifier);
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.StaticMemberInGenericTypeShouldUseTypeParameter,
+                identifier);
         }
     }
 }

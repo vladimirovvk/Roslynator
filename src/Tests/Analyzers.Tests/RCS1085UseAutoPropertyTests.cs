@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1085UseAutoPropertyTests : AbstractCSharpFixVerifier
+    public class RCS1085UseAutoPropertyTests : AbstractCSharpDiagnosticVerifier<UseAutoPropertyAnalyzer, UseAutoPropertyCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UseAutoProperty;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UseAutoPropertyAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new UseAutoPropertyCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UseAutoProperty;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
         public async Task Test_Property()
@@ -408,6 +403,29 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
+        public async Task Test_InitSetter()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+class C
+{
+    private readonly double _p;
+
+    public double [|P|]
+    {
+        get { return _p; }
+        init { _p = value; }
+    }
+}
+", @"
+class C
+{
+
+    public double P { get; init; }
+}
+", options: Options.AddAllowedCompilerDiagnosticId("CS0518"));
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
         public async Task TestNoDiagnostic_PartialClassInMultipleDocuments()
         {
             await VerifyNoDiagnosticAsync(@"
@@ -429,7 +447,7 @@ partial class C
         _f = null;
     }
 }
-", additionalSources: new string[]
+", additionalFiles: new[]
 { @"
 partial class C
 {
@@ -766,6 +784,140 @@ class C
     {
         _f = null;
     }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
+        public async Task TestNoDiagnostic_PropertyOfStructIsAssigned()
+        {
+            await VerifyNoDiagnosticAsync(@"
+struct S
+{
+    public string P { get; set; }
+}
+
+class C
+{
+    S _s;
+
+    public S S
+    {
+        get { return _s; }
+        set { _s = value; }
+    }
+
+    string P
+    {
+        get { return _s.P; }
+
+        set { _s.P = value; }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
+        public async Task TestNoDiagnostic_PropertyOfStructIsAssigned_This()
+        {
+            await VerifyNoDiagnosticAsync(@"
+struct S
+{
+    public string P { get; set; }
+}
+
+class C
+{
+    S _s;
+
+    public S S
+    {
+        get { return _s; }
+        set { _s = value; }
+    }
+
+    string P
+    {
+        get { return _s.P; }
+
+        set { this._s.P = value; }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
+        public async Task TestNoDiagnostic_IndexerOfStructIsAssigned()
+        {
+            await VerifyNoDiagnosticAsync(@"
+struct S
+{
+    public string this[int index]
+    {
+        get { return null; }
+        set { }
+    }
+}
+
+class C
+{
+    S _s;
+
+    public S S
+    {
+        get { return _s; }
+        set { _s = value; }
+    }
+
+    string P
+    {
+        get { return _s[0]; }
+
+        set { _s[0] = value; }
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
+        public async Task TestNoDiagnostic_InitAccessor()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+
+class C
+{
+    private readonly double _p;
+
+    public double P
+    {
+        get { return _p; }
+
+        init
+        {
+            _p = Math.Min(Math.Max(0.0, value), 1.0);
+        }
+    }
+}
+", options: Options.AddAllowedCompilerDiagnosticId("CS0518"));
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseAutoProperty)]
+        public async Task TestNoDiagnostic_BackingFieldHasAttibute()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System;
+
+class C
+{
+    [MyAttribute]
+    private bool _p;
+
+    public bool P { get => _p; set { _p = value; } }
+}
+
+class MyAttribute : Attribute
+{
 }
 ");
         }

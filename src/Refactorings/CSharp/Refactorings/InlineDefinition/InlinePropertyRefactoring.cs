@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Threading;
@@ -32,7 +32,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
         public override Task<Document> InlineAsync(
             SyntaxNode node,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             node = GetNodeToReplace(node);
 
@@ -42,7 +42,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
         public override Task<Solution> InlineAndRemoveAsync(
             SyntaxNode node,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             node = GetNodeToReplace(node);
 

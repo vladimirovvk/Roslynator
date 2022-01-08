@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,41 +10,45 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CodeFixes;
-using Roslynator.CSharp.Refactorings;
 
 namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(VariableDeclarationCodeFixProvider))]
     [Shared]
-    public class VariableDeclarationCodeFixProvider : BaseCodeFixProvider
+    public sealed class VariableDeclarationCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.ImplicitlyTypedVariablesCannotHaveMultipleDeclarators,
-                    CompilerDiagnosticIdentifiers.ImplicitlyTypedVariablesCannotBeConstant,
-                    CompilerDiagnosticIdentifiers.LocalVariableOrFunctionIsAlreadyDefinedInThisScope,
-                    CompilerDiagnosticIdentifiers.LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter);
+                    CompilerDiagnosticIdentifiers.CS0819_ImplicitlyTypedVariablesCannotHaveMultipleDeclarators,
+                    CompilerDiagnosticIdentifiers.CS0822_ImplicitlyTypedVariablesCannotBeConstant,
+                    CompilerDiagnosticIdentifiers.CS0128_LocalVariableOrFunctionIsAlreadyDefinedInThisScope,
+                    CompilerDiagnosticIdentifiers.CS0136_LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
-            if (!TryFindFirstAncestorOrSelf(root, context.Span, out SyntaxNode node, predicate: f => f.IsKind(
-                SyntaxKind.VariableDeclaration,
-                SyntaxKind.ForEachStatement,
-                SyntaxKind.Parameter,
-                SyntaxKind.DeclarationPattern,
-                SyntaxKind.DeclarationExpression)))
+            if (!TryFindFirstAncestorOrSelf(
+                root,
+                context.Span,
+                out SyntaxNode node,
+                predicate: f => f.IsKind(
+                    SyntaxKind.VariableDeclaration,
+                    SyntaxKind.ForEachStatement,
+                    SyntaxKind.Parameter,
+                    SyntaxKind.DeclarationPattern,
+                    SyntaxKind.DeclarationExpression,
+                    SyntaxKind.LocalFunctionStatement)))
             {
                 return;
             }
 
-            if (node.IsKind(SyntaxKind.ForEachStatement, SyntaxKind.Parameter, SyntaxKind.DeclarationPattern, SyntaxKind.DeclarationExpression))
+            if (node.IsKind(SyntaxKind.ForEachStatement, SyntaxKind.Parameter, SyntaxKind.DeclarationPattern, SyntaxKind.DeclarationExpression, SyntaxKind.LocalFunctionStatement))
                 return;
 
             var variableDeclaration = (VariableDeclarationSyntax)node;
@@ -53,10 +57,10 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.ImplicitlyTypedVariablesCannotHaveMultipleDeclarators:
-                    case CompilerDiagnosticIdentifiers.ImplicitlyTypedVariablesCannotBeConstant:
+                    case CompilerDiagnosticIdentifiers.CS0819_ImplicitlyTypedVariablesCannotHaveMultipleDeclarators:
+                    case CompilerDiagnosticIdentifiers.CS0822_ImplicitlyTypedVariablesCannotBeConstant:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseExplicitTypeInsteadOfVar))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseExplicitTypeInsteadOfVar, context.Document, root.SyntaxTree))
                                 return;
 
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -74,13 +78,13 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.LocalVariableOrFunctionIsAlreadyDefinedInThisScope:
-                    case CompilerDiagnosticIdentifiers.LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter:
+                    case CompilerDiagnosticIdentifiers.CS0128_LocalVariableOrFunctionIsAlreadyDefinedInThisScope:
+                    case CompilerDiagnosticIdentifiers.CS0136_LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceVariableDeclarationWithAssignment))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceVariableDeclarationWithAssignment, context.Document, root.SyntaxTree))
                                 return;
 
-                            if (!(variableDeclaration.Parent is LocalDeclarationStatementSyntax localDeclaration))
+                            if (variableDeclaration.Parent is not LocalDeclarationStatementSyntax localDeclaration)
                                 return;
 
                             VariableDeclaratorSyntax variableDeclarator = variableDeclaration.Variables.SingleOrDefault(shouldThrow: false);
@@ -103,7 +107,7 @@ namespace Roslynator.CSharp.CodeFixes
                             {
                                 CodeAction codeAction = CodeAction.Create(
                                     "Replace variable declaration with assignment",
-                                    cancellationToken =>
+                                    ct =>
                                     {
                                         ExpressionStatementSyntax newNode = CSharpFactory.SimpleAssignmentStatement(
                                             SyntaxFactory.IdentifierName(variableDeclarator.Identifier),
@@ -113,7 +117,7 @@ namespace Roslynator.CSharp.CodeFixes
                                             .WithTriviaFrom(localDeclaration)
                                             .WithFormatterAnnotation();
 
-                                        return context.Document.ReplaceNodeAsync(localDeclaration, newNode, cancellationToken);
+                                        return context.Document.ReplaceNodeAsync(localDeclaration, newNode, ct);
                                     },
                                     GetEquivalenceKey(diagnostic));
                                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -129,12 +133,10 @@ namespace Roslynator.CSharp.CodeFixes
         {
             foreach (SyntaxNode descendant in node.DescendantNodes())
             {
-                if (descendant.IsKind(SyntaxKind.VariableDeclarator))
+                if (descendant is VariableDeclaratorSyntax variableDeclarator
+                    && string.Equals(name, variableDeclarator.Identifier.ValueText, StringComparison.Ordinal))
                 {
-                    var variableDeclarator = (VariableDeclaratorSyntax)descendant;
-
-                    if (string.Equals(name, variableDeclarator.Identifier.ValueText, StringComparison.Ordinal))
-                        return variableDeclarator;
+                    return variableDeclarator;
                 }
             }
 

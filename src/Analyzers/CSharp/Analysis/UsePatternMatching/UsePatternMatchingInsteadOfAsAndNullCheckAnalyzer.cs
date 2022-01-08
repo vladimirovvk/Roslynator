@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,18 +12,23 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis.UsePatternMatching
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UsePatternMatchingInsteadOfAsAndNullCheckAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UsePatternMatchingInsteadOfAsAndNullCheckAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UsePatternMatchingInsteadOfAsAndNullCheck); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UsePatternMatchingInsteadOfAsAndNullCheck);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
             context.RegisterCompilationStartAction(startContext =>
@@ -31,11 +36,11 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
                 if (((CSharpCompilation)startContext.Compilation).LanguageVersion < LanguageVersion.CSharp7)
                     return;
 
-                startContext.RegisterSyntaxNodeAction(AnalyzeAsExpression, SyntaxKind.AsExpression);
+                startContext.RegisterSyntaxNodeAction(f => AnalyzeAsExpression(f), SyntaxKind.AsExpression);
             });
         }
 
-        public static void AnalyzeAsExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeAsExpression(SyntaxNodeAnalysisContext context)
         {
             var asExpression = (BinaryExpressionSyntax)context.Node;
 
@@ -52,7 +57,7 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
             if (localInfo.Statement.SpanOrTrailingTriviaContainsDirectives())
                 return;
 
-            if (!(localInfo.Statement.NextStatement() is IfStatementSyntax ifStatement))
+            if (localInfo.Statement.NextStatement() is not IfStatementSyntax ifStatement)
                 return;
 
             if (!ifStatement.IsSimpleIf())
@@ -87,11 +92,11 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
                 if (typeSymbol.IsNullableType())
                     return;
 
-                if (!semanticModel.GetTypeSymbol(localInfo.Type, cancellationToken).Equals(typeSymbol))
+                if (!SymbolEqualityComparer.Default.Equals(semanticModel.GetTypeSymbol(localInfo.Type, cancellationToken), typeSymbol))
                     return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UsePatternMatchingInsteadOfAsAndNullCheck, localInfo.Statement);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UsePatternMatchingInsteadOfAsAndNullCheck, localInfo.Statement);
         }
     }
 }

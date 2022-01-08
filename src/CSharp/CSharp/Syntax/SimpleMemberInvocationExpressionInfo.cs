@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -49,7 +49,7 @@ namespace Roslynator.CSharp.Syntax
         }
 
         /// <summary>
-        /// The argumet list.
+        /// The argument list.
         /// </summary>
         public ArgumentListSyntax ArgumentList
         {
@@ -61,7 +61,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SeparatedSyntaxList<ArgumentSyntax> Arguments
         {
-            get { return InvocationExpression?.ArgumentList.Arguments ?? default(SeparatedSyntaxList<ArgumentSyntax>); }
+            get { return InvocationExpression?.ArgumentList.Arguments ?? default; }
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SyntaxToken OperatorToken
         {
-            get { return MemberAccessExpression?.OperatorToken ?? default(SyntaxToken); }
+            get { return MemberAccessExpression?.OperatorToken ?? default; }
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace Roslynator.CSharp.Syntax
             InvocationExpressionSyntax invocationExpression,
             bool allowMissing = false)
         {
-            if (!(invocationExpression?.Expression is MemberAccessExpressionSyntax memberAccessExpression))
+            if (invocationExpression?.Expression is not MemberAccessExpressionSyntax memberAccessExpression)
                 return default;
 
             if (memberAccessExpression.Kind() != SyntaxKind.SimpleMemberAccessExpression)

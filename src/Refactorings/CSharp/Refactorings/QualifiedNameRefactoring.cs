@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,7 +10,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, QualifiedNameSyntax qualifiedName)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddUsingDirective)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddUsingDirective)
                 && context.Span.IsEmpty
                 && qualifiedName.DotToken.SpanStart == context.Span.Start
                 && qualifiedName.Left?.Kind() == SyntaxKind.IdentifierName)

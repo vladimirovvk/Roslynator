@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Threading;
@@ -12,9 +12,7 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class GenerateEnumMemberRefactoring
     {
-        internal const string EquivalenceKey = RefactoringIdentifiers.GenerateEnumMember;
-
-        internal static readonly string StartFromHighestExistingValueEquivalenceKey = Roslynator.EquivalenceKey.Join(EquivalenceKey, "StartFromHighestExistingValue");
+        internal static readonly string StartFromHighestExistingValueEquivalenceKey = EquivalenceKey.Create(RefactoringDescriptors.GenerateEnumMember, "StartFromHighestExistingValue");
 
         public static void ComputeRefactoring(
             RefactoringContext context,
@@ -32,23 +30,24 @@ namespace Roslynator.CSharp.Refactorings
                 Optional<ulong> optional = FlagsUtility<ulong>.Instance.GetUniquePowerOfTwo(values);
 
                 if (optional.HasValue
-                    && ConvertHelpers.CanConvert(optional.Value, enumSymbol.EnumUnderlyingType.SpecialType))
+                    && ConvertHelpers.CanConvertFromUInt64(optional.Value, enumSymbol.EnumUnderlyingType.SpecialType))
                 {
                     context.RegisterRefactoring(
                         "Generate enum member",
                         ct => RefactorAsync(document, enumDeclaration, enumSymbol, optional.Value, ct),
-                        EquivalenceKey);
+                        RefactoringDescriptors.GenerateEnumMember);
 
                     Optional<ulong> optional2 = FlagsUtility<ulong>.Instance.GetUniquePowerOfTwo(values, startFromHighestExistingValue: true);
 
                     if (optional2.HasValue
-                        && ConvertHelpers.CanConvert(optional2.Value, enumSymbol.EnumUnderlyingType.SpecialType)
+                        && ConvertHelpers.CanConvertFromUInt64(optional2.Value, enumSymbol.EnumUnderlyingType.SpecialType)
                         && optional.Value != optional2.Value)
                     {
                         context.RegisterRefactoring(
                             $"Generate enum member (with value {optional2.Value})",
                             ct => RefactorAsync(document, enumDeclaration, enumSymbol, optional2.Value, ct),
-                            StartFromHighestExistingValueEquivalenceKey);
+                            RefactoringDescriptors.GenerateEnumMember,
+                            "StartFromHighestExistingValue");
                     }
                 }
             }
@@ -57,7 +56,7 @@ namespace Roslynator.CSharp.Refactorings
                 context.RegisterRefactoring(
                     "Generate enum member",
                     ct => RefactorAsync(document, enumDeclaration, enumSymbol, null, ct),
-                    EquivalenceKey);
+                    RefactoringDescriptors.GenerateEnumMember);
             }
         }
 

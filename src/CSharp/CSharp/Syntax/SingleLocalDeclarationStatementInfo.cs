@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -61,7 +61,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SyntaxTokenList Modifiers
         {
-            get { return Statement?.Modifiers ?? default(SyntaxTokenList); }
+            get { return Statement?.Modifiers ?? default; }
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SyntaxToken Identifier
         {
-            get { return Declarator?.Identifier ?? default(SyntaxToken); }
+            get { return Declarator?.Identifier ?? default; }
         }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SyntaxToken EqualsToken
         {
-            get { return Initializer?.EqualsToken ?? default(SyntaxToken); }
+            get { return Initializer?.EqualsToken ?? default; }
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SyntaxToken SemicolonToken
         {
-            get { return Statement?.SemicolonToken ?? default(SyntaxToken); }
+            get { return Statement?.SemicolonToken ?? default; }
         }
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace Roslynator.CSharp.Syntax
             if (!Check(variableDeclaration, allowMissing))
                 return default;
 
-            if (!(variableDeclaration.Parent is LocalDeclarationStatementSyntax localDeclarationStatement))
+            if (variableDeclaration.Parent is not LocalDeclarationStatementSyntax localDeclarationStatement)
                 return default;
 
             VariableDeclaratorSyntax variableDeclarator = variableDeclaration.Variables.SingleOrDefault(shouldThrow: false);
@@ -170,16 +170,16 @@ namespace Roslynator.CSharp.Syntax
             if (node?.Kind() != SyntaxKind.EqualsValueClause)
                 return default;
 
-            if (!(node.Parent is VariableDeclaratorSyntax declarator))
+            if (node.Parent is not VariableDeclaratorSyntax declarator)
                 return default;
 
-            if (!(declarator.Parent is VariableDeclarationSyntax declaration))
+            if (declarator.Parent is not VariableDeclarationSyntax declaration)
                 return default;
 
             if (declaration.Variables.Count != 1)
                 return default;
 
-            if (!(declaration.Parent is LocalDeclarationStatementSyntax localDeclarationStatement))
+            if (declaration.Parent is not LocalDeclarationStatementSyntax localDeclarationStatement)
                 return default;
 
             return new SingleLocalDeclarationStatementInfo(localDeclarationStatement, declarator);

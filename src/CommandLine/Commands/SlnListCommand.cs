@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ using static Roslynator.Logger;
 
 namespace Roslynator.CommandLine
 {
-    internal class SlnListCommand : MSBuildWorkspaceCommand
+    internal class SlnListCommand : MSBuildWorkspaceCommand<CommandResult>
     {
         public SlnListCommand(SlnListCommandLineOptions options, in ProjectFilter projectFilter) : base(projectFilter)
         {
@@ -24,19 +24,19 @@ namespace Roslynator.CommandLine
 
         public override Task<CommandResult> ExecuteAsync(ProjectOrSolution projectOrSolution, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(CommandResult.Success);
+            return Task.FromResult(CommandResults.Success);
         }
 
         protected override async Task<CommandResult> ExecuteAsync(
             string path,
             MSBuildWorkspace workspace,
             IProgress<ProjectLoadProgress> progress = null,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (!string.Equals(Path.GetExtension(path), ".sln", StringComparison.OrdinalIgnoreCase))
             {
                 WriteLine($"File is not a solution file: '{path}'.", Verbosity.Quiet);
-                return CommandResult.Fail;
+                return CommandResults.Fail;
             }
 
             workspace.LoadMetadataForReferencedProjects = true;
@@ -47,7 +47,7 @@ namespace Roslynator.CommandLine
 
             WriteLine($"Load solution '{path}'", Verbosity.Minimal);
 
-            SolutionInfo solutionInfo = await loader.LoadSolutionInfoAsync(path, consoleProgress, cancellationToken);
+            SolutionInfo solutionInfo = await loader.LoadSolutionInfoAsync(path, consoleProgress, cancellationToken: cancellationToken);
 
             string solutionDirectory = Path.GetDirectoryName(solutionInfo.FilePath);
 
@@ -69,7 +69,7 @@ namespace Roslynator.CommandLine
             bool anyHasTargetFrameworks = projects.Any(f => f.Value != null);
 
             WriteLine();
-            WriteLine($"{projects.Count} {((projects.Count == 1) ? "project" : "projects")} found in solution '{Path.GetFileNameWithoutExtension(solutionInfo.FilePath)}' [{solutionInfo.FilePath}]", ConsoleColor.Green, Verbosity.Minimal);
+            WriteLine($"{projects.Count} {((projects.Count == 1) ? "project" : "projects")} found in solution '{Path.GetFileNameWithoutExtension(solutionInfo.FilePath)}' [{solutionInfo.FilePath}]", ConsoleColors.Green, Verbosity.Minimal);
 
             foreach (KeyValuePair<string, List<string>> kvp in projects
                 .OrderBy(f => Path.GetFileName(f.Key)))
@@ -101,7 +101,7 @@ namespace Roslynator.CommandLine
 
             WriteLine();
 
-            return CommandResult.Success;
+            return CommandResults.Success;
         }
     }
 }

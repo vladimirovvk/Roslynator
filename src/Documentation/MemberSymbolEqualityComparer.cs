@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ namespace Roslynator.Documentation
 {
     internal class MemberSymbolEqualityComparer : EqualityComparer<ISymbol>
     {
-        public static MemberSymbolEqualityComparer Instance { get; } = new MemberSymbolEqualityComparer();
+        public static MemberSymbolEqualityComparer Instance { get; } = new();
 
         public override bool Equals(ISymbol x, ISymbol y)
         {
@@ -142,7 +142,7 @@ namespace Roslynator.Documentation
 
         private class ParameterEqualityComparer : EqualityComparer<IParameterSymbol>
         {
-            public static ParameterEqualityComparer Instance { get; } = new ParameterEqualityComparer();
+            public static ParameterEqualityComparer Instance { get; } = new();
 
             public static bool ParametersEqual(ImmutableArray<IParameterSymbol> parameters1, ImmutableArray<IParameterSymbol> parameters2)
             {
@@ -172,7 +172,7 @@ namespace Roslynator.Documentation
                     return false;
 
                 return x.RefKind == y.RefKind
-                    && x.Type == y.Type;
+                    && SymbolEqualityComparer.Default.Equals(x.Type, y.Type);
             }
 
             public override int GetHashCode(IParameterSymbol obj)

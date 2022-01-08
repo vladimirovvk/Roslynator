@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,14 +42,14 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 $"using static {typeSymbol};",
                 ct => RefactorAsync(context.Document, typeSymbol.ToString(), memberAccess, ct),
-                RefactoringIdentifiers.AddUsingStaticDirective);
+                RefactoringDescriptors.AddUsingStaticDirective);
         }
 
         private static async Task<Document> RefactorAsync(
             Document document,
             string name,
             MemberAccessExpressionSyntax memberAccess,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxNode oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 

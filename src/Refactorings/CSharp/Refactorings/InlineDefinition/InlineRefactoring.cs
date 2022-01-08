@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -68,7 +68,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
         public virtual Task<Document> InlineAsync(
             SyntaxNode node,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ExpressionSyntax newExpression = RewriteExpression(node, expression);
 
@@ -78,7 +78,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
         public virtual async Task<Solution> InlineAndRemoveAsync(
             SyntaxNode node,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (node.SyntaxTree == Declaration.SyntaxTree)
             {
@@ -115,7 +115,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
         public virtual Task<Document> InlineAsync(
             ExpressionStatementSyntax expressionStatement,
             SyntaxList<StatementSyntax> statements,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             int count = statements.Count;
 
@@ -141,7 +141,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
         public virtual async Task<Solution> InlineAndRemoveAsync(
             ExpressionStatementSyntax expressionStatement,
             SyntaxList<StatementSyntax> statements,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (expressionStatement.SyntaxTree == Declaration.SyntaxTree)
             {
@@ -257,7 +257,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
                             {
                                 if (!NodeEnclosingType
                                     .BaseTypesAndSelf()
-                                    .Any(f => f.Equals(containingType)))
+                                    .Any(f => SymbolEqualityComparer.Default.Equals(f, containingType)))
                                 {
                                     replacementMap.Add(identifierName, CSharpFactory.SimpleMemberAccessExpression(containingType.ToTypeSyntax().WithSimplifierAnnotation(), identifierName));
                                 }
@@ -304,7 +304,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
 
             return replacementMap;
 
-            bool ParameterEquals(in ParameterInfo parameterInfo, IParameterSymbol parameterSymbol2)
+            static bool ParameterEquals(in ParameterInfo parameterInfo, IParameterSymbol parameterSymbol2)
             {
                 IParameterSymbol parameterSymbol = parameterInfo.ParameterSymbol;
 
@@ -323,7 +323,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
                     }
                 }
 
-                return parameterSymbol.OriginalDefinition.Equals(parameterSymbol2);
+                return SymbolEqualityComparer.Default.Equals(parameterSymbol.OriginalDefinition, parameterSymbol2);
             }
         }
 
@@ -358,7 +358,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
             foreach (ISymbol symbol in declarationSymbols)
             {
                 if (reservedNames.Contains(symbol.Name))
-                    (symbols ?? (symbols = new List<ISymbol>())).Add(symbol);
+                    (symbols ??= new List<ISymbol>()).Add(symbol);
             }
 
             if (symbols == null)

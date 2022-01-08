@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1187UseConstantInsteadOfFieldTests : AbstractCSharpFixVerifier
+    public class RCS1187UseConstantInsteadOfFieldTests : AbstractCSharpDiagnosticVerifier<UseConstantInsteadOfFieldAnalyzer, MemberDeclarationCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UseConstantInsteadOfField;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new UseConstantInsteadOfFieldAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new MemberDeclarationCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UseConstantInsteadOfField;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseConstantInsteadOfField)]
         public async Task TestNoDiagnostic_AssignmentInInStaticConstructor()

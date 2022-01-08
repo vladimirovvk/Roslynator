@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,7 +9,7 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
     {
         public static bool IsFixable(StatementSyntax statement, SyntaxKind statementKind)
         {
-            if (!(statement.Parent is BlockSyntax block))
+            if (statement.Parent is not BlockSyntax block)
                 return false;
 
             if (!block.Statements.IsLast(statement, ignoreLocalFunctions: true))

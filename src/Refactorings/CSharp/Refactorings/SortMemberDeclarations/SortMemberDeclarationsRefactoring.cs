@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +23,12 @@ namespace Roslynator.CSharp.Refactorings.SortMemberDeclarations
         public static void ComputeRefactoring(RefactoringContext context, ClassDeclarationSyntax classDeclaration)
         {
             if (MemberDeclarationListSelection.TryCreate(classDeclaration, context.Span, out MemberDeclarationListSelection selectedMembers))
+                ComputeRefactoring(context, selectedMembers);
+        }
+
+        public static void ComputeRefactoring(RefactoringContext context, RecordDeclarationSyntax recordDeclaration)
+        {
+            if (MemberDeclarationListSelection.TryCreate(recordDeclaration, context.Span, out MemberDeclarationListSelection selectedMembers))
                 ComputeRefactoring(context, selectedMembers);
         }
 
@@ -83,8 +89,8 @@ namespace Roslynator.CSharp.Refactorings.SortMemberDeclarations
 
             context.RegisterRefactoring(
                 title,
-                cancellationToken => RefactorAsync(context.Document, selectedMembers, comparer, cancellationToken),
-                RefactoringIdentifiers.SortMemberDeclarations);
+                ct => RefactorAsync(context.Document, selectedMembers, comparer, ct),
+                RefactoringDescriptors.SortMemberDeclarations);
         }
 
         private static Task<Document> RefactorAsync(

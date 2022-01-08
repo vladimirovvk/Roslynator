@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -19,14 +19,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(OptimizeMethodCallCodeFixProvider))]
     [Shared]
-    public class OptimizeMethodCallCodeFixProvider : BaseCodeFixProvider
+    public sealed class OptimizeMethodCallCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.OptimizeMethodCall); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -61,7 +61,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 {
                                     CodeAction codeAction = CodeAction.Create(
                                         "Call 'Concat' instead of 'Join'",
-                                        cancellationToken => CallStringConcatInsteadOfStringJoinAsync(document, invocationExpression, cancellationToken),
+                                        ct => CallStringConcatInsteadOfStringJoinAsync(document, invocationExpression, ct),
                                         GetEquivalenceKey(diagnostic, "CallConcatInsteadOfJoin"));
 
                                     context.RegisterCodeFix(codeAction, diagnostic);
@@ -134,7 +134,7 @@ namespace Roslynator.CSharp.CodeFixes
             BinaryExpressionSyntax equalityExpression,
             CancellationToken cancellationToken)
         {
-            if (!(equalityExpression.Left.WalkDownParentheses() is InvocationExpressionSyntax invocationExpression))
+            if (equalityExpression.Left.WalkDownParentheses() is not InvocationExpressionSyntax invocationExpression)
                 invocationExpression = (InvocationExpressionSyntax)equalityExpression.Right.WalkDownParentheses();
 
             ExpressionSyntax newExpression = SyntaxRefactorings.ChangeInvokedMethodName(invocationExpression, "Equals");

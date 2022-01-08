@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 namespace Roslynator.CSharp.Refactorings
 {
@@ -6,12 +6,12 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveAllPreprocessorDirectives))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveAllPreprocessorDirectives))
             {
                 context.RegisterRefactoring(
                     "Remove all directives",
-                    cancellationToken => context.Document.RemovePreprocessorDirectivesAsync(PreprocessorDirectiveFilter.All, cancellationToken),
-                    RefactoringIdentifiers.RemoveAllPreprocessorDirectives);
+                    ct => context.Document.RemovePreprocessorDirectivesAsync(PreprocessorDirectiveFilter.All, ct),
+                    RefactoringDescriptors.RemoveAllPreprocessorDirectives);
             }
         }
     }

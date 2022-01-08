@@ -1,9 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -15,7 +14,7 @@ using static Roslynator.Logger;
 
 namespace Roslynator.CommandLine
 {
-    internal class AnalyzeCommand : MSBuildWorkspaceCommand
+    internal class AnalyzeCommand : MSBuildWorkspaceCommand<AnalyzeCommandResult>
     {
         public AnalyzeCommand(AnalyzeCommandLineOptions options, DiagnosticSeverity severityLevel, in ProjectFilter projectFilter) : base(projectFilter)
         {
@@ -27,7 +26,7 @@ namespace Roslynator.CommandLine
 
         public DiagnosticSeverity SeverityLevel { get; }
 
-        public override async Task<CommandResult> ExecuteAsync(ProjectOrSolution projectOrSolution, CancellationToken cancellationToken = default)
+        public override async Task<AnalyzeCommandResult> ExecuteAsync(ProjectOrSolution projectOrSolution, CancellationToken cancellationToken = default)
         {
             AssemblyResolver.Register();
 
@@ -46,30 +45,34 @@ namespace Roslynator.CommandLine
 
             CultureInfo culture = (Options.Culture != null) ? CultureInfo.GetCultureInfo(Options.Culture) : null;
 
+            var analyzerLoader = new AnalyzerLoader(analyzerAssemblies, codeAnalyzerOptions);
+
+            analyzerLoader.AnalyzerAssemblyAdded += (sender, args) =>
+            {
+                AnalyzerAssembly analyzerAssembly = args.AnalyzerAssembly;
+
+                if (analyzerAssembly.Name.EndsWith(".Analyzers")
+                    || analyzerAssembly.HasAnalyzers
+                    || analyzerAssembly.HasFixers)
+                {
+                    WriteLine($"Add analyzer assembly '{analyzerAssembly.FullName}'", ConsoleColors.DarkGray, Verbosity.Detailed);
+                }
+            };
+
             var codeAnalyzer = new CodeAnalyzer(
-                analyzerAssemblies: analyzerAssemblies,
+                analyzerLoader: analyzerLoader,
                 formatProvider: culture,
                 options: codeAnalyzerOptions);
+
+            ImmutableArray<ProjectAnalysisResult> results;
 
             if (projectOrSolution.IsProject)
             {
                 Project project = projectOrSolution.AsProject();
 
-                WriteLine($"Analyze '{project.Name}'", ConsoleColor.Cyan, Verbosity.Minimal);
-
-                Stopwatch stopwatch = Stopwatch.StartNew();
-
                 ProjectAnalysisResult result = await codeAnalyzer.AnalyzeProjectAsync(project, cancellationToken);
 
-                stopwatch.Stop();
-
-                WriteLine($"Done analyzing project '{project.FilePath}' in {stopwatch.Elapsed:mm\\:ss\\.ff}", Verbosity.Minimal);
-
-                if (Options.Output != null
-                    && result.Diagnostics.Any())
-                {
-                    DiagnosticXmlSerializer.Serialize(result, project, Options.Output, culture);
-                }
+                results = ImmutableArray.Create(result);
             }
             else
             {
@@ -77,16 +80,54 @@ namespace Roslynator.CommandLine
 
                 var projectFilter = new ProjectFilter(Options.Projects, Options.IgnoredProjects, Language);
 
-                ImmutableArray<ProjectAnalysisResult> results = await codeAnalyzer.AnalyzeSolutionAsync(solution, projectFilter.IsMatch, cancellationToken);
+                results = await codeAnalyzer.AnalyzeSolutionAsync(solution, f => projectFilter.IsMatch(f), cancellationToken);
+            }
 
-                if (Options.Output != null
-                    && results.Any(f => f.Diagnostics.Any()))
+            return new AnalyzeCommandResult(
+                (results.Any(f => f.Diagnostics.Length > 0)) ? CommandStatus.NotSuccess : CommandStatus.Success,
+                results);
+        }
+
+        protected override void ProcessResults(IEnumerable<AnalyzeCommandResult> results)
+        {
+            IEnumerable<ProjectAnalysisResult> analysisResults = results.SelectMany(f => f.AnalysisResults);
+
+            WriteAnalysisResults(analysisResults);
+
+            if (Options.Output != null
+                && analysisResults.Any(f => f.Diagnostics.Any()))
+            {
+                CultureInfo culture = (Options.Culture != null) ? CultureInfo.GetCultureInfo(Options.Culture) : null;
+
+                DiagnosticXmlSerializer.Serialize(analysisResults, Options.Output, culture);
+            }
+        }
+
+        private static void WriteAnalysisResults(IEnumerable<ProjectAnalysisResult> results)
+        {
+            ImmutableDictionary<DiagnosticDescriptor, int> diagnostics = results
+                .SelectMany(f => f.Diagnostics.Concat(f.CompilerDiagnostics))
+                .GroupBy(f => f.Descriptor, DiagnosticDescriptorComparer.Id)
+                .ToImmutableDictionary(f => f.Key, f => f.Count(), DiagnosticDescriptorComparer.Id);
+
+            int totalCount = diagnostics.Sum(f => f.Value);
+
+            if (totalCount > 0)
+            {
+                WriteLine(Verbosity.Normal);
+
+                int maxCountLength = Math.Max(totalCount.ToString().Length, diagnostics.Max(f => f.Value.ToString().Length));
+                int maxIdLength = diagnostics.Max(f => f.Key.Id.Length);
+
+                foreach (KeyValuePair<DiagnosticDescriptor, int> kvp in diagnostics
+                    .OrderBy(f => f.Key.Id))
                 {
-                    DiagnosticXmlSerializer.Serialize(results, solution, Options.Output, culture);
+                    WriteLine($"{kvp.Value.ToString().PadLeft(maxCountLength)} {kvp.Key.Id.PadRight(maxIdLength)} {kvp.Key.Title}", Verbosity.Normal);
                 }
             }
 
-            return CommandResult.Success;
+            WriteLine(Verbosity.Minimal);
+            WriteLine($"{totalCount} {((totalCount == 1) ? "diagnostic" : "diagnostics")} found", ConsoleColors.Green, Verbosity.Minimal);
         }
 
         protected override void OperationCanceled(OperationCanceledException ex)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
@@ -38,14 +38,14 @@ namespace Roslynator.CSharp.CodeFixes
             return new CodeFixRegistrationResult(true);
         }
 
-        public static void AddCastExpression(
+        public static void AddExplicitCast(
             CodeFixContext context,
             Diagnostic diagnostic,
             ExpressionSyntax expression,
             ITypeSymbol destinationType,
             SemanticModel semanticModel)
         {
-            CodeAction codeAction = CodeActionFactory.AddCastExpression(context.Document, expression, destinationType, semanticModel, equivalenceKey: EquivalenceKey.Create(diagnostic, CodeFixIdentifiers.AddCastExpression));
+            CodeAction codeAction = CodeActionFactory.AddExplicitCast(context.Document, expression, destinationType, semanticModel, equivalenceKey: EquivalenceKey.Create(diagnostic, CodeFixIdentifiers.AddExplicitCast));
 
             context.RegisterCodeFix(codeAction, diagnostic);
         }

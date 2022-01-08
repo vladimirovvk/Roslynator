@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1145RemoveRedundantAsOperatorTests : AbstractCSharpFixVerifier
+    public class RCS1145RemoveRedundantAsOperatorTests : AbstractCSharpDiagnosticVerifier<RemoveRedundantAsOperatorAnalyzer, BinaryExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.RemoveRedundantAsOperator;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new RemoveRedundantAsOperatorAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new BinaryExpressionCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.RemoveRedundantAsOperator;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveRedundantAsOperator)]
         public async Task TestNoDiagnostic_Dynamic()

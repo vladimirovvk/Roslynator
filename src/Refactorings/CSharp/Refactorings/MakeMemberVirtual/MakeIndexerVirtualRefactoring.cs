@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +15,7 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberVirtual
             if (!indexerDeclaration.Modifiers.Contains(SyntaxKind.AbstractKeyword))
                 return;
 
-            if (!(indexerDeclaration.Parent is ClassDeclarationSyntax classDeclaration))
+            if (indexerDeclaration.Parent is not ClassDeclarationSyntax classDeclaration)
                 return;
 
             if (classDeclaration.Modifiers.Contains(SyntaxKind.SealedKeyword))
@@ -23,8 +23,8 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberVirtual
 
             context.RegisterRefactoring(
                 "Make indexer virtual",
-                cancellationToken => RefactorAsync(context.Document, indexerDeclaration, cancellationToken),
-                RefactoringIdentifiers.MakeMemberVirtual);
+                ct => RefactorAsync(context.Document, indexerDeclaration, ct),
+                RefactoringDescriptors.MakeMemberVirtual);
         }
 
         private static Task<Document> RefactorAsync(

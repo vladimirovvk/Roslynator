@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +25,6 @@ namespace Roslynator.CSharp.Refactorings
                         ReplacePostIncrementWithPreIncrement(context, postfixUnaryExpression);
                         break;
                     }
-
                 case SyntaxKind.PostDecrementExpression:
                     {
                         InvertPostDecrement(context, postfixUnaryExpression);
@@ -37,7 +36,7 @@ namespace Roslynator.CSharp.Refactorings
 
         private static void ReplacePostIncrementWithPreIncrement(RefactoringContext context, PostfixUnaryExpressionSyntax postIncrement)
         {
-            if (!context.IsRefactoringEnabled(RefactoringIdentifiers.ReplacePrefixOperatorWithPostfixOperator))
+            if (!context.IsRefactoringEnabled(RefactoringDescriptors.ReplacePrefixOperatorWithPostfixOperator))
                 return;
 
             ExpressionSyntax operand = postIncrement.Operand;
@@ -51,13 +50,13 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Replace '{postIncrement}' with '{preIncrement}'",
-                cancellationToken => ChangePostIncrementToPreIncrementAsync(context.Document, postIncrement, preIncrement, cancellationToken),
-                RefactoringIdentifiers.ReplacePrefixOperatorWithPostfixOperator);
+                ct => ChangePostIncrementToPreIncrementAsync(context.Document, postIncrement, preIncrement, ct),
+                RefactoringDescriptors.ReplacePrefixOperatorWithPostfixOperator);
         }
 
         private static void InvertPostIncrement(RefactoringContext context, PostfixUnaryExpressionSyntax postIncrement)
         {
-            if (!context.IsRefactoringEnabled(RefactoringIdentifiers.InvertPrefixOrPostfixUnaryOperator))
+            if (!context.IsRefactoringEnabled(RefactoringDescriptors.InvertPrefixOrPostfixUnaryOperator))
                 return;
 
             PostfixUnaryExpressionSyntax postDecrement = postIncrement
@@ -67,13 +66,13 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Invert {postIncrement.OperatorToken}",
-                cancellationToken => ChangePostIncrementToPostDecrementAsync(context.Document, postIncrement, postDecrement, cancellationToken),
-                RefactoringIdentifiers.InvertPrefixOrPostfixUnaryOperator);
+                ct => ChangePostIncrementToPostDecrementAsync(context.Document, postIncrement, postDecrement, ct),
+                RefactoringDescriptors.InvertPrefixOrPostfixUnaryOperator);
         }
 
         private static void ReplacePostDecrementWithPreDecrement(RefactoringContext context, PostfixUnaryExpressionSyntax postDecrement)
         {
-            if (!context.IsRefactoringEnabled(RefactoringIdentifiers.ReplacePrefixOperatorWithPostfixOperator))
+            if (!context.IsRefactoringEnabled(RefactoringDescriptors.ReplacePrefixOperatorWithPostfixOperator))
                 return;
 
             ExpressionSyntax operand = postDecrement.Operand;
@@ -87,13 +86,13 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Replace '{postDecrement}' with '{preDecrement}'",
-                cancellationToken => ChangePostDecrementToPreDecrementAsync(context.Document, postDecrement, preDecrement, cancellationToken),
-                RefactoringIdentifiers.ReplacePrefixOperatorWithPostfixOperator);
+                ct => ChangePostDecrementToPreDecrementAsync(context.Document, postDecrement, preDecrement, ct),
+                RefactoringDescriptors.ReplacePrefixOperatorWithPostfixOperator);
         }
 
         private static void InvertPostDecrement(RefactoringContext context, PostfixUnaryExpressionSyntax postDecrement)
         {
-            if (!context.IsRefactoringEnabled(RefactoringIdentifiers.InvertPrefixOrPostfixUnaryOperator))
+            if (!context.IsRefactoringEnabled(RefactoringDescriptors.InvertPrefixOrPostfixUnaryOperator))
                 return;
 
             PostfixUnaryExpressionSyntax postIncrement = postDecrement
@@ -103,15 +102,15 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Invert {postDecrement.OperatorToken}",
-                cancellationToken => ChangePostDecrementToPostIncrementAsync(context.Document, postDecrement, postIncrement, cancellationToken),
-                RefactoringIdentifiers.InvertPrefixOrPostfixUnaryOperator);
+                ct => ChangePostDecrementToPostIncrementAsync(context.Document, postDecrement, postIncrement, ct),
+                RefactoringDescriptors.InvertPrefixOrPostfixUnaryOperator);
         }
 
         private static Task<Document> ChangePostIncrementToPreIncrementAsync(
             Document document,
             PostfixUnaryExpressionSyntax postIncrement,
             PrefixUnaryExpressionSyntax preIncrement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return document.ReplaceNodeAsync(postIncrement, preIncrement, cancellationToken);
         }
@@ -120,7 +119,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             PostfixUnaryExpressionSyntax postIncrement,
             PostfixUnaryExpressionSyntax postDecrement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return document.ReplaceNodeAsync(postIncrement, postDecrement, cancellationToken);
         }
@@ -129,7 +128,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             PostfixUnaryExpressionSyntax postDecrement,
             PrefixUnaryExpressionSyntax preDecrement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return document.ReplaceNodeAsync(postDecrement, preDecrement, cancellationToken);
         }
@@ -138,7 +137,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             PostfixUnaryExpressionSyntax postDecrement,
             PostfixUnaryExpressionSyntax postIncrement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return document.ReplaceNodeAsync(postDecrement, postIncrement, cancellationToken);
         }

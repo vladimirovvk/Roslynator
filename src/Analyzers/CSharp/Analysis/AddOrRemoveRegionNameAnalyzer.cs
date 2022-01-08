@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,24 +10,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AddOrRemoveRegionNameAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AddOrRemoveRegionNameAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AddOrRemoveRegionName); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AddOrRemoveRegionName);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeEndRegionDirectiveTrivia, SyntaxKind.EndRegionDirectiveTrivia);
+            context.RegisterSyntaxNodeAction(f => AnalyzeEndRegionDirectiveTrivia(f), SyntaxKind.EndRegionDirectiveTrivia);
         }
 
-        public static void AnalyzeEndRegionDirectiveTrivia(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeEndRegionDirectiveTrivia(SyntaxNodeAnalysisContext context)
         {
             var endRegionDirective = (EndRegionDirectiveTriviaSyntax)context.Node;
 
@@ -45,12 +50,12 @@ namespace Roslynator.CSharp.Analysis
                 if (endTrivia.Kind() != SyntaxKind.PreprocessingMessageTrivia
                     || !string.Equals(trivia.ToString(), endTrivia.ToString(), StringComparison.Ordinal))
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AddOrRemoveRegionName, endRegionDirective, "Add", "to");
+                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AddOrRemoveRegionName, endRegionDirective, "Add", "to");
                 }
             }
             else if (endTrivia.Kind() == SyntaxKind.PreprocessingMessageTrivia)
             {
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AddOrRemoveRegionName, endRegionDirective, "Remove", "from");
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AddOrRemoveRegionName, endRegionDirective, "Remove", "from");
             }
         }
     }

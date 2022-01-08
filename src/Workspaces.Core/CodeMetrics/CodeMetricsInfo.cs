@@ -1,12 +1,14 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Roslynator.CodeMetrics
 {
     internal readonly struct CodeMetricsInfo : IEquatable<CodeMetricsInfo>
     {
-        internal static CodeMetricsInfo NotAvailable { get; } = new CodeMetricsInfo(-1, 0, 0, 0, 0, 0);
+        internal static CodeMetricsInfo NotAvailable { get; } = new(-1, 0, 0, 0, 0, 0);
 
         internal CodeMetricsInfo(
             int totalLineCount,
@@ -47,6 +49,17 @@ namespace Roslynator.CodeMetrics
                 blockBoundaryLineCount: BlockBoundaryLineCount + codeMetrics.BlockBoundaryLineCount);
         }
 
+        public static CodeMetricsInfo Create(IEnumerable<CodeMetricsInfo> metrics)
+        {
+            return new CodeMetricsInfo(
+                totalLineCount: metrics.Sum(f => f.TotalLineCount),
+                codeLineCount: metrics.Sum(f => f.CodeLineCount),
+                whitespaceLineCount: metrics.Sum(f => f.WhitespaceLineCount),
+                commentLineCount: metrics.Sum(f => f.CommentLineCount),
+                preprocessorDirectiveLineCount: metrics.Sum(f => f.PreprocessorDirectiveLineCount),
+                blockBoundaryLineCount: metrics.Sum(f => f.BlockBoundaryLineCount));
+        }
+
         public override bool Equals(object obj)
         {
             return obj is CodeMetricsInfo other && Equals(other);
@@ -64,11 +77,15 @@ namespace Roslynator.CodeMetrics
 
         public override int GetHashCode()
         {
-            return Hash.Combine(TotalLineCount,
-                Hash.Combine(CodeLineCount,
-                Hash.Combine(WhitespaceLineCount,
-                Hash.Combine(CommentLineCount,
-                Hash.Combine(PreprocessorDirectiveLineCount, Hash.Create(BlockBoundaryLineCount))))));
+            return Hash.Combine(
+                TotalLineCount,
+                Hash.Combine(
+                    CodeLineCount,
+                    Hash.Combine(
+                        WhitespaceLineCount,
+                        Hash.Combine(
+                            CommentLineCount,
+                            Hash.Combine(PreprocessorDirectiveLineCount, Hash.Create(BlockBoundaryLineCount))))));
         }
 
         public static bool operator ==(in CodeMetricsInfo metrics1, in CodeMetricsInfo metrics2)

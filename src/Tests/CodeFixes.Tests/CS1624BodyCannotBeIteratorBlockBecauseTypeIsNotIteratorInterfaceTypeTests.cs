@@ -1,26 +1,21 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Roslynator.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.CodeFixes.Tests
 {
-    public class CS1624BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceTypeTests : AbstractCSharpCompilerDiagnosticFixVerifier
+    public class CS1624BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceTypeTests : AbstractCSharpCompilerDiagnosticFixVerifier<MethodDeclarationOrLocalFunctionStatementCodeFixProvider>
     {
-        public CS1624BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceTypeTests()
+        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.CS1624_BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType;
+
+        public override CSharpTestOptions Options
         {
-            Options = base.Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.CannotImplicitlyConvertType);
+            get { return base.Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.CS0029_CannotImplicitlyConvertType); }
         }
 
-        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType;
-
-        public override CodeFixProvider FixProvider { get; } = new MethodDeclarationOrLocalFunctionStatementCodeFixProvider();
-
-        public override CodeVerificationOptions Options { get; }
-
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1624_BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
         public async Task Test_Method_String()
         {
             await VerifyFixAsync(@"
@@ -50,7 +45,7 @@ class C
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId, "string"));
         }
 
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1624_BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
         public async Task Test_LocalFunction_String()
         {
             await VerifyFixAsync(@"
@@ -86,7 +81,7 @@ class C
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId, "string"));
         }
 
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1624_BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
         public async Task Test_Method_DateTime()
         {
             await VerifyFixAsync(@"
@@ -116,7 +111,7 @@ class C
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId, "DateTime"));
         }
 
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1624_BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
         public async Task Test_LocalFunction_DateTime()
         {
             await VerifyFixAsync(@"
@@ -152,7 +147,7 @@ class C
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId, "DateTime"));
         }
 
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS1624_BodyCannotBeIteratorBlockBecauseTypeIsNotIteratorInterfaceType)]
         public async Task TestNoFix()
         {
             await VerifyNoFixAsync(@"

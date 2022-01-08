@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -42,8 +42,8 @@ namespace Roslynator.CSharp.Refactorings
         {
             context.RegisterRefactoring(
                 "Use StringBuilder instead of concatenation",
-                cancellationToken => RefactorAsync(context.Document, concatenationInfo, statement, cancellationToken),
-                RefactoringIdentifiers.UseStringBuilderInsteadOfConcatenation);
+                ct => RefactorAsync(context.Document, concatenationInfo, statement, ct),
+                RefactoringDescriptors.UseStringBuilderInsteadOfConcatenation);
         }
 
         private static async Task<Document> RefactorAsync(
@@ -65,23 +65,22 @@ namespace Roslynator.CSharp.Refactorings
                     Identifier(name).WithRenameAnnotation(),
                     ObjectCreationExpression(
                         ParseTypeName("System.Text.StringBuilder").WithSimplifierAnnotation(),
-                        ArgumentList())).WithLeadingTrivia(statement.GetLeadingTrivia())
+                        ArgumentList()))
+                    .WithLeadingTrivia(statement.GetLeadingTrivia())
             };
 
             ExpressionSyntax newInvocation = null;
             foreach (ExpressionSyntax expression in concatenationInfo.AsChain())
             {
-                if (expression.IsKind(SyntaxKind.InterpolatedStringExpression))
+                if (expression is InterpolatedStringExpressionSyntax interpolatedString)
                 {
-                    var interpolatedString = (InterpolatedStringExpressionSyntax)expression;
-
                     bool isVerbatim = interpolatedString.IsVerbatim();
 
                     SyntaxList<InterpolatedStringContentSyntax> contents = interpolatedString.Contents;
 
                     for (int j = 0; j < contents.Count; j++)
                     {
-                        (SyntaxKind contentKind, string methodName, ImmutableArray<ArgumentSyntax> arguments) = ConvertInterpolatedStringToStringBuilderMethodRefactoring.Refactor(contents[j], isVerbatim);
+                        (SyntaxKind _, string methodName, ImmutableArray<ArgumentSyntax> arguments) = ConvertInterpolatedStringToStringBuilderMethodRefactoring.Refactor(contents[j], isVerbatim);
 
                         newInvocation = SimpleMemberInvocationExpression(
                             newInvocation ?? stringBuilderName,

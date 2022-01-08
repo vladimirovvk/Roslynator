@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using Roslynator.FindSymbols;
@@ -19,7 +19,7 @@ namespace Roslynator.FindSymbols
             UnusedOnly = unusedOnly;
         }
 
-        new public static SymbolFinderOptions Default { get; } = new SymbolFinderOptions();
+        new public static SymbolFinderOptions Default { get; } = new();
 
         public bool IgnoreGeneratedCode { get; }
 

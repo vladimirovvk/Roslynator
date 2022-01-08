@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,24 +10,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class MakeMethodExtensionMethodAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class MakeMethodExtensionMethodAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.MakeMethodExtensionMethod); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.MakeMethodExtensionMethod);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeClassDeclaration, SyntaxKind.ClassDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeClassDeclaration(f), SyntaxKind.ClassDeclaration);
         }
 
-        public static void AnalyzeClassDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeClassDeclaration(SyntaxNodeAnalysisContext context)
         {
             var classDeclaration = (ClassDeclarationSyntax)context.Node;
 
@@ -45,10 +50,8 @@ namespace Roslynator.CSharp.Analysis
 
             foreach (MemberDeclarationSyntax member in classDeclaration.Members)
             {
-                if (!member.IsKind(SyntaxKind.MethodDeclaration))
+                if (member is not MethodDeclarationSyntax methodDeclaration)
                     continue;
-
-                var methodDeclaration = (MethodDeclarationSyntax)member;
 
                 if (!methodDeclaration.Modifiers.Contains(SyntaxKind.StaticKeyword))
                     continue;
@@ -70,9 +73,9 @@ namespace Roslynator.CSharp.Analysis
                 if (parameter.Modifiers.Contains(SyntaxKind.ParamsKeyword))
                     continue;
 
-                bool isThis = false;
-                bool isIn = false;
-                bool isRef = false;
+                var isThis = false;
+                var isIn = false;
+                var isRef = false;
 
                 foreach (SyntaxToken modifier in parameter.Modifiers)
                 {
@@ -119,7 +122,7 @@ namespace Roslynator.CSharp.Analysis
                         continue;
                 }
 
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.MakeMethodExtensionMethod, methodDeclaration.Identifier);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.MakeMethodExtensionMethod, methodDeclaration.Identifier);
             }
         }
     }

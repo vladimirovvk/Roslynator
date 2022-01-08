@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -26,10 +26,10 @@ namespace Roslynator.CodeGeneration.CSharp
                             .Select(f =>
                             {
                                 return FieldDeclaration(
-                                   Modifiers.Public_Const(),
-                                   PredefinedStringType(),
-                                   f.Identifier,
-                                   StringLiteralExpression(f.Id));
+                                    Modifiers.Public_Const(),
+                                    PredefinedStringType(),
+                                    $"{f.Id}_{f.Identifier}",
+                                    StringLiteralExpression(f.Id));
                             })
                             .ToSyntaxList<MemberDeclarationSyntax>())));
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -194,7 +194,7 @@ namespace Roslynator.Documentation
             ImmutableArray<SymbolDisplayPart> parts)
         {
             ISymbol s = null;
-            int j = 0;
+            int j;
 
             for (int i = 0; i < parts.Length; i++)
             {
@@ -213,7 +213,7 @@ namespace Roslynator.Documentation
 
                 if (symbol.IsKind(SymbolKind.NamedType))
                 {
-                    if (s == symbol)
+                    if (SymbolEqualityComparer.Default.Equals(s, symbol))
                     {
                         if (((INamedTypeSymbol)s).TypeKind != TypeKind.Delegate
                             || Peek(j).IsPunctuation("("))

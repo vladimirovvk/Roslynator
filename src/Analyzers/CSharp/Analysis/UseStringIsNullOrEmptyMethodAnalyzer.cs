@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -13,26 +13,32 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UseStringIsNullOrEmptyMethodAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UseStringIsNullOrEmptyMethodAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UseStringIsNullOrEmptyMethod); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UseStringIsNullOrEmptyMethod);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeBinaryExpression,
+            context.RegisterSyntaxNodeAction(
+                f => AnalyzeBinaryExpression(f),
                 SyntaxKind.LogicalOrExpression,
                 SyntaxKind.LogicalAndExpression);
         }
 
-        public static void AnalyzeBinaryExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeBinaryExpression(SyntaxNodeAnalysisContext context)
         {
             var binaryExpression = (BinaryExpressionSyntax)context.Node;
 
@@ -59,7 +65,7 @@ namespace Roslynator.CSharp.Analysis
                         context.SemanticModel,
                         context.CancellationToken))
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseStringIsNullOrEmptyMethod, binaryExpression);
+                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseStringIsNullOrEmptyMethod, binaryExpression);
                 }
             }
             else if (kind == SyntaxKind.LogicalAndExpression)
@@ -72,7 +78,7 @@ namespace Roslynator.CSharp.Analysis
                         context.SemanticModel,
                         context.CancellationToken))
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseStringIsNullOrEmptyMethod, binaryExpression);
+                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseStringIsNullOrEmptyMethod, binaryExpression);
                 }
             }
         }
@@ -81,7 +87,7 @@ namespace Roslynator.CSharp.Analysis
             ExpressionSyntax left,
             BinaryExpressionSyntax right,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             NullCheckExpressionInfo nullCheck = SyntaxInfo.NullCheckExpressionInfo(left);
 
@@ -121,8 +127,9 @@ namespace Roslynator.CSharp.Analysis
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            return semanticModel.GetSymbol(expression1, cancellationToken)?
-                .Equals(semanticModel.GetSymbol(expression2, cancellationToken)) == true;
+            return SymbolEqualityComparer.Default.Equals(
+                semanticModel.GetSymbol(expression1, cancellationToken),
+                semanticModel.GetSymbol(expression2, cancellationToken));
         }
     }
 }

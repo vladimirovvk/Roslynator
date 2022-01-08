@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -71,9 +71,9 @@ namespace Roslynator.CSharp.Analysis
             in SimpleMemberInvocationExpressionInfo invocationInfo,
             in SimpleMemberInvocationExpressionInfo invocationInfo2)
         {
-            ExpressionSyntax expression = invocationInfo.Arguments.First().Expression;
+            ExpressionSyntax expression = invocationInfo.Arguments[0].Expression;
 
-            if (!AreEquivalentLambdas(expression, invocationInfo2.Arguments.First().Expression))
+            if (!AreEquivalentLambdas(expression, invocationInfo2.Arguments[0].Expression))
                 return;
 
             InvocationExpressionSyntax invocation = invocationInfo.InvocationExpression;
@@ -83,16 +83,17 @@ namespace Roslynator.CSharp.Analysis
             if (invocation.ContainsDirectives(span))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.CombineEnumerableWhereMethodChain,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.CombineEnumerableWhereMethodChain,
                 Location.Create(invocation.SyntaxTree, span));
 
             TextSpan fadeOutSpan = TextSpan.FromBounds(
                 invocationInfo.OperatorToken.SpanStart,
                 ((LambdaExpressionSyntax)expression).ArrowToken.Span.End);
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.CombineEnumerableWhereMethodChainFadeOut, Location.Create(invocation.SyntaxTree, fadeOutSpan));
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.CombineEnumerableWhereMethodChainFadeOut, invocation.ArgumentList.CloseParenToken);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.CombineEnumerableWhereMethodChainFadeOut, Location.Create(invocation.SyntaxTree, fadeOutSpan));
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.CombineEnumerableWhereMethodChainFadeOut, invocation.ArgumentList.CloseParenToken);
         }
 
         private static bool AreEquivalentLambdas(ExpressionSyntax expression1, ExpressionSyntax expression2)

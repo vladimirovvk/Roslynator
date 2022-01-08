@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1197OptimizeStringBuilderAppendCallTests : AbstractCSharpFixVerifier
+    public class RCS1197OptimizeStringBuilderAppendCallTests : AbstractCSharpDiagnosticVerifier<InvocationExpressionAnalyzer, OptimizeStringBuilderAppendCallCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.OptimizeStringBuilderAppendCall;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new InvocationExpressionAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new OptimizeStringBuilderAppendCallCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.OptimizeStringBuilderAppendCall;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.OptimizeStringBuilderAppendCall)]
         public async Task Test_Substring_Int32_Int32()
@@ -528,7 +523,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.OptimizeStringBuilderAppendCall)]
-        public async Task Test_Concatentation_Char()
+        public async Task Test_Concatenation_Char()
         {
             await VerifyDiagnosticAndFixAsync(@"
 using System.Text;
@@ -537,9 +532,11 @@ class C
 {
     void M()
     {
+        char a = 'a';
+
         var sb = new StringBuilder();
 
-        sb.Append([|""a"" + ""b"" + ""c""|]);
+        sb.Append([|a + ""b"" + ""c""|]);
     }
 }
 ", @"
@@ -549,9 +546,11 @@ class C
 {
     void M()
     {
+        char a = 'a';
+
         var sb = new StringBuilder();
 
-        sb.Append('a').Append('b').Append('c');
+        sb.Append(a).Append('b').Append('c');
     }
 }
 ");
@@ -774,6 +773,66 @@ class C
         var sb = new StringBuilder();
 
         sb.AppendLine(s);
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.OptimizeStringBuilderAppendCall)]
+        public async Task Test_Join()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System.Text;
+
+class C
+{
+    void M()
+    {
+        var sb = new StringBuilder();
+
+        sb.Append([|string.Join('x', """", """")|]);
+        sb.Append([|string.Join('x', default(object), default(object))|]);
+        sb.Append([|string.Join(""x"", """", """")|]);
+        sb.Append([|string.Join(""x"", default(object), default(object))|]);
+        sb.Append([|string.Join('x', new[] { """" })|]);
+        sb.Append([|string.Join(""x"", new[] { default(object) })|]);
+    }
+}
+", @"
+using System.Text;
+
+class C
+{
+    void M()
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendJoin('x', """", """");
+        sb.AppendJoin('x', default(object), default(object));
+        sb.AppendJoin(""x"", """", """");
+        sb.AppendJoin(""x"", default(object), default(object));
+        sb.AppendJoin('x', new[] { """" });
+        sb.AppendJoin(""x"", new[] { default(object) });
+    }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.OptimizeStringBuilderAppendCall)]
+        public async Task TestNoDiagnostic_Const()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Text;
+
+class C
+{
+    void M()
+    {
+        const string s = null;
+
+        var sb = new StringBuilder();
+
+        sb.Append(""x"" + s);
     }
 }
 ");

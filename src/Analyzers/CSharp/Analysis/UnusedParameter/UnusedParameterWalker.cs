@@ -1,7 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -19,7 +20,7 @@ namespace Roslynator.CSharp.Analysis.UnusedParameter
 
         private bool _isEmpty;
 
-        public Dictionary<string, NodeSymbolInfo> Nodes { get; } = new Dictionary<string, NodeSymbolInfo>(_ordinalComparer);
+        public Dictionary<string, NodeSymbolInfo> Nodes { get; } = new(_ordinalComparer);
 
         public SemanticModel SemanticModel { get; set; }
 
@@ -124,17 +125,17 @@ namespace Roslynator.CSharp.Analysis.UnusedParameter
                 if (IsIndexer)
                     symbol = GetIndexerParameterSymbol(node, symbol);
 
-                if (info.Symbol.Equals(symbol))
+                if (SymbolEqualityComparer.Default.Equals(info.Symbol, symbol))
                     RemoveNode(name);
             }
         }
 
         private static ISymbol GetIndexerParameterSymbol(IdentifierNameSyntax identifierName, ISymbol symbol)
         {
-            if (!(symbol?.ContainingSymbol is IMethodSymbol methodSymbol))
+            if (symbol?.ContainingSymbol is not IMethodSymbol methodSymbol)
                 return null;
 
-            if (!(methodSymbol.AssociatedSymbol is IPropertySymbol propertySymbol))
+            if (methodSymbol.AssociatedSymbol is not IPropertySymbol propertySymbol)
                 return null;
 
             if (!propertySymbol.IsIndexer)
@@ -194,29 +195,28 @@ namespace Roslynator.CSharp.Analysis.UnusedParameter
             }
         }
 
-        public static UnusedParameterWalker GetInstance(SemanticModel semanticModel, CancellationToken cancellationToken, bool isIndexer = false)
+        public static UnusedParameterWalker GetInstance()
         {
             UnusedParameterWalker walker = _cachedInstance;
 
             if (walker != null)
             {
+                Debug.Assert(walker.Nodes.Count == 0);
+                Debug.Assert(walker.SemanticModel == null);
+                Debug.Assert(walker.CancellationToken == default);
+
                 _cachedInstance = null;
-            }
-            else
-            {
-                walker = new UnusedParameterWalker();
+                return walker;
             }
 
-            walker.SetValues(semanticModel, cancellationToken, isIndexer);
-
-            return walker;
+            return new UnusedParameterWalker();
         }
 
         public static void Free(UnusedParameterWalker walker)
         {
             walker.SetValues(default(SemanticModel), default(CancellationToken));
+
             _cachedInstance = walker;
         }
     }
 }
-

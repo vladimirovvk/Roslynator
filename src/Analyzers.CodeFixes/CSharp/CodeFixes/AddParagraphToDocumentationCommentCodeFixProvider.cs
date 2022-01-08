@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -19,14 +19,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddParagraphToDocumentationCommentCodeFixProvider))]
     [Shared]
-    public class AddParagraphToDocumentationCommentCodeFixProvider : BaseCodeFixProvider
+    public sealed class AddParagraphToDocumentationCommentCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.AddParagraphToDocumentationComment); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -60,7 +60,7 @@ namespace Roslynator.CSharp.CodeFixes
                 .First(f => f.IsKind(SyntaxKind.XmlTextLiteralNewLineToken))
                 .ValueText;
 
-            string indentation = xmlElement.GetIndentation(cancellationToken).ToString();
+            string indentation = SyntaxTriviaAnalysis.DetermineIndentation(xmlElement, cancellationToken).ToString();
 
             string s = $"{newLine}{indentation}/// ";
 
@@ -71,14 +71,14 @@ namespace Roslynator.CSharp.CodeFixes
                 cancellationToken.ThrowIfCancellationRequested();
 
                 if (prevEnd != -1)
-                    textChanges.Add(new TextChange(TextSpan.FromBounds(prevEnd, span.Start), s));
+                    textChanges.Add(TextSpan.FromBounds(prevEnd, span.Start), s);
 
                 SyntaxToken token = xmlElement.FindToken(span.Start);
                 SyntaxToken endToken = xmlElement.FindToken(span.End - 1);
 
                 bool isMultiline = xmlElement.SyntaxTree.IsMultiLineSpan(span, cancellationToken);
 
-                string text = "<para>";
+                var text = "<para>";
 
                 if (isMultiline)
                     text += s;
@@ -99,7 +99,7 @@ namespace Roslynator.CSharp.CodeFixes
                     }
                 }
 
-                textChanges.Add(new TextChange(new TextSpan(start, length), text));
+                textChanges.Add(new TextSpan(start, length), text);
 
                 text = "";
 
@@ -108,7 +108,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                 text += "</para>";
 
-                textChanges.Add(new TextChange(new TextSpan(span.End, 0), text));
+                textChanges.Add(new TextSpan(span.End, 0), text);
 
                 prevEnd = endToken.Span.End;
             }

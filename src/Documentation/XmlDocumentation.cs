@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.IO;
@@ -14,15 +14,13 @@ namespace Roslynator.Documentation
     {
         private const string DefaultIndentChars = "            ";
 
-        private static readonly Regex _indentationRegex = new Regex("(?<=\n)" + DefaultIndentChars);
+        private static readonly Regex _indentationRegex = new("(?<=\n)" + DefaultIndentChars);
 
-        private readonly XDocument _document;
         private readonly XElement _membersElement;
         private ImmutableDictionary<string, XElement> _elementsById;
 
         private XmlDocumentation(XDocument document)
         {
-            _document = document;
             _membersElement = document.Root.Element("members");
         }
 
@@ -32,14 +30,14 @@ namespace Roslynator.Documentation
 
             rawXml = Unindent(rawXml);
 
-            XDocument document = XDocument.Parse(rawXml, LoadOptions.PreserveWhitespace);
+            var document = XDocument.Parse(rawXml, LoadOptions.PreserveWhitespace);
 
             return new XmlDocumentation(document);
         }
 
         public static string Unindent(string rawXml)
         {
-            string s = "";
+            var s = "";
 
             using (var sr = new StringReader(rawXml))
             using (XmlReader xr = XmlReader.Create(sr))

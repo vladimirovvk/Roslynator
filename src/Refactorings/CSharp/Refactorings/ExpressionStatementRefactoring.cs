@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -10,17 +10,14 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, ExpressionStatementSyntax expressionStatement)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddIdentifierToVariableDeclaration))
-                await AddIdentifierToLocalDeclarationRefactoring.ComputeRefactoringAsync(context, expressionStatement).ConfigureAwait(false);
-
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceLocalVariable))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceLocalVariable))
             {
                 ExpressionSyntax expression = expressionStatement.Expression;
 
                 if (expression?.IsMissing == false
                     && context.Span.IsEmptyAndContainedInSpanOrBetweenSpans(expression)
                     && !expressionStatement.IsEmbedded()
-                    && !(expression is AssignmentExpressionSyntax)
+                    && expression is not AssignmentExpressionSyntax
                     && !CSharpFacts.IsIncrementOrDecrementExpression(expression.Kind()))
                 {
                     SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -33,7 +30,7 @@ namespace Roslynator.CSharp.Refactorings
                             && !typeSymbol.HasMetadataName(MetadataNames.System_Threading_Tasks_Task)
                             && !typeSymbol.IsVoid())
                         {
-                            bool addAwait = false;
+                            var addAwait = false;
 
                             if (typeSymbol.OriginalDefinition.EqualsOrInheritsFromTaskOfT())
                             {
@@ -44,8 +41,8 @@ namespace Roslynator.CSharp.Refactorings
 
                             context.RegisterRefactoring(
                                 IntroduceLocalVariableRefactoring.GetTitle(expression),
-                                cancellationToken => IntroduceLocalVariableRefactoring.RefactorAsync(context.Document, expressionStatement, typeSymbol, addAwait, semanticModel, cancellationToken),
-                                RefactoringIdentifiers.IntroduceLocalVariable);
+                                ct => IntroduceLocalVariableRefactoring.RefactorAsync(context.Document, expressionStatement, typeSymbol, addAwait, semanticModel, ct),
+                                RefactoringDescriptors.IntroduceLocalVariable);
                         }
                     }
                 }

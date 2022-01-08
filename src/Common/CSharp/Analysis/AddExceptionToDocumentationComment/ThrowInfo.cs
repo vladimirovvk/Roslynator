@@ -1,9 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
@@ -28,24 +27,14 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
 
         public static ThrowInfo Create(SyntaxNode node, ITypeSymbol exceptionSymbol, ISymbol declarationSymbol)
         {
-            switch (node.Kind())
+            switch (node)
             {
-                case SyntaxKind.ThrowStatement:
-                    {
-                        var throwStatement = (ThrowStatementSyntax)node;
-
-                        return new ThrowStatementInfo(throwStatement, throwStatement.Expression, exceptionSymbol, declarationSymbol);
-                    }
-                case SyntaxKind.ThrowExpression:
-                    {
-                        var throwExpression = (ThrowExpressionSyntax)node;
-
-                        return new ThrowExpressionInfo(throwExpression, throwExpression.Expression, exceptionSymbol, declarationSymbol);
-                    }
+                case ThrowStatementSyntax throwStatement:
+                    return new ThrowStatementInfo(throwStatement, throwStatement.Expression, exceptionSymbol, declarationSymbol);
+                case ThrowExpressionSyntax throwExpression:
+                    return new ThrowExpressionInfo(throwExpression, throwExpression.Expression, exceptionSymbol, declarationSymbol);
                 default:
-                    {
-                        throw new ArgumentException("", nameof(node));
-                    }
+                    throw new ArgumentException("", nameof(node));
             }
         }
 

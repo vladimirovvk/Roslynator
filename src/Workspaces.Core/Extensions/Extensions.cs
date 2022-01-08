@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -24,6 +24,8 @@ namespace Roslynator
             {
                 case TypeKind.Class:
                     return SymbolGroupFilter.Class;
+                case TypeKind.Module:
+                    return SymbolGroupFilter.Module;
                 case TypeKind.Delegate:
                     return SymbolGroupFilter.Delegate;
                 case TypeKind.Enum:
@@ -33,7 +35,7 @@ namespace Roslynator
                 case TypeKind.Struct:
                     return SymbolGroupFilter.Struct;
                 default:
-                    throw new ArgumentException("", nameof(typeKind));
+                    throw new ArgumentException($"Invalid enum value '{typeKind}'", nameof(typeKind));
             }
         }
 
@@ -117,6 +119,8 @@ namespace Roslynator
                         {
                             case TypeKind.Class:
                                 return SymbolGroup.Class;
+                            case TypeKind.Module:
+                                return SymbolGroup.Module;
                             case TypeKind.Delegate:
                                 return SymbolGroup.Delegate;
                             case TypeKind.Enum:
@@ -162,6 +166,8 @@ namespace Roslynator
             {
                 case SymbolGroup.Namespace:
                     return "namespace";
+                case SymbolGroup.Module:
+                    return "module";
                 case SymbolGroup.Class:
                     return "class";
                 case SymbolGroup.Delegate:
@@ -197,6 +203,8 @@ namespace Roslynator
             {
                 case SymbolGroup.Namespace:
                     return "namespaces";
+                case SymbolGroup.Module:
+                    return "modules";
                 case SymbolGroup.Class:
                     return "classes";
                 case SymbolGroup.Delegate:
@@ -244,17 +252,6 @@ namespace Roslynator
             return codeFixProvider.GetFixAllProvider()?.GetSupportedFixAllScopes().Contains(fixAllScope) == true;
         }
 
-        public static Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
-            this Compilation compilation,
-            ImmutableArray<DiagnosticAnalyzer> analyzers,
-            CompilationWithAnalyzersOptions analysisOptions,
-            CancellationToken cancellationToken = default)
-        {
-            var compilationWithAnalyzers = new CompilationWithAnalyzers(compilation, analyzers, analysisOptions);
-
-            return compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync(cancellationToken);
-        }
-
         public static void Add(this AnalyzerTelemetryInfo telemetryInfo, AnalyzerTelemetryInfo telemetryInfoToAdd)
         {
             telemetryInfo.CodeBlockActionsCount += telemetryInfoToAdd.CodeBlockActionsCount;
@@ -289,6 +286,11 @@ namespace Roslynator
                 default:
                     throw new InvalidOperationException($"Unknown diagnostic severity '{diagnosticSeverity}'.");
             }
+        }
+
+        public static ConsoleColors GetColors(this DiagnosticSeverity diagnosticSeverity)
+        {
+            return new ConsoleColors(GetColor(diagnosticSeverity));
         }
 
         public static async Task<CodeMetricsInfo> CountLinesAsync(
@@ -326,7 +328,7 @@ namespace Roslynator
                 return default;
 
             if (!options.IncludeGeneratedCode
-                && GeneratedCodeUtility.IsGeneratedCode(tree, service.SyntaxFacts.IsComment, cancellationToken))
+                && GeneratedCodeUtility.IsGeneratedCode(tree, f => service.SyntaxFacts.IsComment(f), cancellationToken))
             {
                 return default;
             }
@@ -394,6 +396,30 @@ namespace Roslynator
                 default:
                     throw new InvalidOperationException($"Unknown value '{kind}'.");
             }
+        }
+
+        public static ConsoleColors GetColors(this WorkspaceDiagnosticKind kind)
+        {
+            return new ConsoleColors(GetColor(kind));
+        }
+
+        public static bool IsEffective(
+            this Diagnostic diagnostic,
+            CodeAnalysisOptions codeAnalysisOptions,
+            CompilationOptions compilationOptions,
+            CancellationToken cancellationToken = default)
+        {
+            if (!codeAnalysisOptions.IsSupportedDiagnosticId(diagnostic.Id))
+                return false;
+
+            SyntaxTree tree = diagnostic.Location.SourceTree;
+
+            ReportDiagnostic reportDiagnostic = (tree != null)
+                ? diagnostic.Descriptor.GetEffectiveSeverity(tree, compilationOptions, cancellationToken)
+                : diagnostic.Descriptor.GetEffectiveSeverity(compilationOptions);
+
+            return reportDiagnostic != ReportDiagnostic.Suppress
+                && reportDiagnostic.ToDiagnosticSeverity() >= codeAnalysisOptions.SeverityLevel;
         }
     }
 }

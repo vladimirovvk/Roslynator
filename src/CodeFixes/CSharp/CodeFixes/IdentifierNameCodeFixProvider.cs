@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -10,30 +10,32 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CodeFixes;
-using Roslynator.CSharp.Helpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(IdentifierNameCodeFixProvider))]
     [Shared]
-    public class IdentifierNameCodeFixProvider : BaseCodeFixProvider
+    public sealed class IdentifierNameCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.UseOfUnassignedLocalVariable,
-                    CompilerDiagnosticIdentifiers.NameDoesNotExistInCurrentContext);
+                    CompilerDiagnosticIdentifiers.CS0165_UseOfUnassignedLocalVariable,
+                    CompilerDiagnosticIdentifiers.CS0103_NameDoesNotExistInCurrentContext);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
-            if (!TryFindFirstAncestorOrSelf(root, context.Span, out IdentifierNameSyntax identifierName))
+            if (!TryFindFirstAncestorOrSelf(root, context.Span, out SimpleNameSyntax simpleName))
+                return;
+
+            if (simpleName is not IdentifierNameSyntax identifierName)
                 return;
 
             Document document = context.Document;
@@ -43,14 +45,14 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.UseOfUnassignedLocalVariable:
+                    case CompilerDiagnosticIdentifiers.CS0165_UseOfUnassignedLocalVariable:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.InitializeLocalVariableWithDefaultValue))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.InitializeLocalVariableWithDefaultValue, context.Document, root.SyntaxTree))
                                 return;
 
                             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-                            if (!(semanticModel.GetSymbol(identifierName, cancellationToken) is ILocalSymbol localSymbol))
+                            if (semanticModel.GetSymbol(identifierName, cancellationToken) is not ILocalSymbol localSymbol)
                                 break;
 
                             ITypeSymbol typeSymbol = localSymbol.Type;
@@ -58,7 +60,7 @@ namespace Roslynator.CSharp.CodeFixes
                             if (typeSymbol.Kind == SymbolKind.ErrorType)
                                 break;
 
-                            if (!(localSymbol.GetSyntax(cancellationToken) is VariableDeclaratorSyntax variableDeclarator))
+                            if (localSymbol.GetSyntax(cancellationToken) is not VariableDeclaratorSyntax variableDeclarator)
                                 break;
 
                             CodeAction codeAction = CodeAction.Create(
@@ -69,7 +71,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                                     var variableDeclaration = (VariableDeclarationSyntax)variableDeclarator.Parent;
 
-                                    ExpressionSyntax value = typeSymbol.GetDefaultValueSyntax(document.GetDefaultSyntaxOptions(), variableDeclaration.Type.WithoutTrivia());
+                                    ExpressionSyntax value = typeSymbol.GetDefaultValueSyntax(variableDeclaration.Type.WithoutTrivia(), document.GetDefaultSyntaxOptions());
 
                                     if (value.IsKind(SyntaxKind.DefaultExpression)
                                         && document.SupportsLanguageFeature(CSharpLanguageFeature.DefaultLiteral))
@@ -92,12 +94,12 @@ namespace Roslynator.CSharp.CodeFixes
                             context.RegisterCodeFix(codeAction, diagnostic);
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.NameDoesNotExistInCurrentContext:
+                    case CompilerDiagnosticIdentifiers.CS0103_NameDoesNotExistInCurrentContext:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddVariableType))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddVariableType, context.Document, root.SyntaxTree))
                                 return;
 
-                            if (!(identifierName.Parent is ArgumentSyntax argument))
+                            if (identifierName.Parent is not ArgumentSyntax argument)
                                 break;
 
                             if (argument.RefOrOutKeyword.Kind() != SyntaxKind.OutKeyword)
@@ -110,14 +112,14 @@ namespace Roslynator.CSharp.CodeFixes
                                 if (typeSymbol.Kind == SymbolKind.TypeParameter)
                                     continue;
 
-                                string typeName = SymbolDisplay.ToMinimalDisplayString(typeSymbol, semanticModel, identifierName.SpanStart, SymbolDisplayFormats.Default);
+                                string typeName = SymbolDisplay.ToMinimalDisplayString(typeSymbol, semanticModel, identifierName.SpanStart, SymbolDisplayFormats.DisplayName);
 
                                 CodeAction codeAction = CodeAction.Create(
                                     $"Add variable type '{typeName}'",
                                     ct =>
                                     {
                                         DeclarationExpressionSyntax newNode = DeclarationExpression(
-                                            ParseName(typeName),
+                                            typeSymbol.ToTypeSyntax(),
                                             SingleVariableDesignation(identifierName.Identifier.WithoutTrivia()).WithLeadingTrivia(Space));
 
                                         newNode = newNode

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -40,7 +40,7 @@ namespace Roslynator.CSharp.Analysis
             if (methodSymbol.Parameters.Any())
                 return;
 
-            if (!(methodSymbol.ReturnType is IArrayTypeSymbol arrayType))
+            if (methodSymbol.ReturnType is not IArrayTypeSymbol arrayType)
                 return;
 
             if (arrayType.ElementType.SpecialType != SpecialType.System_Char)
@@ -48,8 +48,9 @@ namespace Roslynator.CSharp.Analysis
 
             TextSpan span = TextSpan.FromBounds(invocationInfo.MemberAccessExpression.OperatorToken.SpanStart, invocationExpression.Span.End);
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.RemoveRedundantStringToCharArrayCall,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.RemoveRedundantStringToCharArrayCall,
                 Location.Create(invocationExpression.SyntaxTree, span));
         }
 

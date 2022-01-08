@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,46 +24,52 @@ namespace Roslynator.CSharp.Refactorings
             {
                 SeparatedSyntaxList<ExpressionSyntax> expressions = initializer.Expressions;
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.FormatInitializer)
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.WrapInitializerExpressions)
                     && expressions.Any()
                     && !initializer.IsKind(SyntaxKind.ComplexElementInitializerExpression)
                     && initializer.IsParentKind(
                         SyntaxKind.ArrayCreationExpression,
                         SyntaxKind.ImplicitArrayCreationExpression,
                         SyntaxKind.ObjectCreationExpression,
-                        SyntaxKind.CollectionInitializerExpression))
+                        SyntaxKind.CollectionInitializerExpression,
+                        SyntaxKind.WithExpression))
                 {
                     if (initializer.IsSingleLine(includeExteriorTrivia: false))
                     {
                         context.RegisterRefactoring(
-                            "Format initializer on multiple lines",
-                            cancellationToken => SyntaxFormatter.ToMultiLineAsync(
-                                context.Document,
-                                initializer,
-                                cancellationToken),
-                            RefactoringIdentifiers.FormatInitializer);
+                            "Wrap initializer expression",
+                            ct => SyntaxFormatter.ToMultiLineAsync(context.Document, initializer, ct),
+                            RefactoringDescriptors.WrapInitializerExpressions);
                     }
                     else if (expressions.All(expression => expression.IsSingleLine())
                         && initializer.DescendantTrivia(initializer.Span).All(f => f.IsWhitespaceOrEndOfLineTrivia()))
                     {
                         context.RegisterRefactoring(
-                            "Format initializer on a single line",
-                            cancellationToken => SyntaxFormatter.ToSingleLineAsync(
+                            "Unwrap initializer expressions",
+                            ct => SyntaxFormatter.ToSingleLineAsync(
                                 context.Document,
                                 initializer.Parent,
                                 TextSpan.FromBounds(initializer.OpenBraceToken.GetPreviousToken().Span.End, initializer.CloseBraceToken.Span.End),
-                                cancellationToken),
-                            RefactoringIdentifiers.FormatInitializer);
+                                ct),
+                            RefactoringDescriptors.WrapInitializerExpressions);
                     }
                 }
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.ExpandInitializer))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.AddAllPropertiesToInitializer)
+                    && initializer.IsKind(SyntaxKind.ObjectInitializerExpression, SyntaxKind.WithInitializerExpression)
+                    && AddAllPropertiesToInitializerRefactoring.IsApplicableSpan(initializer, context.Span))
+                {
+                    SemanticModel semanticModdel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                    AddAllPropertiesToInitializerRefactoring.ComputeRefactorings(context, initializer, semanticModdel);
+                }
+
                     await ExpandInitializerRefactoring.ComputeRefactoringsAsync(context, initializer).ConfigureAwait(false);
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseCSharp6DictionaryInitializer)
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.UseIndexInitializer)
                     && context.SupportsCSharp6)
                 {
-                    await UseCSharp6DictionaryInitializerRefactoring.ComputeRefactoringAsync(context, initializer).ConfigureAwait(false);
+                    await UseIndexInitializerRefactoring.ComputeRefactoringAsync(context, initializer).ConfigureAwait(false);
                 }
             }
         }

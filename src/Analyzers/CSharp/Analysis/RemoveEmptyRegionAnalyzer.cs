@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,35 +11,40 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveEmptyRegionAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveEmptyRegionAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.RemoveEmptyRegion,
-                    DiagnosticDescriptors.RemoveEmptyRegionFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.RemoveEmptyRegion,
+                        DiagnosticRules.RemoveEmptyRegionFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveEmptyRegion))
-                    return;
-
-                startContext.RegisterSyntaxNodeAction(AnalyzeRegionDirective, SyntaxKind.RegionDirectiveTrivia);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveEmptyRegion.IsEffective(c))
+                        AnalyzeRegionDirective(c);
+                },
+                SyntaxKind.RegionDirectiveTrivia);
         }
 
-        public static void AnalyzeRegionDirective(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeRegionDirective(SyntaxNodeAnalysisContext context)
         {
             var regionDirective = (RegionDirectiveTriviaSyntax)context.Node;
 
@@ -51,13 +56,14 @@ namespace Roslynator.CSharp.Analysis
             if (!region.IsEmpty)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.RemoveEmptyRegion,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.RemoveEmptyRegion,
                 regionDirective.GetLocation(),
                 additionalLocations: ImmutableArray.Create(region.EndDirective.GetLocation()));
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveEmptyRegionFadeOut, regionDirective.GetLocation());
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveEmptyRegionFadeOut, region.EndDirective.GetLocation());
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveEmptyRegionFadeOut, regionDirective.GetLocation());
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveEmptyRegionFadeOut, region.EndDirective.GetLocation());
         }
     }
 }

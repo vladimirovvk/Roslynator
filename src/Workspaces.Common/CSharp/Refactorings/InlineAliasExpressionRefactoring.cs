@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using System.Threading;
@@ -37,22 +37,12 @@ namespace Roslynator.CSharp.Refactorings.InlineAliasExpression
 
         private static SyntaxNode RemoveUsingDirective(SyntaxNode node, int index)
         {
-            switch (node.Kind())
+            switch (node)
             {
-                case SyntaxKind.CompilationUnit:
-                    {
-                        var compilationUnit = (CompilationUnitSyntax)node;
-
-                        UsingDirectiveSyntax usingDirective = compilationUnit.Usings[index];
-                        return compilationUnit.RemoveNode(usingDirective);
-                    }
-                case SyntaxKind.NamespaceDeclaration:
-                    {
-                        var namespaceDeclaration = (NamespaceDeclarationSyntax)node;
-
-                        UsingDirectiveSyntax usingDirective = namespaceDeclaration.Usings[index];
-                        return namespaceDeclaration.RemoveNode(usingDirective);
-                    }
+                case CompilationUnitSyntax compilationUnit:
+                    return compilationUnit.RemoveNode(compilationUnit.Usings[index]);
+                case NamespaceDeclarationSyntax namespaceDeclaration:
+                    return namespaceDeclaration.RemoveNode(namespaceDeclaration.Usings[index]);
             }
 
             return node;
@@ -80,7 +70,7 @@ namespace Roslynator.CSharp.Refactorings.InlineAliasExpression
             {
                 IAliasSymbol aliasSymbol = SemanticModel.GetAliasInfo(node, CancellationToken);
 
-                if (aliasSymbol?.Equals(AliasSymbol) == true)
+                if (SymbolEqualityComparer.Default.Equals(aliasSymbol, AliasSymbol))
                 {
                     return Replacement
                         .WithTriviaFrom(node)

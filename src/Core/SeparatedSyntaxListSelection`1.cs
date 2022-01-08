@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -98,7 +98,6 @@ namespace Roslynator
         /// <summary>
         /// Gets the first selected node.
         /// </summary>
-        /// <returns></returns>
         public TNode First()
         {
             return UnderlyingList[FirstIndex];
@@ -107,7 +106,6 @@ namespace Roslynator
         /// <summary>
         /// Gets the last selected node.
         /// </summary>
-        /// <returns></returns>
         public TNode Last()
         {
             return UnderlyingList[LastIndex];
@@ -118,7 +116,6 @@ namespace Roslynator
         /// </summary>
         /// <param name="list"></param>
         /// <param name="span"></param>
-        /// <returns></returns>
         public static SeparatedSyntaxListSelection<TNode> Create(SeparatedSyntaxList<TNode> list, TextSpan span)
         {
             SelectionResult result = SelectionResult.Create(list, span);
@@ -167,7 +164,6 @@ namespace Roslynator
         /// <summary>
         /// Returns an enumerator that iterates through selected nodes.
         /// </summary>
-        /// <returns></returns>
         public Enumerator GetEnumerator()
         {
             return new Enumerator(this);
@@ -183,10 +179,7 @@ namespace Roslynator
             return new EnumeratorImpl(this);
         }
 
-        [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
-        [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "<Pending>")]
-        [SuppressMessage("Usage", "CA2231:Overload operator equals on overriding value type Equals", Justification = "<Pending>")]
-        [SuppressMessage("Usage", "RCS1223:Mark publicly visible type with DebuggerDisplay attribute.", Justification = "<Pending>")]
+        [SuppressMessage("Usage", "RCS1223:Mark publicly visible type with DebuggerDisplay attribute.")]
         public struct Enumerator
         {
             private readonly SeparatedSyntaxListSelection<TNode> _selection;

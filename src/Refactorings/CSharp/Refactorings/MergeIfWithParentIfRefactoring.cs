@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +25,7 @@ namespace Roslynator.CSharp.Refactorings
             }
             else
             {
-                if (!(ifStatement.Parent is BlockSyntax block))
+                if (ifStatement.Parent is not BlockSyntax block)
                     return;
 
                 if (block.Statements.Count != 1)
@@ -42,8 +42,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Merge if with parent if",
-                cancellationToken => RefactorAsync(context.Document, ifStatement, cancellationToken),
-                RefactoringIdentifiers.MergeIfWithParentIf);
+                ct => RefactorAsync(context.Document, ifStatement, ct),
+                RefactoringDescriptors.MergeIfWithParentIf);
         }
 
         private static Task<Document> RefactorAsync(

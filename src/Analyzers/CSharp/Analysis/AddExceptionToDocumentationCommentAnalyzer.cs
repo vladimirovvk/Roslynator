@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,20 +12,24 @@ using static Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment.AddEx
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AddExceptionToDocumentationCommentAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AddExceptionToDocumentationCommentAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AddExceptionToDocumentationComment); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AddExceptionToDocumentationComment);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
             context.RegisterCompilationStartAction(startContext =>
             {
@@ -48,7 +52,7 @@ namespace Roslynator.CSharp.Analysis
             if (!analysis.Success)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AddExceptionToDocumentationComment, throwStatement);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AddExceptionToDocumentationComment, throwStatement);
         }
 
         private static void AnalyzeThrowExpression(SyntaxNodeAnalysisContext context, INamedTypeSymbol exceptionSymbol)
@@ -60,7 +64,7 @@ namespace Roslynator.CSharp.Analysis
             if (!analysis.Success)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AddExceptionToDocumentationComment, throwExpression);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AddExceptionToDocumentationComment, throwExpression);
         }
     }
 }

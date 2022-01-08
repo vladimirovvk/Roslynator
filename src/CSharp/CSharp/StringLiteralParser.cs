@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -233,7 +233,7 @@ namespace Roslynator.CSharp
                     }
                 }
 
-                (sb ?? (sb = StringBuilderCache.GetInstance(text.Length))).Append(ch);
+                (sb ??= StringBuilderCache.GetInstance(text.Length)).Append(ch);
             }
 
             return new StringLiteralParserResult((sb != null)
@@ -285,7 +285,7 @@ namespace Roslynator.CSharp
                     }
                 }
 
-                (sb ?? (sb = StringBuilderCache.GetInstance(text.Length))).Append(ch);
+                (sb ??= StringBuilderCache.GetInstance(text.Length)).Append(ch);
             }
 
             return new StringLiteralParserResult((sb != null)
@@ -357,7 +357,7 @@ namespace Roslynator.CSharp
                                 if (pos + 4 >= text.Length)
                                     return false;
 
-                                if (!uint.TryParse(text.Substring(pos + 1, 4), NumberStyles.HexNumber, NumberFormatInfo.CurrentInfo, out uint result))
+                                if (!uint.TryParse(text.Substring(pos + 1, 4), NumberStyles.HexNumber, NumberFormatInfo.CurrentInfo, out uint _))
                                     return false;
 
                                 if (IsOverlap(span, startPos, 6))

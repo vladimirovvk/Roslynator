@@ -1,4 +1,6 @@
-﻿# How to: Configure Refactorings
+# How to: Configure Refactorings
+
+Refactoring represents a single operation for a given span of text.
 
 > Note: There is a difference between analyzers and refactorings (Please see [Analyzers vs. Refactorings](AnalyzersVsRefactorings.md)). If you want to configure analyzers please see [How to Configure Analyzers](HowToConfigureAnalyzers.md).
 
@@ -41,7 +43,3 @@ By default, any setting in config file **overrides** setting from IDE options. T
 
 * Config file is not bound to IDE installation.
 * One configuration file can be used by multiple users.
-
-### Default Config File
-
-Refactorings are distinguished by their identifiers which is not very descriptive. To make config file more descriptive, you can use [Default Config File](../src/DefaultConfigFile.xml) which contains comment for each refactoring.

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -16,31 +16,44 @@ namespace Roslynator.CodeGeneration.CSharp
             IEnumerable<AnalyzerMetadata> analyzers,
             bool obsolete,
             IComparer<string> comparer,
-            string @namespace)
+            string @namespace,
+            string className)
         {
             return CompilationUnit(
                 UsingDirectives("System"),
-                NamespaceDeclaration(@namespace,
+                NamespaceDeclaration(
+                    @namespace,
                     ClassDeclaration(
                         Modifiers.Public_Static_Partial(),
-                        "DiagnosticIdentifiers",
+                        className,
                         analyzers
                             .Where(f => f.IsObsolete == obsolete)
                             .OrderBy(f => f.Id, comparer)
-                            .Select(f =>
-                            {
-                                FieldDeclarationSyntax fieldDeclaration = FieldDeclaration(
-                                    Modifiers.Public_Const(),
-                                    PredefinedStringType(),
-                                    f.Identifier,
-                                    StringLiteralExpression(f.Id));
-
-                                if (f.IsObsolete)
-                                    fieldDeclaration = fieldDeclaration.AddObsoleteAttributeIf(f.IsObsolete, error: true);
-
-                                return fieldDeclaration;
-                            })
+                            .SelectMany(f => CreateMembers(f))
                             .ToSyntaxList<MemberDeclarationSyntax>())));
+        }
+
+        private static IEnumerable<FieldDeclarationSyntax> CreateMembers(AnalyzerMetadata analyzer)
+        {
+            string id = analyzer.Id;
+            string identifier = analyzer.Identifier;
+
+            if (id != null)
+                yield return CreateMember(id, identifier, analyzer.IsObsolete);
+        }
+
+        private static FieldDeclarationSyntax CreateMember(string id, string identifier, bool isObsolete)
+        {
+            FieldDeclarationSyntax fieldDeclaration = FieldDeclaration(
+                Modifiers.Public_Const(),
+                PredefinedStringType(),
+                identifier,
+                StringLiteralExpression(id));
+
+            if (isObsolete)
+                fieldDeclaration = fieldDeclaration.AddObsoleteAttributeIf(isObsolete, error: true);
+
+            return fieldDeclaration;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,17 +11,17 @@ namespace Roslynator.CSharp.Refactorings.IntroduceAndInitialize
     {
         private string _name;
 
-        public IntroduceAndInitializeFieldInfo(ParameterSyntax parameter, bool prefixFieldIndentifierWithUnderscore = false)
+        public IntroduceAndInitializeFieldInfo(ParameterSyntax parameter, bool prefixFieldIdentifierWithUnderscore = false)
             : base(parameter)
         {
-            PrefixFieldIdentifierWithUnderscore = prefixFieldIndentifierWithUnderscore;
+            PrefixFieldIdentifierWithUnderscore = prefixFieldIdentifierWithUnderscore;
         }
 
         public bool PrefixFieldIdentifierWithUnderscore { get; }
 
         public override string Name
         {
-            get { return _name ?? (_name = StringUtility.ToCamelCase(ParameterName, PrefixFieldIdentifierWithUnderscore)); }
+            get { return _name ??= StringUtility.ToCamelCase(ParameterName, PrefixFieldIdentifierWithUnderscore); }
         }
 
         public override MemberDeclarationSyntax CreateDeclaration()

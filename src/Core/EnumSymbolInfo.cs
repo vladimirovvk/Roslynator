@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -58,7 +58,7 @@ namespace Roslynator
 
                 if ((value & value2) == value2)
                 {
-                    (values ?? (values = new List<EnumFieldSymbolInfo>())).Add(Fields[i]);
+                    (values ??= new List<EnumFieldSymbolInfo>()).Add(Fields[i]);
 
                     value &= ~value2;
 
@@ -113,7 +113,7 @@ namespace Roslynator
 
         private class EnumFieldSymbolInfoComparer : IComparer<EnumFieldSymbolInfo>
         {
-            public static EnumFieldSymbolInfoComparer Instance { get; } = new EnumFieldSymbolInfoComparer();
+            public static EnumFieldSymbolInfoComparer Instance { get; } = new();
 
             public int Compare(EnumFieldSymbolInfo x, EnumFieldSymbolInfo y)
             {

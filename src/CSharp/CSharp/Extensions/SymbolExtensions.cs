@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -16,15 +16,6 @@ namespace Roslynator.CSharp
     /// </summary>
     public static class SymbolExtensions
     {
-        private static SymbolDisplayFormat DefaultSymbolDisplayFormat { get; } = new SymbolDisplayFormat(
-            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
-            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
-            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes
-                | SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers);
-
-        private static SymbolDisplayFormat IsReadOnlyStructSymbolDisplayFormat { get; } = new SymbolDisplayFormat(kindOptions: SymbolDisplayKindOptions.IncludeTypeKeyword);
-
         #region INamedTypeSymbol
         internal static string ToDisplayString(this INamedTypeSymbol typeSymbol, SymbolDisplayFormat format, SymbolDisplayTypeDeclarationOptions typeDeclarationOptions)
         {
@@ -124,7 +115,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="namespaceOrTypeSymbol"></param>
         /// <param name="format"></param>
-        /// <returns></returns>
         public static TypeSyntax ToTypeSyntax(this INamespaceOrTypeSymbol namespaceOrTypeSymbol, SymbolDisplayFormat format = null)
         {
             if (namespaceOrTypeSymbol == null)
@@ -147,7 +137,6 @@ namespace Roslynator.CSharp
         /// <param name="semanticModel"></param>
         /// <param name="position"></param>
         /// <param name="format"></param>
-        /// <returns></returns>
         public static TypeSyntax ToMinimalTypeSyntax(this INamespaceOrTypeSymbol namespaceOrTypeSymbol, SemanticModel semanticModel, int position, SymbolDisplayFormat format = null)
         {
             if (namespaceOrTypeSymbol == null)
@@ -173,7 +162,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="namespaceSymbol"></param>
         /// <param name="format"></param>
-        /// <returns></returns>
         public static TypeSyntax ToTypeSyntax(this INamespaceSymbol namespaceSymbol, SymbolDisplayFormat format = null)
         {
             if (namespaceSymbol == null)
@@ -181,7 +169,7 @@ namespace Roslynator.CSharp
 
             ThrowIfExplicitDeclarationIsNotSupported(namespaceSymbol);
 
-            return ParseTypeName(namespaceSymbol.ToDisplayString(format ?? DefaultSymbolDisplayFormat));
+            return ParseTypeName(namespaceSymbol.ToDisplayString(format ?? SymbolDisplayFormats.FullName));
         }
 
         /// <summary>
@@ -191,7 +179,6 @@ namespace Roslynator.CSharp
         /// <param name="semanticModel"></param>
         /// <param name="position"></param>
         /// <param name="format"></param>
-        /// <returns></returns>
         public static TypeSyntax ToMinimalTypeSyntax(this INamespaceSymbol namespaceSymbol, SemanticModel semanticModel, int position, SymbolDisplayFormat format = null)
         {
             if (namespaceSymbol == null)
@@ -202,7 +189,7 @@ namespace Roslynator.CSharp
 
             ThrowIfExplicitDeclarationIsNotSupported(namespaceSymbol);
 
-            return ParseTypeName(namespaceSymbol.ToMinimalDisplayString(semanticModel, position, format ?? DefaultSymbolDisplayFormat));
+            return ParseTypeName(namespaceSymbol.ToMinimalDisplayString(semanticModel, position, format ?? SymbolDisplayFormats.FullName));
         }
 
         private static void ThrowIfExplicitDeclarationIsNotSupported(INamespaceSymbol namespaceSymbol)
@@ -279,7 +266,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="typeSymbol"></param>
         /// <param name="format"></param>
-        /// <returns></returns>
         public static TypeSyntax ToTypeSyntax(this ITypeSymbol typeSymbol, SymbolDisplayFormat format = null)
         {
             if (typeSymbol == null)
@@ -287,7 +273,7 @@ namespace Roslynator.CSharp
 
             ThrowIfExplicitDeclarationIsNotSupported(typeSymbol);
 
-            return ParseTypeName(typeSymbol.ToDisplayString(format ?? DefaultSymbolDisplayFormat));
+            return ParseTypeName(typeSymbol.ToDisplayString(format ?? SymbolDisplayFormats.FullName));
         }
 
         /// <summary>
@@ -297,7 +283,6 @@ namespace Roslynator.CSharp
         /// <param name="semanticModel"></param>
         /// <param name="position"></param>
         /// <param name="format"></param>
-        /// <returns></returns>
         public static TypeSyntax ToMinimalTypeSyntax(this ITypeSymbol typeSymbol, SemanticModel semanticModel, int position, SymbolDisplayFormat format = null)
         {
             if (typeSymbol == null)
@@ -308,7 +293,7 @@ namespace Roslynator.CSharp
 
             ThrowIfExplicitDeclarationIsNotSupported(typeSymbol);
 
-            return ParseTypeName(typeSymbol.ToMinimalDisplayString(semanticModel, position, format ?? DefaultSymbolDisplayFormat));
+            return ParseTypeName(typeSymbol.ToMinimalDisplayString(semanticModel, position, format ?? SymbolDisplayFormats.FullName));
         }
 
         private static void ThrowIfExplicitDeclarationIsNotSupported(ITypeSymbol typeSymbol)
@@ -321,7 +306,6 @@ namespace Roslynator.CSharp
         /// Returns true if the specified type can be used to declare constant value.
         /// </summary>
         /// <param name="typeSymbol"></param>
-        /// <returns></returns>
         public static bool SupportsConstantValue(this ITypeSymbol typeSymbol)
         {
             if (typeSymbol == null)
@@ -360,10 +344,8 @@ namespace Roslynator.CSharp
 
         internal static bool IsReadOnlyStruct(this ITypeSymbol type)
         {
-            return type.TypeKind == TypeKind.Struct
-                && type
-                    .ToDisplayParts(IsReadOnlyStructSymbolDisplayFormat)
-                    .Any(f => f.Kind == SymbolDisplayPartKind.Keyword && f.ToString() == "readonly");
+            return type.IsReadOnly
+                && type.TypeKind == TypeKind.Struct;
         }
         #endregion ITypeSymbol
     }

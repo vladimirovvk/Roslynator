@@ -1,6 +1,5 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,31 +9,36 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AbstractTypeShouldNotHavePublicConstructorsAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AbstractTypeShouldNotHavePublicConstructorsAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AbstractTypeShouldNotHavePublicConstructors); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AbstractTypeShouldNotHavePublicConstructors);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeConstructorDeclaration, SyntaxKind.ConstructorDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeConstructorDeclaration(f), SyntaxKind.ConstructorDeclaration);
         }
 
-        public static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
         {
-            var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
-
-            if (!SyntaxAccessibility<ConstructorDeclarationSyntax>.Instance.GetExplicitAccessibility(constructorDeclaration).Is(Accessibility.Public, Accessibility.ProtectedOrInternal))
+            if (!context.Node.IsParentKind(SyntaxKind.ClassDeclaration))
                 return;
 
-            if (!constructorDeclaration.IsParentKind(SyntaxKind.ClassDeclaration))
+            var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
+
+            if (SyntaxAccessibility<ConstructorDeclarationSyntax>.Instance.GetExplicitAccessibility(constructorDeclaration) != Accessibility.Public)
                 return;
 
             var classDeclaration = (ClassDeclarationSyntax)constructorDeclaration.Parent;
@@ -52,10 +56,13 @@ namespace Roslynator.CSharp.Analysis
                     isAbstract = classSymbol.IsAbstract;
             }
 
-            if (!isAbstract)
-                return;
-
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AbstractTypeShouldNotHavePublicConstructors, constructorDeclaration.Identifier);
+            if (isAbstract)
+            {
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.AbstractTypeShouldNotHavePublicConstructors,
+                    constructorDeclaration.Identifier);
+            }
         }
     }
 }

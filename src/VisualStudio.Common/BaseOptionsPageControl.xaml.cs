@@ -1,8 +1,9 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -29,13 +30,13 @@ namespace Roslynator.VisualStudio
 
         public string Comment { get; set; }
 
-        public ListSortDirection DefaultSortDirection { get; set; }
+        public ListSortDirection DefaultSortDirection { get; set; } = ListSortDirection.Descending;
 
-        public ObservableCollection<BaseModel> Items { get; } = new ObservableCollection<BaseModel>();
+        public ObservableCollection<BaseModel> Items { get; } = new();
 
         private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
         {
-            if (!(e.OriginalSource is GridViewColumnHeader clickedHeader))
+            if (e.OriginalSource is not GridViewColumnHeader clickedHeader)
                 return;
 
             if (clickedHeader.Role == GridViewColumnHeaderRole.Padding)
@@ -119,23 +120,33 @@ namespace Roslynator.VisualStudio
             return true;
         }
 
-        private void UncheckAllButton_Click(object sender, RoutedEventArgs e)
+        private void EnableDisableAllButton_Click(object sender, RoutedEventArgs e)
         {
-            foreach (BaseModel model in Items)
-                model.Enabled = false;
-        }
+            if (Items.All(f => f.Enabled == null))
+            {
+                SetAll(false);
+            }
+            else if (Items.All(f => f.Enabled == false))
+            {
+                SetAll(true);
+            }
+            else
+            {
+                SetAll(null);
+            }
 
-        private void CheckAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            foreach (BaseModel model in Items)
-                model.Enabled = true;
+            void SetAll(bool? value)
+            {
+                foreach (BaseModel model in Items)
+                    model.Enabled = value;
+            }
         }
 
         private void FilterTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             var view = (CollectionView)CollectionViewSource.GetDefaultView(lsvItems.ItemsSource);
 
-            view.Filter = view.Filter ?? FilterItems;
+            view.Filter ??= f => FilterItems(f);
 
             view.Refresh();
         }

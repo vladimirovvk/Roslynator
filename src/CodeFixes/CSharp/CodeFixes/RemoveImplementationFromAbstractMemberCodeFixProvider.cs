@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -19,27 +19,27 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RemoveImplementationFromAbstractMemberCodeFixProvider))]
     [Shared]
-    public class RemoveImplementationFromAbstractMemberCodeFixProvider : BaseCodeFixProvider
+    public sealed class RemoveImplementationFromAbstractMemberCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.EventInInterfaceCannotHaveAddOrRemoveAccessors,
-                    CompilerDiagnosticIdentifiers.MemberCannotDeclareBodyBecauseItIsMarkedAbstract,
-                    CompilerDiagnosticIdentifiers.InterfaceMembersCannotHaveDefinition);
+                    CompilerDiagnosticIdentifiers.CS0069_EventInInterfaceCannotHaveAddOrRemoveAccessors,
+                    CompilerDiagnosticIdentifiers.CS0500_MemberCannotDeclareBodyBecauseItIsMarkedAbstract,
+                    CompilerDiagnosticIdentifiers.CS0531_InterfaceMembersCannotHaveDefinition);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveImplementationFromAbstractMember))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveImplementationFromAbstractMember, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out SyntaxNode node, predicate: f => f is MemberDeclarationSyntax || f is AccessorDeclarationSyntax))
                 return;
@@ -49,7 +49,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 (node.IsKind(SyntaxKind.EventDeclaration)) ? "Remove accessor" : "Remove body",
-                cancellationToken => RefactorAsync(context.Document, node, cancellationToken),
+                ct => RefactorAsync(context.Document, node, ct),
                 GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);

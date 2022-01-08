@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CSharp.Refactorings.WrapStatements;
@@ -12,20 +12,20 @@ namespace Roslynator.CSharp.Refactorings
             if (!statement.IsEmbedded(canBeIfInsideElse: false, canBeUsingInsideUsing: false))
                 return;
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.WrapInCondition))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.WrapStatementsInCondition))
             {
                 context.RegisterRefactoring(
                     WrapInIfStatementRefactoring.Title,
                     ct => WrapInIfStatementRefactoring.Instance.RefactorAsync(context.Document, statement, ct),
-                    RefactoringIdentifiers.WrapInCondition);
+                    RefactoringDescriptors.WrapStatementsInCondition);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.WrapInTryCatch))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.WrapLinesInTryCatch))
             {
                 context.RegisterRefactoring(
-                    WrapInTryCatchRefactoring.Title,
-                    ct => WrapInTryCatchRefactoring.Instance.RefactorAsync(context.Document, statement, ct),
-                    RefactoringIdentifiers.WrapInTryCatch);
+                    WrapLinesInTryCatchRefactoring.Title,
+                    ct => WrapLinesInTryCatchRefactoring.Instance.RefactorAsync(context.Document, statement, ct),
+                    RefactoringDescriptors.WrapLinesInTryCatch);
             }
         }
     }

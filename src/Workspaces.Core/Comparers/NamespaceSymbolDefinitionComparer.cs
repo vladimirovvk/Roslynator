@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
@@ -73,7 +73,7 @@ namespace Roslynator
                 count2--;
             }
 
-            int CountContainingNamespaces(INamespaceSymbol namespaceSymbol)
+            static int CountContainingNamespaces(INamespaceSymbol namespaceSymbol)
             {
                 int count = 0;
 
@@ -90,7 +90,7 @@ namespace Roslynator
                 return count;
             }
 
-            INamespaceSymbol GetNamespaceSymbol(INamespaceSymbol namespaceSymbol, int count)
+            static INamespaceSymbol GetNamespaceSymbol(INamespaceSymbol namespaceSymbol, int count)
             {
                 while (count > 0)
                 {

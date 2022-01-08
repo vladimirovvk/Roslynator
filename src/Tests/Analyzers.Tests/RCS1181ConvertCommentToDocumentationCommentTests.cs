@@ -1,22 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
-using Roslynator.CSharp.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1181ConvertCommentToDocumentationCommentTests : AbstractCSharpFixVerifier
+    public class RCS1181ConvertCommentToDocumentationCommentTests : AbstractCSharpDiagnosticVerifier<ConvertCommentToDocumentationCommentAnalyzer, MemberDeclarationCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.ConvertCommentToDocumentationComment;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new ConvertCommentToDocumentationCommentAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new MemberDeclarationCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.ConvertCommentToDocumentationComment;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ConvertCommentToDocumentationComment)]
         public async Task Test_LeadingComment()
@@ -136,12 +130,13 @@ enum E
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ConvertCommentToDocumentationComment)]
-        public async Task Test_TrailingComment_EnumMemberComma()
+        public async Task Test_TrailingComment_EnumMemberWithValueAndWithComma()
         {
             await VerifyDiagnosticAndFixAsync(@"
 enum E
 {
     A = 0, [|//x|]
+    B = 1
 }
 ", @"
 enum E
@@ -150,6 +145,28 @@ enum E
     /// x
     /// </summary>
     A = 0,
+    B = 1
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ConvertCommentToDocumentationComment)]
+        public async Task Test_TrailingComment_EnumMemberWithoutValueAndWithComma()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+enum E
+{
+    A, [|//x|]
+    B
+}
+", @"
+enum E
+{
+    /// <summary>
+    /// x
+    /// </summary>
+    A,
+    B
 }
 ");
         }
@@ -214,8 +231,6 @@ class C
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ConvertCommentToDocumentationComment)]
         public async Task TestNoDiagnostic_DocumentationComment_DocumentationModeIsEqualToNone()
         {
-            var options = (CSharpCodeVerificationOptions)Options;
-
             await VerifyNoDiagnosticAsync(@"
 class C
 {
@@ -226,14 +241,12 @@ class C
     {
     }
 }
-", options: options.WithParseOptions(options.ParseOptions.WithDocumentationMode(DocumentationMode.None)));
+", options: Options.WithParseOptions(Options.ParseOptions.WithDocumentationMode(DocumentationMode.None)));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ConvertCommentToDocumentationComment)]
         public async Task TestNoDiagnostic_DocumentationCommentAndTrailingComment_DocumentationModeIsEqualToNone()
         {
-            var options = (CSharpCodeVerificationOptions)Options;
-
             await VerifyNoDiagnosticAsync(@"
 class C
 {
@@ -244,7 +257,7 @@ class C
     {
     }
 }
-", options: options.WithParseOptions(options.ParseOptions.WithDocumentationMode(DocumentationMode.None)));
+", options: Options.WithParseOptions(Options.ParseOptions.WithDocumentationMode(DocumentationMode.None)));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ConvertCommentToDocumentationComment)]

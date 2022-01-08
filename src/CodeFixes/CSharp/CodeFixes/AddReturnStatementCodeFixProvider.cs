@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,26 +15,26 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddReturnStatementCodeFixProvider))]
     [Shared]
-    public class AddReturnStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class AddReturnStatementCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.NotAllCodePathsReturnValue,
-                    CompilerDiagnosticIdentifiers.NotAllCodePathsReturnValueInAnonymousFunction);
+                    CompilerDiagnosticIdentifiers.CS0161_NotAllCodePathsReturnValue,
+                    CompilerDiagnosticIdentifiers.CS1643_NotAllCodePathsReturnValueInAnonymousFunction);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddReturnStatementThatReturnsDefaultValue))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddReturnStatementThatReturnsDefaultValue, context.Document, root.SyntaxTree))
+                return;
 
             SyntaxNode node = root.FindNode(context.Span, getInnermostNodeForTie: true);
 
@@ -148,7 +148,7 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 CodeAction codeAction = CodeAction.Create(
                     "Add return statement that returns default value",
-                    cancellationToken => RefactorAsync(context.Document, body, typeSymbol, cancellationToken),
+                    ct => RefactorAsync(context.Document, body, typeSymbol, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);

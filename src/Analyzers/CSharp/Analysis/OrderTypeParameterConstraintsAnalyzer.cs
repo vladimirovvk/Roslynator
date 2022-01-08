@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,24 +11,29 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class OrderTypeParameterConstraintsAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class OrderTypeParameterConstraintsAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.OrderTypeParameterConstraints); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.OrderTypeParameterConstraints);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeTypeParameterList, SyntaxKind.TypeParameterList);
+            context.RegisterSyntaxNodeAction(f => AnalyzeTypeParameterList(f), SyntaxKind.TypeParameterList);
         }
 
-        public static void AnalyzeTypeParameterList(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeTypeParameterList(SyntaxNodeAnalysisContext context)
         {
             var typeParameterList = (TypeParameterListSyntax)context.Node;
 
@@ -49,9 +54,10 @@ namespace Roslynator.CSharp.Analysis
             if (!IsFixable(genericInfo.TypeParameters, genericInfo.ConstraintClauses))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.OrderTypeParameterConstraints,
-                genericInfo.ConstraintClauses.First());
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.OrderTypeParameterConstraints,
+                genericInfo.ConstraintClauses[0]);
         }
 
         private static bool IsFixable(

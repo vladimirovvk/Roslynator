@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -10,7 +10,7 @@ namespace Roslynator
     {
         public override string EnsureUniqueName(string baseName, IEnumerable<string> reservedNames, bool isCaseSensitive = true)
         {
-            string suffix = "";
+            var suffix = "";
 
             string name = baseName;
 
@@ -25,7 +25,7 @@ namespace Roslynator
 
         public override string EnsureUniqueName(string baseName, ImmutableArray<ISymbol> symbols, bool isCaseSensitive = true)
         {
-            string suffix = "";
+            var suffix = "";
 
             string name = baseName;
 

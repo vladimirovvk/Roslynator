@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -21,13 +21,13 @@ namespace Roslynator.Documentation
         {
         }
 
-        public static GitHubDocumentationUrlProvider Instance { get; } = new GitHubDocumentationUrlProvider(ImmutableArray.Create(MicrosoftDocsUrlProvider.Instance));
+        public static GitHubDocumentationUrlProvider Instance { get; } = new(ImmutableArray.Create(MicrosoftDocsUrlProvider.Instance));
 
         public const string ReadMeFileName = "README.md";
 
         private const string LinkToSelf = "./" + ReadMeFileName;
 
-        private static readonly Regex _notWordCharOrHyphenOrSpaceRegex = new Regex(@"[^\w- ]");
+        private static readonly Regex _notWordCharOrHyphenOrSpaceRegex = new(@"[^\w- ]");
 
         private Dictionary<ISymbol, ImmutableArray<string>> _symbolToFoldersMap;
 
@@ -130,7 +130,7 @@ namespace Roslynator.Documentation
                 return StringBuilderCache.GetStringAndFree(sb) + fragment;
             }
 
-            bool FoldersEqual(ImmutableArray<string> folders1, ImmutableArray<string> folders2)
+            static bool FoldersEqual(ImmutableArray<string> folders1, ImmutableArray<string> folders2)
             {
                 int length = folders1.Length;
 

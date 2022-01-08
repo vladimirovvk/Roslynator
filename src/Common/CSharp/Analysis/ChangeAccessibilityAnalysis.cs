@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -14,13 +14,13 @@ namespace Roslynator.CSharp.Analysis
 {
     internal static class ChangeAccessibilityAnalysis
     {
-        private static readonly ImmutableDictionary<Accessibility, ImmutableArray<Accessibility>> _accessibilityArrayMap = ImmutableDictionary.CreateRange(new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>[]
-        {
-            new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Public, ImmutableArray.Create(Accessibility.Public)),
-            new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Internal, ImmutableArray.Create(Accessibility.Internal)),
-            new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Protected, ImmutableArray.Create(Accessibility.Protected)),
-            new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Private, ImmutableArray.Create(Accessibility.Private)),
-        });
+        private static readonly ImmutableDictionary<Accessibility, ImmutableArray<Accessibility>> _accessibilityArrayMap = ImmutableDictionary.CreateRange(new[]
+            {
+                new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Public, ImmutableArray.Create(Accessibility.Public)),
+                new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Internal, ImmutableArray.Create(Accessibility.Internal)),
+                new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Protected, ImmutableArray.Create(Accessibility.Protected)),
+                new KeyValuePair<Accessibility, ImmutableArray<Accessibility>>(Accessibility.Private, ImmutableArray.Create(Accessibility.Private)),
+            });
 
         private static ImmutableArray<Accessibility> AvailableAccessibilities { get; } = ImmutableArray.Create(
             Accessibility.Public,
@@ -31,13 +31,14 @@ namespace Roslynator.CSharp.Analysis
         public static AccessibilityFilter GetValidAccessibilityFilter(
             MemberDeclarationListSelection selectedMembers,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (selectedMembers.Count < 2)
                 return AccessibilityFilter.None;
 
-            ImmutableArray<Accessibility> avaiableAccessibilities = AvailableAccessibilities;
+            ImmutableArray<Accessibility> availableAccessibilities = AvailableAccessibilities;
 
+            var isAllExplicit = true;
             var all = AccessibilityFilter.None;
 
             AccessibilityFilter valid = AccessibilityFilter.Public
@@ -51,6 +52,8 @@ namespace Roslynator.CSharp.Analysis
 
                 if (accessibility == Accessibility.NotApplicable)
                 {
+                    isAllExplicit = false;
+
                     accessibility = SyntaxAccessibility.GetDefaultExplicitAccessibility(member);
 
                     if (accessibility == Accessibility.NotApplicable)
@@ -101,7 +104,7 @@ namespace Roslynator.CSharp.Analysis
                                 if (valid == AccessibilityFilter.None)
                                     return AccessibilityFilter.None;
 
-                                avaiableAccessibilities = _accessibilityArrayMap[accessibility];
+                                availableAccessibilities = _accessibilityArrayMap[accessibility];
                                 continue;
                             }
                         default:
@@ -111,7 +114,7 @@ namespace Roslynator.CSharp.Analysis
                     }
                 }
 
-                foreach (Accessibility accessibility2 in avaiableAccessibilities)
+                foreach (Accessibility accessibility2 in availableAccessibilities)
                 {
                     if (accessibility != accessibility2
                         && !SyntaxAccessibility.IsValidAccessibility(member, accessibility2, ignoreOverride: true))
@@ -124,16 +127,19 @@ namespace Roslynator.CSharp.Analysis
                 }
             }
 
-            switch (all)
+            if (isAllExplicit)
             {
-                case AccessibilityFilter.Private:
-                case AccessibilityFilter.Protected:
-                case AccessibilityFilter.Internal:
-                case AccessibilityFilter.Public:
-                    {
-                        valid &= ~all;
-                        break;
-                    }
+                switch (all)
+                {
+                    case AccessibilityFilter.Private:
+                    case AccessibilityFilter.Protected:
+                    case AccessibilityFilter.Internal:
+                    case AccessibilityFilter.Public:
+                        {
+                            valid &= ~all;
+                            break;
+                        }
+                }
             }
 
             return valid;

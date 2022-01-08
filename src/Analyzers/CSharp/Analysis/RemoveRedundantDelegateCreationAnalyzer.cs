@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,37 +12,48 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantDelegateCreationAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantDelegateCreationAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.RemoveRedundantDelegateCreation,
-                    DiagnosticDescriptors.RemoveRedundantDelegateCreationFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.RemoveRedundantDelegateCreation,
+                        DiagnosticRules.RemoveRedundantDelegateCreationFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveRedundantDelegateCreation))
-                    return;
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantDelegateCreation.IsEffective(c))
+                        AnalyzeAssignmentExpression(c);
+                },
+                SyntaxKind.AddAssignmentExpression);
 
-                startContext.RegisterSyntaxNodeAction(AnalyzeAssignmentExpression, SyntaxKind.AddAssignmentExpression);
-                startContext.RegisterSyntaxNodeAction(AnalyzeAssignmentExpression, SyntaxKind.SubtractAssignmentExpression);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantDelegateCreation.IsEffective(c))
+                        AnalyzeAssignmentExpression(c);
+                },
+                SyntaxKind.SubtractAssignmentExpression);
         }
 
-        public static void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context)
         {
             var assignmentExpression = (AssignmentExpressionSyntax)context.Node;
 
@@ -82,13 +93,13 @@ namespace Roslynator.CSharp.Analysis
             SemanticModel semanticModel = context.SemanticModel;
             CancellationToken cancellationToken = context.CancellationToken;
 
-            if (!(semanticModel.GetSymbol(assignmentExpression, cancellationToken) is IMethodSymbol methodSymbol))
+            if (semanticModel.GetSymbol(assignmentExpression, cancellationToken) is not IMethodSymbol methodSymbol)
                 return;
 
             if (!methodSymbol.MethodKind.Is(MethodKind.EventAdd, MethodKind.EventRemove))
                 return;
 
-            if (!(methodSymbol.Parameters.SingleOrDefault(shouldThrow: false)?.Type is INamedTypeSymbol typeSymbol))
+            if (methodSymbol.Parameters.SingleOrDefault(shouldThrow: false)?.Type is not INamedTypeSymbol typeSymbol)
                 return;
 
             if (!SymbolUtility.IsEventHandlerMethod(typeSymbol.DelegateInvokeMethod))
@@ -97,11 +108,11 @@ namespace Roslynator.CSharp.Analysis
             if (semanticModel.GetSymbol(expression, cancellationToken)?.Kind != SymbolKind.Method)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantDelegateCreation, right);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantDelegateCreation, right);
 
-            DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.RemoveRedundantDelegateCreationFadeOut, objectCreation.NewKeyword);
-            DiagnosticHelpers.ReportNode(context, DiagnosticDescriptors.RemoveRedundantDelegateCreationFadeOut, objectCreation.Type);
-            CSharpDiagnosticHelpers.ReportParentheses(context, DiagnosticDescriptors.RemoveRedundantDelegateCreationFadeOut, objectCreation.ArgumentList);
+            DiagnosticHelpers.ReportToken(context, DiagnosticRules.RemoveRedundantDelegateCreationFadeOut, objectCreation.NewKeyword);
+            DiagnosticHelpers.ReportNode(context, DiagnosticRules.RemoveRedundantDelegateCreationFadeOut, objectCreation.Type);
+            CSharpDiagnosticHelpers.ReportParentheses(context, DiagnosticRules.RemoveRedundantDelegateCreationFadeOut, objectCreation.ArgumentList);
         }
     }
 }

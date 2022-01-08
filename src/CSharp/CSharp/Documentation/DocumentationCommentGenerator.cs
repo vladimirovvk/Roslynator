@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace Roslynator.CSharp.Documentation
 {
     internal static class DocumentationCommentGenerator
     {
-        private static readonly XmlReaderSettings _xmlReaderSettings = new XmlReaderSettings() { ConformanceLevel = ConformanceLevel.Fragment };
+        private static readonly XmlReaderSettings _xmlReaderSettings = new() { ConformanceLevel = ConformanceLevel.Fragment };
 
         public static SyntaxTriviaList Generate(MemberDeclarationSyntax memberDeclaration, DocumentationCommentGeneratorSettings settings = null)
         {
@@ -62,6 +62,9 @@ namespace Roslynator.CSharp.Documentation
                     return Generate((EventDeclarationSyntax)memberDeclaration, settings);
                 case SyntaxKind.IndexerDeclaration:
                     return Generate((IndexerDeclarationSyntax)memberDeclaration, settings);
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return Generate((RecordDeclarationSyntax)memberDeclaration, settings);
                 default:
                     throw new ArgumentException("", nameof(memberDeclaration));
             }
@@ -83,6 +86,18 @@ namespace Roslynator.CSharp.Documentation
             return Generate(
                 classDeclaration.TypeParameterList,
                 default(ParameterListSyntax),
+                canGenerateReturns: false,
+                settings: settings);
+        }
+
+        public static SyntaxTriviaList Generate(RecordDeclarationSyntax recordDeclaration, DocumentationCommentGeneratorSettings settings = null)
+        {
+            if (recordDeclaration == null)
+                throw new ArgumentNullException(nameof(recordDeclaration));
+
+            return Generate(
+                recordDeclaration.TypeParameterList,
+                recordDeclaration.ParameterList,
                 canGenerateReturns: false,
                 settings: settings);
         }
@@ -245,20 +260,20 @@ namespace Roslynator.CSharp.Documentation
             bool canGenerateReturns = false,
             DocumentationCommentGeneratorSettings settings = null)
         {
-            SeparatedSyntaxList<TypeParameterSyntax> typeParameters = typeParameterList?.Parameters ?? default(SeparatedSyntaxList<TypeParameterSyntax>);
+            SeparatedSyntaxList<TypeParameterSyntax> typeParameters = typeParameterList?.Parameters ?? default;
 
-            SeparatedSyntaxList<ParameterSyntax> parameters = parameterList?.Parameters ?? default(SeparatedSyntaxList<ParameterSyntax>);
+            SeparatedSyntaxList<ParameterSyntax> parameters = parameterList?.Parameters ?? default;
 
             return Generate(typeParameters, parameters, canGenerateReturns, settings);
         }
 
         private static SyntaxTriviaList Generate(
-            SeparatedSyntaxList<TypeParameterSyntax> typeParameters = default(SeparatedSyntaxList<TypeParameterSyntax>),
-            SeparatedSyntaxList<ParameterSyntax> parameters = default(SeparatedSyntaxList<ParameterSyntax>),
+            SeparatedSyntaxList<TypeParameterSyntax> typeParameters = default,
+            SeparatedSyntaxList<ParameterSyntax> parameters = default,
             bool canGenerateReturns = false,
             DocumentationCommentGeneratorSettings settings = null)
         {
-            settings = settings ?? DocumentationCommentGeneratorSettings.Default;
+            settings ??= DocumentationCommentGeneratorSettings.Default;
 
             ImmutableArray<string> summary = settings.Summary;
 
@@ -298,24 +313,30 @@ namespace Roslynator.CSharp.Documentation
                 sb.AppendLine("/// </summary>");
             }
 
-            foreach (TypeParameterSyntax typeParameter in typeParameters)
+            if (!settings.IsTagIgnored(WellKnownXmlTags.TypeParam))
             {
-                sb.Append(settings.Indentation);
-                sb.Append("/// <typeparam name=\"");
-                sb.Append(typeParameter.Identifier.ValueText);
-                sb.AppendLine("\"></typeparam>");
+                foreach (TypeParameterSyntax typeParameter in typeParameters)
+                {
+                    sb.Append(settings.Indentation);
+                    sb.Append("/// <typeparam name=\"");
+                    sb.Append(typeParameter.Identifier.ValueText);
+                    sb.AppendLine("\"></typeparam>");
+                }
             }
 
-            foreach (ParameterSyntax parameter in parameters)
+            if (!settings.IsTagIgnored(WellKnownXmlTags.Param))
             {
-                sb.Append(settings.Indentation);
-                sb.Append("/// <param name=\"");
-                sb.Append(parameter.Identifier.ValueText);
-                sb.AppendLine("\"></param>");
+                foreach (ParameterSyntax parameter in parameters)
+                {
+                    sb.Append(settings.Indentation);
+                    sb.Append("/// <param name=\"");
+                    sb.Append(parameter.Identifier.ValueText);
+                    sb.AppendLine("\"></param>");
+                }
             }
 
             if (canGenerateReturns
-                && settings.Returns)
+                && !settings.IsTagIgnored(WellKnownXmlTags.Returns))
             {
                 sb.Append(settings.Indentation);
                 sb.AppendLine("/// <returns></returns>");
@@ -586,7 +607,7 @@ namespace Roslynator.CSharp.Documentation
                                     }
                                     catch (XmlException ex)
                                     {
-                                        Debug.Fail(symbol.ToDisplayString() + "\r\n\r\n" + ex.ToString());
+                                        Debug.Fail(symbol.ToDisplayString() + "\r\n\r\n" + ex.Message + "\r\n\r\n" + xml);
                                         return null;
                                     }
                                 }
@@ -611,6 +632,9 @@ namespace Roslynator.CSharp.Documentation
             {
                 case SyntaxKind.ClassDeclaration:
                     return ((ClassDeclarationSyntax)parent).BaseList?.Types.Any() == true;
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return ((RecordDeclarationSyntax)parent).BaseList?.Types.Any() == true;
                 case SyntaxKind.StructDeclaration:
                     return ((StructDeclarationSyntax)parent).BaseList?.Types.Any() == true;
             }

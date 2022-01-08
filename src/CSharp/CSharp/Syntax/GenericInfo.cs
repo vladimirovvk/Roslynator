@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -67,7 +67,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SeparatedSyntaxList<TypeParameterSyntax> TypeParameters
         {
-            get { return TypeParameterList?.Parameters ?? default(SeparatedSyntaxList<TypeParameterSyntax>); }
+            get { return TypeParameterList?.Parameters ?? default; }
         }
 
         /// <summary>
@@ -134,6 +134,8 @@ namespace Roslynator.CSharp.Syntax
                 case SyntaxKind.ClassDeclaration:
                 case SyntaxKind.InterfaceDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                case SyntaxKind.RecordDeclaration:
                     {
                         return new GenericInfo((TypeDeclarationSyntax)node);
                     }
@@ -241,11 +243,14 @@ namespace Roslynator.CSharp.Syntax
                     return new GenericInfo(((LocalFunctionStatementSyntax)Node).WithTypeParameterList(typeParameterList));
                 case SyntaxKind.MethodDeclaration:
                     return new GenericInfo(((MethodDeclarationSyntax)Node).WithTypeParameterList(typeParameterList));
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return new GenericInfo(((RecordDeclarationSyntax)Node).WithTypeParameterList(typeParameterList));
                 case SyntaxKind.StructDeclaration:
                     return new GenericInfo(((StructDeclarationSyntax)Node).WithTypeParameterList(typeParameterList));
             }
 
-            Debug.Fail(Node.Kind().ToString());
+            SyntaxDebug.Fail(Node);
             return this;
         }
 
@@ -271,11 +276,14 @@ namespace Roslynator.CSharp.Syntax
                     return new GenericInfo(((LocalFunctionStatementSyntax)self.Node).WithTypeParameterList(RemoveTypeParameter()));
                 case SyntaxKind.MethodDeclaration:
                     return new GenericInfo(((MethodDeclarationSyntax)self.Node).WithTypeParameterList(RemoveTypeParameter()));
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return new GenericInfo(((RecordDeclarationSyntax)self.Node).WithTypeParameterList(RemoveTypeParameter()));
                 case SyntaxKind.StructDeclaration:
                     return new GenericInfo(((StructDeclarationSyntax)self.Node).WithTypeParameterList(RemoveTypeParameter()));
             }
 
-            Debug.Fail(self.Node.Kind().ToString());
+            SyntaxDebug.Fail(self.Node);
             return this;
 
             TypeParameterListSyntax RemoveTypeParameter()
@@ -283,7 +291,7 @@ namespace Roslynator.CSharp.Syntax
                 SeparatedSyntaxList<TypeParameterSyntax> parameters = self.TypeParameters;
 
                 return (parameters.Count == 1)
-                    ? default(TypeParameterListSyntax)
+                    ? default
                     : self.TypeParameterList.WithParameters(parameters.Remove(typeParameter));
             }
         }
@@ -308,11 +316,14 @@ namespace Roslynator.CSharp.Syntax
                     return new GenericInfo(((LocalFunctionStatementSyntax)Node).WithConstraintClauses(constraintClauses));
                 case SyntaxKind.MethodDeclaration:
                     return new GenericInfo(((MethodDeclarationSyntax)Node).WithConstraintClauses(constraintClauses));
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return new GenericInfo(((RecordDeclarationSyntax)Node).WithConstraintClauses(constraintClauses));
                 case SyntaxKind.StructDeclaration:
                     return new GenericInfo(((StructDeclarationSyntax)Node).WithConstraintClauses(constraintClauses));
             }
 
-            Debug.Fail(Node.Kind().ToString());
+            SyntaxDebug.Fail(Node);
             return this;
         }
 
@@ -336,11 +347,14 @@ namespace Roslynator.CSharp.Syntax
                     return new GenericInfo(((LocalFunctionStatementSyntax)Node).WithConstraintClauses(ConstraintClauses.Remove(constraintClause)));
                 case SyntaxKind.MethodDeclaration:
                     return new GenericInfo(((MethodDeclarationSyntax)Node).WithConstraintClauses(ConstraintClauses.Remove(constraintClause)));
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return new GenericInfo(((RecordDeclarationSyntax)Node).WithConstraintClauses(ConstraintClauses.Remove(constraintClause)));
                 case SyntaxKind.StructDeclaration:
                     return new GenericInfo(((StructDeclarationSyntax)Node).WithConstraintClauses(ConstraintClauses.Remove(constraintClause)));
             }
 
-            Debug.Fail(Node.Kind().ToString());
+            SyntaxDebug.Fail(Node);
             return this;
         }
 
@@ -354,7 +368,7 @@ namespace Roslynator.CSharp.Syntax
             if (!ConstraintClauses.Any())
                 return this;
 
-            TypeParameterConstraintClauseSyntax first = ConstraintClauses.First();
+            TypeParameterConstraintClauseSyntax first = ConstraintClauses[0];
 
             SyntaxToken token = first.WhereKeyword.GetPreviousToken();
 

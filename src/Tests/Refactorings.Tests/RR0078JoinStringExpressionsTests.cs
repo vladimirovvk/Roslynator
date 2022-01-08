@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -28,7 +29,7 @@ class C
         s = s + ""ab"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
@@ -50,7 +51,7 @@ class C
         s1 = $""{s1}a{s2}b{s3}"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
@@ -74,7 +75,7 @@ class C
         s = $""{{}}{s}"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
@@ -98,7 +99,7 @@ class C
         s = $"" \"" {{}}  \"" {s} "";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
@@ -122,7 +123,7 @@ class C
         s = $"" \"" {{}}  \"" {s} "";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
@@ -147,7 +148,7 @@ class C
         s = "" \r\n \r\n"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
@@ -173,7 +174,89 @@ class C
  "";
     }
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, "Multiline"));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, "Multiline"));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
+        public async Task Test_StringConcatenationOnMultipleLines_LeadingTriviaIncluded()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+    void M()
+    {
+        string s =
+[|            ""a"" +
+            ""b"" +
+            ""c""|];
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        string s =
+            ""abc"";
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
+        public async Task Test_StringConcatenationOnMultipleLines_TrailingTriviaIncluded()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+    void M()
+    {
+        string s =
+            [|""a"" +
+            ""b"" +
+            ""c"" //|]
+;
+    }
+}
+", @"
+class C
+{
+    void M()
+    {
+        string s =
+            ""abc"" //
+;
+    }
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
+        }
+
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.JoinStringExpressions)]
+        public async Task Test_StringConcatenation_PreprocessorDirectives()
+        {
+            await VerifyRefactoringAsync(@"
+class C
+{
+    void M()
+    {
+        string s = ""a""
+#if DEBUG
+            + [|""b"" + ""c""|];
+    }
+#endif
+}
+", @"
+class C
+{
+    void M()
+    {
+        string s = ""a""
+#if DEBUG
+            + ""bc"";
+    }
+#endif
+}
+", equivalenceKey: EquivalenceKey.Create(RefactoringId), options: Options.WithDebugPreprocessorSymbol());
         }
     }
 }

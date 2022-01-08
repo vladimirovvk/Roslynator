@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,7 +13,7 @@ namespace Roslynator.FindSymbols
         {
         }
 
-        public override SymbolFilterReason Reason => SymbolFilterReason.WithoutAttibute;
+        public override SymbolFilterReason Reason => SymbolFilterReason.WithoutAttribute;
 
         public override bool IsMatch(ISymbol value)
         {

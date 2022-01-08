@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,43 +22,38 @@ namespace Roslynator.CSharp.Refactorings
 
         private static MemberDeclarationSyntax GetNewMemberDeclaration(MemberDeclarationSyntax memberDeclaration)
         {
-            switch (memberDeclaration.Kind())
+            switch (memberDeclaration)
             {
-                case SyntaxKind.NamespaceDeclaration:
+                case NamespaceDeclarationSyntax declaration:
                     {
-                        var declaration = (NamespaceDeclarationSyntax)memberDeclaration;
                         return declaration
                             .WithSemicolonToken(default(SyntaxToken))
                             .WithCloseBraceToken(declaration.CloseBraceToken
                                 .WithTrailingTrivia(GetNewTrailingTrivia(declaration.CloseBraceToken, declaration.SemicolonToken)));
                     }
-                case SyntaxKind.ClassDeclaration:
+                case ClassDeclarationSyntax declaration:
                     {
-                        var declaration = (ClassDeclarationSyntax)memberDeclaration;
                         return declaration
                             .WithSemicolonToken(default(SyntaxToken))
                             .WithCloseBraceToken(declaration.CloseBraceToken
                                 .WithTrailingTrivia(GetNewTrailingTrivia(declaration.CloseBraceToken, declaration.SemicolonToken)));
                     }
-                case SyntaxKind.InterfaceDeclaration:
+                case InterfaceDeclarationSyntax declaration:
                     {
-                        var declaration = (InterfaceDeclarationSyntax)memberDeclaration;
                         return declaration
                             .WithSemicolonToken(default(SyntaxToken))
                             .WithCloseBraceToken(declaration.CloseBraceToken
                                 .WithTrailingTrivia(GetNewTrailingTrivia(declaration.CloseBraceToken, declaration.SemicolonToken)));
                     }
-                case SyntaxKind.StructDeclaration:
+                case StructDeclarationSyntax declaration:
                     {
-                        var declaration = (StructDeclarationSyntax)memberDeclaration;
                         return declaration
                             .WithSemicolonToken(default(SyntaxToken))
                             .WithCloseBraceToken(declaration.CloseBraceToken
                                 .WithTrailingTrivia(GetNewTrailingTrivia(declaration.CloseBraceToken, declaration.SemicolonToken)));
                     }
-                case SyntaxKind.EnumDeclaration:
+                case EnumDeclarationSyntax declaration:
                     {
-                        var declaration = (EnumDeclarationSyntax)memberDeclaration;
                         return declaration
                             .WithSemicolonToken(default(SyntaxToken))
                             .WithCloseBraceToken(declaration.CloseBraceToken

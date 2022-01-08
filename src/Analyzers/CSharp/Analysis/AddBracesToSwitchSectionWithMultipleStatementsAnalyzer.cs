@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,21 +10,26 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AddBracesToSwitchSectionWithMultipleStatementsAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AddBracesToSwitchSectionWithMultipleStatementsAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AddBracesToSwitchSectionWithMultipleStatements); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AddBracesToSwitchSectionWithMultipleStatements);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeSwitchSection, SyntaxKind.SwitchSection);
+            context.RegisterSyntaxNodeAction(f => AnalyzeSwitchSection(f), SyntaxKind.SwitchSection);
         }
 
         private static void AnalyzeSwitchSection(SyntaxNodeAnalysisContext context)
@@ -35,8 +40,9 @@ namespace Roslynator.CSharp.Analysis
 
             if (statements.Count > 1)
             {
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.AddBracesToSwitchSectionWithMultipleStatements,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.AddBracesToSwitchSectionWithMultipleStatements,
                     Location.Create(switchSection.SyntaxTree, statements.Span));
             }
         }
