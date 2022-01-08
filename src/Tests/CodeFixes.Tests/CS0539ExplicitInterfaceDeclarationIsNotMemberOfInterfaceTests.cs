@@ -1,18 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.CodeFixes.Tests
 {
-    public class CS0539ExplicitInterfaceDeclarationIsNotMemberOfInterfaceTests : AbstractCSharpCompilerDiagnosticFixVerifier
+    public class CS0539ExplicitInterfaceDeclarationIsNotMemberOfInterfaceTests : AbstractCSharpCompilerDiagnosticFixVerifier<MemberDeclarationCodeFixProvider>
     {
-        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.ExplicitInterfaceDeclarationIsNotMemberOfInterface;
+        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.CS0539_ExplicitInterfaceDeclarationIsNotMemberOfInterface;
 
-        public override CodeFixProvider FixProvider { get; } = new MemberDeclarationCodeFixProvider();
-
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.ExplicitInterfaceDeclarationIsNotMemberOfInterface)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS0539_ExplicitInterfaceDeclarationIsNotMemberOfInterface)]
         public async Task Test_Method_ExplicitlyImplemented()
         {
             await VerifyFixAsync(@"
@@ -42,7 +40,7 @@ class C : IFoo
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId, "M:IFoo.M(System.Object)"));
         }
 
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.ExplicitInterfaceDeclarationIsNotMemberOfInterface)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS0539_ExplicitInterfaceDeclarationIsNotMemberOfInterface)]
         public async Task Test_Indexer_ExplicitlyImplemented()
         {
             await VerifyFixAsync(@"

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -12,27 +12,38 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class MakeMemberReadOnlyAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class MakeMemberReadOnlyAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static readonly MetadataName Microsoft_AspNetCore_Components_ParameterAttribute = MetadataName.Parse("Microsoft.AspNetCore.Components.ParameterAttribute");
+        private static readonly MetadataName Microsoft_AspNetCore_Components_CascadingParameterAttribute = MetadataName.Parse("Microsoft.AspNetCore.Components.CascadingParameterAttribute");
+
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.MakeFieldReadOnly,
-                    DiagnosticDescriptors.UseReadOnlyAutoProperty);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.MakeFieldReadOnly,
+                        DiagnosticRules.UseReadOnlyAutoProperty);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.ClassDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.StructDeclaration);
+            context.RegisterSyntaxNodeAction(
+                f => AnalyzeTypeDeclaration(f),
+                SyntaxKind.ClassDeclaration,
+                SyntaxKind.StructDeclaration,
+                SyntaxKind.RecordStructDeclaration);
         }
 
         private static void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
@@ -42,15 +53,33 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
             if (typeDeclaration.Modifiers.Contains(SyntaxKind.PartialKeyword))
                 return;
 
-            bool skipField = context.IsAnalyzerSuppressed(DiagnosticDescriptors.MakeFieldReadOnly);
+            MakeMemberReadOnlyWalker walker = null;
 
-            bool skipProperty = context.IsAnalyzerSuppressed(DiagnosticDescriptors.UseReadOnlyAutoProperty)
+            try
+            {
+                walker = MakeMemberReadOnlyWalker.GetInstance();
+
+                walker.SemanticModel = context.SemanticModel;
+                walker.CancellationToken = context.CancellationToken;
+
+                AnalyzeTypeDeclaration(context, typeDeclaration, walker);
+            }
+            finally
+            {
+                if (walker != null)
+                    MakeMemberReadOnlyWalker.Free(walker);
+            }
+        }
+
+        private static void AnalyzeTypeDeclaration(
+            SyntaxNodeAnalysisContext context,
+            TypeDeclarationSyntax typeDeclaration,
+            MakeMemberReadOnlyWalker walker)
+        {
+            bool skipField = !DiagnosticRules.MakeFieldReadOnly.IsEffective(context);
+
+            bool skipProperty = !DiagnosticRules.UseReadOnlyAutoProperty.IsEffective(context)
                 || ((CSharpCompilation)context.Compilation).LanguageVersion < LanguageVersion.CSharp6;
-
-            MakeMemberReadOnlyWalker walker = MakeMemberReadOnlyWalker.GetInstance();
-
-            walker.SemanticModel = context.SemanticModel;
-            walker.CancellationToken = context.CancellationToken;
 
             Dictionary<string, (SyntaxNode node, ISymbol symbol)> symbols = walker.Symbols;
 
@@ -67,7 +96,7 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
 
                             AccessorDeclarationSyntax setter = propertyDeclaration.Setter();
 
-                            if (setter != null
+                            if (setter?.IsKind(SyntaxKind.InitAccessorDeclaration) == false
                                 && setter.BodyOrExpressionBody() == null
                                 && !setter.AttributeLists.Any()
                                 && !setter.SpanContainsDirectives())
@@ -82,7 +111,7 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
                                     && !propertySymbol.IsReadOnly
                                     && ValidateType(propertySymbol.Type)
                                     && propertySymbol.ExplicitInterfaceImplementations.IsDefaultOrEmpty
-                                    && !propertySymbol.HasAttribute(MetadataNames.System_Runtime_Serialization_DataMemberAttribute))
+                                    && AnalyzePropertyAttributes(propertySymbol))
                                 {
                                     symbols[propertySymbol.Name] = (propertyDeclaration, propertySymbol);
                                 }
@@ -133,7 +162,7 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
                         {
                             AccessorDeclarationSyntax setter = propertyDeclaration.Setter();
 
-                            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseReadOnlyAutoProperty, setter);
+                            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseReadOnlyAutoProperty, setter);
                         }
                     }
 
@@ -147,13 +176,33 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
                         if (count == 1
                             || count == grouping.Count())
                         {
-                            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.MakeFieldReadOnly, grouping.Key.Parent);
+                            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.MakeFieldReadOnly, grouping.Key.Parent);
                         }
                     }
                 }
             }
+        }
 
-            MakeMemberReadOnlyWalker.Free(walker);
+        private static bool AnalyzePropertyAttributes(IPropertySymbol propertySymbol)
+        {
+            foreach (AttributeData attributeData in propertySymbol.GetAttributes())
+            {
+                INamedTypeSymbol attributeClass = attributeData.AttributeClass;
+
+                if (string.Equals(attributeClass.Name, "DependencyAttribute", StringComparison.Ordinal))
+                    return false;
+
+                if (attributeClass.HasMetadataName(MetadataNames.System_Runtime_Serialization_DataMemberAttribute))
+                    return false;
+
+                if (attributeClass.HasMetadataName(Microsoft_AspNetCore_Components_ParameterAttribute))
+                    return false;
+
+                if (attributeClass.HasMetadataName(Microsoft_AspNetCore_Components_CascadingParameterAttribute))
+                    return false;
+            }
+
+            return true;
         }
 
         private static bool ValidateType(ITypeSymbol type)
@@ -163,7 +212,8 @@ namespace Roslynator.CSharp.Analysis.MakeMemberReadOnly
 
             return type.IsReferenceType
                 || type.TypeKind == TypeKind.Enum
-                || CSharpFacts.IsSimpleType(type.SpecialType);
+                || CSharpFacts.IsSimpleType(type.SpecialType)
+                || type.IsReadOnlyStruct();
         }
     }
 }

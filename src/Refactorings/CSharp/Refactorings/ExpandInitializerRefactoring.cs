@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -76,14 +76,14 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 Title,
-                cancellationToken => RefactorAsync(
+                ct => RefactorAsync(
                     context.Document,
                     statementsInfo,
                     statement,
                     initializer,
                     expression.WithoutTrivia(),
-                    cancellationToken),
-                RefactoringIdentifiers.ExpandInitializer);
+                    ct),
+                RefactoringDescriptors.ExpandInitializer);
         }
 
         private static bool CanExpand(
@@ -103,10 +103,8 @@ namespace Roslynator.CSharp.Refactorings
 
                     ExpressionSyntax left = assignment.Left;
 
-                    if (left.IsKind(SyntaxKind.ImplicitElementAccess))
+                    if (left is ImplicitElementAccessSyntax implicitElementAccess)
                     {
-                        var implicitElementAccess = (ImplicitElementAccessSyntax)left;
-
                         BracketedArgumentListSyntax argumentList = implicitElementAccess.ArgumentList;
 
                         if (argumentList?.Arguments.Any() == true)
@@ -162,7 +160,7 @@ namespace Roslynator.CSharp.Refactorings
                         {
                             TypeInfo typeInfo = semanticModel.GetTypeInfo(expression, cancellationToken);
 
-                            if (parameter.Type.Equals(typeInfo.ConvertedType))
+                            if (SymbolEqualityComparer.Default.Equals(parameter.Type, typeInfo.ConvertedType))
                                 return true;
                         }
                     }
@@ -195,7 +193,7 @@ namespace Roslynator.CSharp.Refactorings
                         {
                             TypeInfo typeInfo = semanticModel.GetTypeInfo(expression, cancellationToken);
 
-                            if (parameter.Type.Equals(typeInfo.ConvertedType))
+                            if (SymbolEqualityComparer.Default.Equals(parameter.Type, typeInfo.ConvertedType))
                                 return true;
                         }
                     }
@@ -281,18 +279,18 @@ namespace Roslynator.CSharp.Refactorings
                     if (left.IsKind(SyntaxKind.ImplicitElementAccess))
                     {
                         yield return SimpleAssignmentStatement(
-                                ElementAccessExpression(
-                                    initializedExpression,
-                                    ((ImplicitElementAccessSyntax)left).ArgumentList),
-                                right);
+                            ElementAccessExpression(
+                                initializedExpression,
+                                ((ImplicitElementAccessSyntax)left).ArgumentList),
+                            right);
                     }
                     else
                     {
                         yield return SimpleAssignmentStatement(
-                                SimpleMemberAccessExpression(
-                                    initializedExpression,
-                                    (IdentifierNameSyntax)left),
-                                right);
+                            SimpleMemberAccessExpression(
+                                initializedExpression,
+                                (IdentifierNameSyntax)left),
+                            right);
                     }
                 }
                 else if (kind == SyntaxKind.ComplexElementInitializerExpression)
@@ -300,10 +298,10 @@ namespace Roslynator.CSharp.Refactorings
                     var elementInitializer = (InitializerExpressionSyntax)expression;
 
                     yield return SimpleAssignmentStatement(
-                            ElementAccessExpression(
-                                initializedExpression,
-                                BracketedArgumentList(SingletonSeparatedList(Argument(elementInitializer.Expressions[0])))),
-                            elementInitializer.Expressions[1]);
+                        ElementAccessExpression(
+                            initializedExpression,
+                            BracketedArgumentList(SingletonSeparatedList(Argument(elementInitializer.Expressions[0])))),
+                        elementInitializer.Expressions[1]);
                 }
                 else
                 {

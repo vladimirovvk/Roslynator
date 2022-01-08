@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading.Tasks;
@@ -13,7 +13,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, InterpolatedStringTextSyntax interpolatedStringText)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.InsertStringInterpolation)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.InsertStringInterpolation)
                 && interpolatedStringText.IsParentKind(SyntaxKind.InterpolatedStringExpression))
             {
                 TextSpan span = context.Span;
@@ -29,16 +29,16 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         "Insert interpolation",
-                        cancellationToken =>
+                        ct =>
                         {
                             return InsertInterpolationRefactoring.RefactorAsync(
                                 context.Document,
                                 interpolatedString,
                                 span,
                                 addNameOf: false,
-                                cancellationToken: cancellationToken);
+                                cancellationToken: ct);
                         },
-                        RefactoringIdentifiers.InsertStringInterpolation);
+                        RefactoringDescriptors.InsertStringInterpolation);
 
                     if (!span.IsEmpty)
                     {
@@ -57,16 +57,16 @@ namespace Roslynator.CSharp.Refactorings
                             {
                                 context.RegisterRefactoring(
                                     "Insert interpolation with nameof",
-                                    cancellationToken =>
+                                    ct =>
                                     {
                                         return InsertInterpolationRefactoring.RefactorAsync(
                                             context.Document,
                                             interpolatedString,
                                             span,
                                             addNameOf: true,
-                                            cancellationToken: cancellationToken);
+                                            cancellationToken: ct);
                                     },
-                                    RefactoringIdentifiers.InsertStringInterpolation);
+                                    RefactoringDescriptors.InsertStringInterpolation);
 
                                 break;
                             }

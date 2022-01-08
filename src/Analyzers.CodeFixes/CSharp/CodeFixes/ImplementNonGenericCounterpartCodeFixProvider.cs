@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -17,7 +17,7 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ImplementNonGenericCounterpartCodeFixProvider))]
     [Shared]
-    public class ImplementNonGenericCounterpartCodeFixProvider : BaseCodeFixProvider
+    public sealed class ImplementNonGenericCounterpartCodeFixProvider : BaseCodeFixProvider
     {
         public ImplementNonGenericCounterpartCodeFixProvider()
         {
@@ -111,22 +111,22 @@ public int global::System.Collections.IEqualityComparer.GetHashCode(object obj)
 }
 ";
 
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparableCompare = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IComparableCompareText, explicitInterfaceImplementation: false));
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparerCompare = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IComparerCompareText, explicitInterfaceImplementation: false));
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerEquals = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IEqualityComparerEqualsText, explicitInterfaceImplementation: false));
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerGetHashCode = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IEqualityComparerGetHashCodeText, explicitInterfaceImplementation: false));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparableCompare = new(() => CreateMethodDeclaration(IComparableCompareText, explicitInterfaceImplementation: false));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparerCompare = new(() => CreateMethodDeclaration(IComparerCompareText, explicitInterfaceImplementation: false));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerEquals = new(() => CreateMethodDeclaration(IEqualityComparerEqualsText, explicitInterfaceImplementation: false));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerGetHashCode = new(() => CreateMethodDeclaration(IEqualityComparerGetHashCodeText, explicitInterfaceImplementation: false));
 
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparableCompareExplicit = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IComparableCompareText, explicitInterfaceImplementation: true));
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparerCompareExplicit = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IComparerCompareText, explicitInterfaceImplementation: true));
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerEqualsExplicit = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IEqualityComparerEqualsText, explicitInterfaceImplementation: true));
-        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerGetHashCodeExplicit = new Lazy<MethodDeclarationSyntax>(() => CreateMethodDeclaration(IEqualityComparerGetHashCodeText, explicitInterfaceImplementation: true));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparableCompareExplicit = new(() => CreateMethodDeclaration(IComparableCompareText, explicitInterfaceImplementation: true));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIComparerCompareExplicit = new(() => CreateMethodDeclaration(IComparerCompareText, explicitInterfaceImplementation: true));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerEqualsExplicit = new(() => CreateMethodDeclaration(IEqualityComparerEqualsText, explicitInterfaceImplementation: true));
+        private static readonly Lazy<MethodDeclarationSyntax> _lazyIEqualityComparerGetHashCodeExplicit = new(() => CreateMethodDeclaration(IEqualityComparerGetHashCodeText, explicitInterfaceImplementation: true));
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.ImplementNonGenericCounterpart); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -207,7 +207,8 @@ public int global::System.Collections.IEqualityComparer.GetHashCode(object obj)
                         TypeSyntax type = interfaces
                             .First(f => f.HasMetadataName(MetadataNames.System_IComparable_T))
                             .TypeArguments
-                            .Single().ToTypeSyntax()
+                            .Single()
+                            .ToTypeSyntax()
                             .WithSimplifierAnnotation();
 
                         var rewriter = new AddTypeNameRewriter(type);
@@ -289,7 +290,8 @@ public int global::System.Collections.IEqualityComparer.GetHashCode(object obj)
 
                 newTypeDeclaration = classDeclaration.WithBaseList(baseList.WithTypes(baseTypes));
             }
-            else if (kind == SyntaxKind.StructDeclaration)
+            else if (kind == SyntaxKind.StructDeclaration
+                || kind == SyntaxKind.RecordStructDeclaration)
             {
                 var structDeclaration = (StructDeclarationSyntax)newTypeDeclaration;
 
@@ -307,7 +309,7 @@ public int global::System.Collections.IEqualityComparer.GetHashCode(object obj)
 
         private static SeparatedSyntaxList<BaseTypeSyntax> AddBaseType(SeparatedSyntaxList<BaseTypeSyntax> baseTypes, SimpleBaseTypeSyntax baseType)
         {
-            SyntaxTriviaList trailingTrivia = default;
+            SyntaxTriviaList trailingTrivia;
 
             SyntaxToken trailingSeparator = baseTypes.GetTrailingSeparator();
 
@@ -331,7 +333,7 @@ public int global::System.Collections.IEqualityComparer.GetHashCode(object obj)
 
         private class AddSimplifierAnnotationRewriter : CSharpSyntaxRewriter
         {
-            public static AddSimplifierAnnotationRewriter Instance { get; } = new AddSimplifierAnnotationRewriter();
+            public static AddSimplifierAnnotationRewriter Instance { get; } = new();
 
             public override SyntaxNode VisitQualifiedName(QualifiedNameSyntax node)
             {
@@ -341,7 +343,7 @@ public int global::System.Collections.IEqualityComparer.GetHashCode(object obj)
 
         private class RemoveExplicitInterfaceSpecifierAddSimplifierAnnotationRewriter : CSharpSyntaxRewriter
         {
-            public static AddSimplifierAnnotationRewriter Instance { get; } = new AddSimplifierAnnotationRewriter();
+            public static AddSimplifierAnnotationRewriter Instance { get; } = new();
 
             public override SyntaxNode VisitQualifiedName(QualifiedNameSyntax node)
             {

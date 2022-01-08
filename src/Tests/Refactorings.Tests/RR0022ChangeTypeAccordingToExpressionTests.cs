@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -9,7 +10,7 @@ namespace Roslynator.CSharp.Refactorings.Tests
     {
         public override string RefactoringId { get; } = RefactoringIdentifiers.ChangeTypeAccordingToExpression;
 
-        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeVarToExplicitType)]
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeTypeAccordingToExpression)]
         public async Task Test_LocalVariable()
         {
             await VerifyRefactoringAsync(@"
@@ -32,10 +33,10 @@ class C
         List<object> x = new List<object>();
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
-        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeVarToExplicitType)]
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeTypeAccordingToExpression)]
         public async Task Test_ForEachVariable()
         {
             await VerifyRefactoringAsync(@"
@@ -64,10 +65,10 @@ class C
         }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
-        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeVarToExplicitType)]
+        [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.ChangeTypeAccordingToExpression)]
         public async Task Test_NoRefactoring_NullLiteral()
         {
             await VerifyNoRefactoringAsync(@"
@@ -80,7 +81,7 @@ class C
         [||]List<string> items = null;
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

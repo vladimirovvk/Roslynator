@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,37 +10,42 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AvoidUsageOfForStatementToCreateInfiniteLoopAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AvoidUsageOfForStatementToCreateInfiniteLoopAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AvoidUsageOfForStatementToCreateInfiniteLoop); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AvoidUsageOfForStatementToCreateInfiniteLoop);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeForStatement, SyntaxKind.ForStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeForStatement(f), SyntaxKind.ForStatement);
         }
 
-        public static void AnalyzeForStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeForStatement(SyntaxNodeAnalysisContext context)
         {
             var forStatement = (ForStatementSyntax)context.Node;
 
             if (forStatement.Declaration == null
                 && forStatement.Condition == null
-                && forStatement.Incrementors.Count == 0
-                && forStatement.Initializers.Count == 0
+                && !forStatement.Incrementors.Any()
+                && !forStatement.Initializers.Any()
                 && !forStatement.OpenParenToken.ContainsDirectives
                 && !forStatement.FirstSemicolonToken.ContainsDirectives
                 && !forStatement.SecondSemicolonToken.ContainsDirectives
                 && !forStatement.CloseParenToken.ContainsDirectives)
             {
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AvoidUsageOfForStatementToCreateInfiniteLoop, forStatement.ForKeyword);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AvoidUsageOfForStatementToCreateInfiniteLoop, forStatement.ForKeyword);
             }
         }
     }

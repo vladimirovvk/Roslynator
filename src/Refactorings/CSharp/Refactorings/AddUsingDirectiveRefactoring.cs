@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using System.Threading;
@@ -48,8 +48,8 @@ namespace Roslynator.CSharp.Refactorings
             {
                 context.RegisterRefactoring(
                     $"using {namespaceSymbol};",
-                    cancellationToken => RefactorAsync(context.Document, node, namespaceSymbol, cancellationToken),
-                    RefactoringIdentifiers.AddUsingDirective);
+                    ct => RefactorAsync(context.Document, node, namespaceSymbol, ct),
+                    RefactoringDescriptors.AddUsingDirective);
             }
         }
 
@@ -57,7 +57,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             SyntaxNode node,
             INamespaceSymbol namespaceSymbol,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 

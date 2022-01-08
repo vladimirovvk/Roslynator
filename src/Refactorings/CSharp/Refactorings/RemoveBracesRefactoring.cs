@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Threading;
@@ -31,19 +31,19 @@ namespace Roslynator.CSharp.Refactorings
         private static void ComputeRefactoring(RefactoringContext context, BlockSyntax block)
         {
             if (context.IsAnyRefactoringEnabled(
-                    RefactoringIdentifiers.RemoveBraces,
-                    RefactoringIdentifiers.RemoveBracesFromIfElse)
+                RefactoringDescriptors.RemoveBraces,
+                RefactoringDescriptors.RemoveBracesFromIfElse)
                 && CanRefactor(context, block))
             {
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveBraces))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveBraces))
                 {
                     context.RegisterRefactoring(
                         "Remove braces",
-                        cancellationToken => RefactorAsync(context.Document, block, cancellationToken),
-                        RefactoringIdentifiers.RemoveBraces);
+                        ct => RefactorAsync(context.Document, block, ct),
+                        RefactoringDescriptors.RemoveBraces);
                 }
 
-                if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveBracesFromIfElse))
+                if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveBracesFromIfElse))
                 {
                     IfStatementSyntax topmostIf = GetTopmostIf(block);
 
@@ -52,14 +52,14 @@ namespace Roslynator.CSharp.Refactorings
                     {
                         context.RegisterRefactoring(
                             "Remove braces from if-else",
-                            cancellationToken =>
+                            ct =>
                             {
                                 return RemoveBracesFromIfElseElseRefactoring.RefactorAsync(
                                     context.Document,
                                     topmostIf,
-                                    cancellationToken);
+                                    ct);
                             },
-                            RefactoringIdentifiers.RemoveBracesFromIfElse);
+                            RefactoringDescriptors.RemoveBracesFromIfElse);
                     }
                 }
             }
@@ -67,7 +67,7 @@ namespace Roslynator.CSharp.Refactorings
 
         private static bool CanRefactorIfElse(BlockSyntax selectedBlock, IfStatementSyntax topmostIf)
         {
-            bool success = false;
+            var success = false;
 
             foreach (BlockSyntax block in GetBlockStatements(topmostIf))
             {
@@ -198,7 +198,7 @@ namespace Roslynator.CSharp.Refactorings
         public static Task<Document> RefactorAsync(
             Document document,
             BlockSyntax block,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             StatementSyntax statement = block.Statements[0];
 

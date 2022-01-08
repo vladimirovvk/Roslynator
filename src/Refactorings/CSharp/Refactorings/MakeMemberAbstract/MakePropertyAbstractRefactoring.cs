@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,14 +24,14 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberAbstract
 
             context.RegisterRefactoring(
                 "Make property abstract",
-                cancellationToken => RefactorAsync(context.Document, propertyDeclaration, cancellationToken),
-                RefactoringIdentifiers.MakeMemberAbstract);
+                ct => RefactorAsync(context.Document, propertyDeclaration, ct),
+                RefactoringDescriptors.MakeMemberAbstract);
         }
 
         public static Task<Document> RefactorAsync(
             Document document,
             PropertyDeclarationSyntax propertyDeclaration,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             AccessorListSyntax accessorList = AccessorList();
 
@@ -49,8 +49,8 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberAbstract
                         getter = SyntaxAccessibility.WithExplicitAccessibility(getter, Accessibility.Protected);
 
                     accessorList = accessorList.AddAccessors(getter
-                       .WithBody(null)
-                       .WithSemicolonToken(SemicolonToken()));
+                        .WithBody(null)
+                        .WithSemicolonToken(SemicolonToken()));
                 }
 
                 AccessorDeclarationSyntax setter = propertyDeclaration.Setter();
@@ -60,8 +60,8 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberAbstract
                         setter = SyntaxAccessibility.WithExplicitAccessibility(setter, Accessibility.Protected);
 
                     accessorList = accessorList.AddAccessors(setter
-                       .WithBody(null)
-                       .WithSemicolonToken(SemicolonToken()));
+                        .WithBody(null)
+                        .WithSemicolonToken(SemicolonToken()));
                 }
             }
 

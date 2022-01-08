@@ -1,23 +1,23 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1241ImplementNonGenericCounterpartTests : AbstractCSharpFixVerifier
+    public class RCS1241ImplementNonGenericCounterpartTests : AbstractCSharpDiagnosticVerifier<NamedTypeSymbolAnalyzer, ImplementNonGenericCounterpartCodeFixProvider>
     {
-        private static readonly ImplementNonGenericCounterpartCodeFixProvider _fixProvider = new ImplementNonGenericCounterpartCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.ImplementNonGenericCounterpart;
 
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.ImplementNonGenericCounterpart;
+        private readonly string _explicitEquivalenceKey;
 
-        public override DiagnosticAnalyzer Analyzer { get; } = new NamedTypeSymbolAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = _fixProvider;
+        public RCS1241ImplementNonGenericCounterpartTests()
+        {
+            _explicitEquivalenceKey = new ImplementNonGenericCounterpartCodeFixProvider().ExplicitEquivalenceKey;
+        }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ImplementNonGenericCounterpart)]
         public async Task Test_IComparable()
@@ -61,7 +61,7 @@ public abstract class Comparable : IComparable<C>, IComparable
         throw new ArgumentException("""", nameof(obj));
     }
 }
-");
+", equivalenceKey: EquivalenceKey.Create(Descriptor.Id));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ImplementNonGenericCounterpart)]
@@ -106,7 +106,7 @@ public abstract class Comparable : IComparable<C>, IComparable
         throw new ArgumentException("""", nameof(obj));
     }
 }
-", equivalenceKey: _fixProvider.ExplicitEquivalenceKey);
+", equivalenceKey: _explicitEquivalenceKey);
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ImplementNonGenericCounterpart)]
@@ -155,8 +155,8 @@ public abstract class Comparer : IComparer<C>, IComparer
             return 1;
         }
 
-        if (x is global::C a
-            && y is global::C b)
+        if (x is C a
+            && y is C b)
         {
             return Compare(a, b);
         }
@@ -164,7 +164,7 @@ public abstract class Comparer : IComparer<C>, IComparer
         throw new ArgumentException("""", nameof(x));
     }
 }
-");
+", equivalenceKey: EquivalenceKey.Create(Descriptor.Id));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ImplementNonGenericCounterpart)]
@@ -213,8 +213,8 @@ public abstract class Comparer : IComparer<C>, IComparer
             return 1;
         }
 
-        if (x is global::C a
-            && y is global::C b)
+        if (x is C a
+            && y is C b)
         {
             return Compare(a, b);
         }
@@ -222,7 +222,7 @@ public abstract class Comparer : IComparer<C>, IComparer
         throw new ArgumentException("""", nameof(x));
     }
 }
-", equivalenceKey: _fixProvider.ExplicitEquivalenceKey);
+", equivalenceKey: _explicitEquivalenceKey);
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ImplementNonGenericCounterpart)]
@@ -270,8 +270,8 @@ public abstract class EqualityComparer : IEqualityComparer<C>, IEqualityComparer
             return false;
         }
 
-        if (x is global::C a
-            && y is global::C b)
+        if (x is C a
+            && y is C b)
         {
             return Equals(a, b);
         }
@@ -294,7 +294,7 @@ public abstract class EqualityComparer : IEqualityComparer<C>, IEqualityComparer
         throw new ArgumentException("""", nameof(obj));
     }
 }
-");
+", equivalenceKey: EquivalenceKey.Create(Descriptor.Id));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.ImplementNonGenericCounterpart)]
@@ -342,8 +342,8 @@ public abstract class EqualityComparer : IEqualityComparer<C>, IEqualityComparer
             return false;
         }
 
-        if (x is global::C a
-            && y is global::C b)
+        if (x is C a
+            && y is C b)
         {
             return Equals(a, b);
         }
@@ -366,7 +366,7 @@ public abstract class EqualityComparer : IEqualityComparer<C>, IEqualityComparer
         throw new ArgumentException("""", nameof(obj));
     }
 }
-", equivalenceKey: _fixProvider.ExplicitEquivalenceKey);
+", equivalenceKey: _explicitEquivalenceKey);
         }
     }
 }

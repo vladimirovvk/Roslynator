@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using Microsoft.CodeAnalysis;
@@ -15,7 +15,7 @@ namespace Roslynator.CSharp.Analysis
             if (trivia.Kind() != SyntaxKind.SingleLineCommentTrivia)
                 return default;
 
-            if (!(trivia.Token.Parent is MemberDeclarationSyntax memberDeclaration))
+            if (trivia.Token.Parent is not MemberDeclarationSyntax memberDeclaration)
                 return default;
 
             TextSpan span = trivia.Span;
@@ -39,8 +39,8 @@ namespace Roslynator.CSharp.Analysis
             SyntaxTriviaList.Reversed.Enumerator en = leadingTrivia.Reverse().GetEnumerator();
 
             TextSpan span = default;
-            bool containsTaskListItem = false;
-            bool containsNonTaskListItem = false;
+            var containsTaskListItem = false;
+            var containsNonTaskListItem = false;
 
             while (en.MoveNext())
             {

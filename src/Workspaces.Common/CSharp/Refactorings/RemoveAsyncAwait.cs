@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -29,20 +29,16 @@ namespace Roslynator.CSharp.Refactorings
 
             SyntaxNode GetNewNode()
             {
-                switch (node.Kind())
+                switch (node)
                 {
-                    case SyntaxKind.MethodDeclaration:
+                    case MethodDeclarationSyntax methodDeclaration:
                         {
-                            var methodDeclaration = (MethodDeclarationSyntax)node;
-
                             return remover
                                 .VisitMethodDeclaration(methodDeclaration)
                                 .RemoveModifier(SyntaxKind.AsyncKeyword);
                         }
-                    case SyntaxKind.LocalFunctionStatement:
+                    case LocalFunctionStatementSyntax localFunction:
                         {
-                            var localFunction = (LocalFunctionStatementSyntax)node;
-
                             BlockSyntax body = localFunction.Body;
 
                             if (body != null)
@@ -59,26 +55,20 @@ namespace Roslynator.CSharp.Refactorings
 
                             return localFunction.RemoveModifier(SyntaxKind.AsyncKeyword);
                         }
-                    case SyntaxKind.SimpleLambdaExpression:
+                    case SimpleLambdaExpressionSyntax lambda:
                         {
-                            var lambda = (SimpleLambdaExpressionSyntax)node;
-
                             return lambda
                                 .WithBody((CSharpSyntaxNode)remover.Visit(lambda.Body))
                                 .WithAsyncKeyword(GetMissingAsyncKeyword(lambda.AsyncKeyword));
                         }
-                    case SyntaxKind.ParenthesizedLambdaExpression:
+                    case ParenthesizedLambdaExpressionSyntax lambda:
                         {
-                            var lambda = (ParenthesizedLambdaExpressionSyntax)node;
-
                             return lambda
                                 .WithBody((CSharpSyntaxNode)remover.Visit(lambda.Body))
                                 .WithAsyncKeyword(GetMissingAsyncKeyword(lambda.AsyncKeyword));
                         }
-                    case SyntaxKind.AnonymousMethodExpression:
+                    case AnonymousMethodExpressionSyntax anonymousMethod:
                         {
-                            var anonymousMethod = (AnonymousMethodExpressionSyntax)node;
-
                             return anonymousMethod
                                 .WithBody((CSharpSyntaxNode)remover.Visit(anonymousMethod.Body))
                                 .WithAsyncKeyword(GetMissingAsyncKeyword(anonymousMethod.AsyncKeyword));

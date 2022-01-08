@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1234DuplicateEnumValueTests : AbstractCSharpFixVerifier
+    public class RCS1234DuplicateEnumValueTests : AbstractCSharpDiagnosticVerifier<EnumSymbolAnalyzer, EnumMemberDeclarationCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.DuplicateEnumValue;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new EnumSymbolAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new EnumMemberDeclarationCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.DuplicateEnumValue;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.DuplicateEnumValue)]
         public async Task Test()
@@ -117,6 +112,17 @@ enum E
     C = B,
 }
 ");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.DuplicateEnumValue)]
+        public async Task TestNoDiagnostic()
+        {
+            await VerifyNoDiagnosticAsync(@"
+enum E
+{
+    A,
+    B = A
+}");
         }
     }
 }

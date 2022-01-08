@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Refactorings>
   <Refactoring Id="RRX005" Identifier="MoveLocalFunction" Title="Move local function after other statements">
+	<OptionKey>move_local_function</OptionKey>
     <Syntaxes>
       <Syntax>local function</Syntax>
     </Syntaxes>

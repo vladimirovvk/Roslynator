@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -28,8 +28,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 GetTitle(variables.Count == 1),
-                cancellationToken => RefactorAsync(context.Document, fieldDeclaration, cancellationToken),
-                RefactoringIdentifiers.InitializeFieldFromConstructor);
+                ct => RefactorAsync(context.Document, fieldDeclaration, ct),
+                RefactoringDescriptors.InitializeFieldFromConstructor);
         }
 
         public static void ComputeRefactoring(RefactoringContext context, MemberDeclarationListSelection selectedMembers)
@@ -54,8 +54,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 GetTitle(count == 1),
-                cancellationToken => RefactorAsync(context.Document, selectedMembers, cancellationToken),
-                RefactoringIdentifiers.InitializeFieldFromConstructor);
+                ct => RefactorAsync(context.Document, selectedMembers, ct),
+                RefactoringDescriptors.InitializeFieldFromConstructor);
         }
 
         private static string GetTitle(bool isSingle)
@@ -70,10 +70,10 @@ namespace Roslynator.CSharp.Refactorings
             if (variableDeclarator.Initializer != null)
                 return;
 
-            if (!(variableDeclarator.Parent is VariableDeclarationSyntax variableDeclaration))
+            if (variableDeclarator.Parent is not VariableDeclarationSyntax variableDeclaration)
                 return;
 
-            if (!(variableDeclaration.Parent is FieldDeclarationSyntax fieldDeclaration))
+            if (variableDeclaration.Parent is not FieldDeclarationSyntax fieldDeclaration)
                 return;
 
             if (!CanRefactor(fieldDeclaration))
@@ -83,8 +83,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Initialize field from constructor",
-                cancellationToken => RefactorAsync(context.Document, ImmutableArray.Create(fieldInfo), (TypeDeclarationSyntax)fieldDeclaration.Parent, cancellationToken),
-                RefactoringIdentifiers.InitializeFieldFromConstructor);
+                ct => RefactorAsync(context.Document, ImmutableArray.Create(fieldInfo), (TypeDeclarationSyntax)fieldDeclaration.Parent, ct),
+                RefactoringDescriptors.InitializeFieldFromConstructor);
         }
 
         private static bool CanRefactor(FieldDeclarationSyntax fieldDeclaration)
@@ -92,10 +92,10 @@ namespace Roslynator.CSharp.Refactorings
             if (fieldDeclaration.Modifiers.ContainsAny(SyntaxKind.StaticKeyword, SyntaxKind.ConstKeyword))
                 return false;
 
-            if (!(fieldDeclaration.Parent is TypeDeclarationSyntax typeDeclaration))
+            if (fieldDeclaration.Parent is not TypeDeclarationSyntax typeDeclaration)
                 return false;
 
-            if (!typeDeclaration.IsKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+            if (!typeDeclaration.IsKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
                 return false;
 
             return typeDeclaration
@@ -143,7 +143,7 @@ namespace Roslynator.CSharp.Refactorings
 
             for (int i = 0; i < members.Count; i++)
             {
-                if (!(members[i] is ConstructorDeclarationSyntax constructorDeclaration))
+                if (members[i] is not ConstructorDeclarationSyntax constructorDeclaration)
                     continue;
 
                 if (constructorDeclaration.Modifiers.Contains(SyntaxKind.StaticKeyword))
@@ -184,7 +184,8 @@ namespace Roslynator.CSharp.Refactorings
                     statements = statements.Add(
                         SimpleAssignmentStatement(
                             SimpleMemberAccessExpression(ThisExpression(), IdentifierName(fieldInfo.Name)).WithSimplifierAnnotation(),
-                            IdentifierName(parameterName)).WithFormatterAnnotation());
+                            IdentifierName(parameterName))
+                            .WithFormatterAnnotation());
                 }
 
                 parameterList = parameterList.WithParameters(parameters).WithFormatterAnnotation();
@@ -220,7 +221,7 @@ namespace Roslynator.CSharp.Refactorings
             SeparatedSyntaxList<ParameterSyntax> parameters,
             ref HashSet<string> reservedNames)
         {
-            bool isConflict = false;
+            var isConflict = false;
 
             foreach (ParameterSyntax parameter in parameters)
             {

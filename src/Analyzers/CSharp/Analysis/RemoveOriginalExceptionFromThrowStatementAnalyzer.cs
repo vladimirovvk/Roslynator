@@ -1,34 +1,41 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Roslynator.CSharp.SyntaxWalkers;
 
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveOriginalExceptionFromThrowStatementAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveOriginalExceptionFromThrowStatementAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveOriginalExceptionFromThrowStatement); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveOriginalExceptionFromThrowStatement);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeCatchClause, SyntaxKind.CatchClause);
+            context.RegisterSyntaxNodeAction(f => AnalyzeCatchClause(f), SyntaxKind.CatchClause);
         }
 
-        public static void AnalyzeCatchClause(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeCatchClause(SyntaxNodeAnalysisContext context)
         {
             var catchClause = (CatchClauseSyntax)context.Node;
 
@@ -45,26 +52,94 @@ namespace Roslynator.CSharp.Analysis
             if (symbol?.IsErrorType() != false)
                 return;
 
-            //XPERF: SyntaxWalker
-            foreach (SyntaxNode node in catchClause.Block.DescendantNodes(descendIntoChildren: f => f.Kind() != SyntaxKind.CatchClause))
+            ExpressionSyntax expression = null;
+            Walker walker = null;
+
+            try
             {
-                if (node.Kind() != SyntaxKind.ThrowStatement)
-                    continue;
+                walker = Walker.GetInstance();
 
-                var throwStatement = (ThrowStatementSyntax)node;
-                ExpressionSyntax expression = throwStatement.Expression;
+                walker.Symbol = symbol;
+                walker.SemanticModel = semanticModel;
+                walker.CancellationToken = cancellationToken;
 
-                if (expression == null)
-                    continue;
+                walker.VisitBlock(catchClause.Block);
 
-                ISymbol expressionSymbol = semanticModel.GetSymbol(expression, cancellationToken);
+                expression = walker.ThrowStatement?.Expression;
+            }
+            finally
+            {
+                if (walker != null)
+                    Walker.Free(walker);
+            }
 
-                if (!symbol.Equals(expressionSymbol))
-                    continue;
-
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.RemoveOriginalExceptionFromThrowStatement,
+            if (expression != null)
+            {
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.RemoveOriginalExceptionFromThrowStatement,
                     expression);
+            }
+        }
+
+        private class Walker : CSharpSyntaxNodeWalker
+        {
+            [ThreadStatic]
+            private static Walker _cachedInstance;
+
+            public ThrowStatementSyntax ThrowStatement { get; set; }
+
+            public ISymbol Symbol { get; set; }
+
+            public SemanticModel SemanticModel { get; set; }
+
+            public CancellationToken CancellationToken { get; set; }
+
+            public override void VisitCatchClause(CatchClauseSyntax node)
+            {
+            }
+
+            public override void VisitThrowStatement(ThrowStatementSyntax node)
+            {
+                ExpressionSyntax expression = node.Expression;
+
+                if (expression != null)
+                {
+                    ISymbol symbol = SemanticModel.GetSymbol(expression, CancellationToken);
+
+                    if (SymbolEqualityComparer.Default.Equals(Symbol, symbol))
+                        ThrowStatement = node;
+                }
+
+                base.VisitThrowStatement(node);
+            }
+
+            public static Walker GetInstance()
+            {
+                Walker walker = _cachedInstance;
+
+                if (walker != null)
+                {
+                    Debug.Assert(walker.Symbol == null);
+                    Debug.Assert(walker.SemanticModel == null);
+                    Debug.Assert(walker.CancellationToken == default);
+                    Debug.Assert(walker.ThrowStatement == null);
+
+                    _cachedInstance = null;
+                    return walker;
+                }
+
+                return new Walker();
+            }
+
+            public static void Free(Walker walker)
+            {
+                walker.Symbol = null;
+                walker.SemanticModel = null;
+                walker.CancellationToken = default;
+                walker.ThrowStatement = null;
+
+                _cachedInstance = walker;
             }
         }
     }

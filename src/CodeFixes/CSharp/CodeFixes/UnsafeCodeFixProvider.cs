@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,28 +14,69 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UnsafeCodeFixProvider))]
     [Shared]
-    public class UnsafeCodeFixProvider : BaseCodeFixProvider
+    public sealed class UnsafeCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.PointersAndFixedSizeBuffersMayOnlyBeUsedInUnsafeContext); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0214_PointersAndFixedSizeBuffersMayOnlyBeUsedInUnsafeContext); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
             if (!TryFindNode(root, context.Span, out SyntaxNode node))
                 return;
 
+            var document = context.Document;
+
             foreach (Diagnostic diagnostic in context.Diagnostics)
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.PointersAndFixedSizeBuffersMayOnlyBeUsedInUnsafeContext:
+                    case CompilerDiagnosticIdentifiers.CS0214_PointersAndFixedSizeBuffersMayOnlyBeUsedInUnsafeContext:
                         {
-                            bool fStatement = false;
-                            bool fMemberDeclaration = false;
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseExplicitTypeInsteadOfVar, document, root.SyntaxTree)
+                                && node is StackAllocArrayCreationExpressionSyntax stackAllocArrayCreation
+                                && node.IsParentKind(SyntaxKind.EqualsValueClause)
+                                && node.Parent.IsParentKind(SyntaxKind.VariableDeclarator)
+                                && node.Parent.Parent.Parent is VariableDeclarationSyntax variableDeclaration
+                                && variableDeclaration.Type.IsVar)
+                            {
+                                TypeSyntax type = stackAllocArrayCreation.Type;
+
+                                if (type is ArrayTypeSyntax arrayType)
+                                    type = arrayType.ElementType;
+
+                                CodeAction spanCodeAction = CodeAction.Create(
+                                    "Use Span<T>",
+                                    ct =>
+                                    {
+                                        TypeSyntax spanOfT = SyntaxFactory.ParseTypeName($"global::System.Span<{type}>")
+                                            .WithSimplifierAnnotation();
+
+                                        return document.ReplaceNodeAsync(variableDeclaration.Type, spanOfT, ct);
+                                    },
+                                    GetEquivalenceKey(diagnostic, CodeFixIdentifiers.UseExplicitTypeInsteadOfVar, "System_Span_T"));
+
+                                context.RegisterCodeFix(spanCodeAction, diagnostic);
+
+                                CodeAction readOnlySpanCodeAction = CodeAction.Create(
+                                    "Use ReadOnlySpan<T>",
+                                    ct =>
+                                    {
+                                        TypeSyntax spanOfT = SyntaxFactory.ParseTypeName($"global::System.ReadOnlySpan<{type}>")
+                                            .WithSimplifierAnnotation();
+
+                                        return document.ReplaceNodeAsync(variableDeclaration.Type, spanOfT, ct);
+                                    },
+                                    GetEquivalenceKey(diagnostic, CodeFixIdentifiers.UseExplicitTypeInsteadOfVar, "System_ReadOnlySpan_T"));
+
+                                context.RegisterCodeFix(readOnlySpanCodeAction, diagnostic);
+                            }
+
+                            var fStatement = false;
+                            var fMemberDeclaration = false;
 
                             foreach (SyntaxNode ancestor in node.AncestorsAndSelf())
                             {
@@ -50,15 +91,15 @@ namespace Roslynator.CSharp.CodeFixes
                                 {
                                     fStatement = true;
 
-                                    if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.WrapInUnsafeStatement))
+                                    if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.WrapInUnsafeStatement, document, root.SyntaxTree))
                                         continue;
 
                                     var statement = (StatementSyntax)ancestor;
 
                                     if (statement.IsKind(SyntaxKind.Block)
-                                        && statement.Parent is StatementSyntax)
+                                        && statement.Parent is StatementSyntax statement2)
                                     {
-                                        statement = (StatementSyntax)statement.Parent;
+                                        statement = statement2;
                                     }
 
                                     if (statement.IsKind(SyntaxKind.UnsafeStatement))
@@ -66,7 +107,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                                     CodeAction codeAction = CodeAction.Create(
                                         "Wrap in unsafe block",
-                                        cancellationToken =>
+                                        ct =>
                                         {
                                             BlockSyntax block = (statement.IsKind(SyntaxKind.Block))
                                                 ? (BlockSyntax)statement
@@ -74,7 +115,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                                             UnsafeStatementSyntax unsafeStatement = SyntaxFactory.UnsafeStatement(block).WithFormatterAnnotation();
 
-                                            return context.Document.ReplaceNodeAsync(statement, unsafeStatement, cancellationToken);
+                                            return document.ReplaceNodeAsync(statement, unsafeStatement, ct);
                                         },
                                         GetEquivalenceKey(diagnostic, CodeFixIdentifiers.WrapInUnsafeStatement));
 
@@ -85,7 +126,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 {
                                     fMemberDeclaration = true;
 
-                                    if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeContainingDeclarationUnsafe))
+                                    if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeContainingDeclarationUnsafe, document, root.SyntaxTree))
                                         continue;
 
                                     if (!CSharpFacts.CanHaveModifiers(ancestor.Kind()))

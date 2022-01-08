@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -37,7 +37,7 @@ namespace Roslynator.CSharp.Syntax
         /// </summary>
         public SeparatedSyntaxList<TypeParameterConstraintSyntax> Constraints
         {
-            get { return ConstraintClause?.Constraints ?? default(SeparatedSyntaxList<TypeParameterConstraintSyntax>); }
+            get { return ConstraintClause?.Constraints ?? default; }
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Roslynator.CSharp.Syntax
             TypeParameterConstraintSyntax constraint,
             bool allowMissing = false)
         {
-            if (!(constraint?.Parent is TypeParameterConstraintClauseSyntax constraintClause))
+            if (constraint?.Parent is not TypeParameterConstraintClauseSyntax constraintClause)
                 return default;
 
             IdentifierNameSyntax name = constraintClause.Name;
@@ -167,6 +167,18 @@ namespace Roslynator.CSharp.Syntax
                         var methodDeclaration = (MethodDeclarationSyntax)parent;
 
                         TypeParameterListSyntax typeParameterList = methodDeclaration.TypeParameterList;
+
+                        if (!Check(typeParameterList, allowMissing))
+                            return default;
+
+                        return new TypeParameterConstraintInfo(constraint, constraintClause);
+                    }
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var recordDeclaration = (RecordDeclarationSyntax)parent;
+
+                        TypeParameterListSyntax typeParameterList = recordDeclaration.TypeParameterList;
 
                         if (!Check(typeParameterList, allowMissing))
                             return default;

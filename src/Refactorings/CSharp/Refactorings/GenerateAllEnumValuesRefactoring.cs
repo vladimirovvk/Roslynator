@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,7 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class GenerateAllEnumValuesRefactoring
     {
-        internal static readonly string EquivalenceKey = Roslynator.EquivalenceKey.Join(RefactoringIdentifiers.GenerateEnumValues, "OverwriteExistingValues");
+        internal static readonly string EquivalenceKey = Roslynator.EquivalenceKey.Create(RefactoringDescriptors.GenerateEnumValues, "OverwriteExistingValues");
 
         public static void ComputeRefactoring(
             RefactoringContext context,
@@ -74,7 +74,7 @@ namespace Roslynator.CSharp.Refactorings
                         value++;
                     }
 
-                    if (!ConvertHelpers.CanConvert(value, enumSymbol.EnumUnderlyingType.SpecialType))
+                    if (!ConvertHelpers.CanConvertFromUInt64(value, enumSymbol.EnumUnderlyingType.SpecialType))
                         return false;
                 }
 
@@ -94,16 +94,23 @@ namespace Roslynator.CSharp.Refactorings
             SpecialType numericType = enumSymbol.EnumUnderlyingType.SpecialType;
 
             IEnumerable<EnumMemberDeclarationSyntax> newMembers = (enumSymbol.HasAttribute(MetadataNames.System_FlagsAttribute))
-                ? enumDeclaration.Members.Select(CreateNewFlagsMember)
-                : enumDeclaration.Members.Select(CreateNewMember);
+                ? enumDeclaration.Members.Select(f => CreateNewFlagsMember(f))
+                : enumDeclaration.Members.Select(f => CreateNewMember(f));
 
-            EnumDeclarationSyntax newEnumDeclaration = enumDeclaration.WithMembers(newMembers.ToSeparatedSyntaxList());
+            EnumDeclarationSyntax newEnumDeclaration = enumDeclaration.ReplaceNodes(
+                enumDeclaration.Members,
+                (f, _) =>
+                {
+                    return (enumSymbol.HasAttribute(MetadataNames.System_FlagsAttribute))
+                        ? CreateNewFlagsMember(f)
+                        : CreateNewMember(f);
+                });
 
             return document.ReplaceNodeAsync(enumDeclaration, newEnumDeclaration, cancellationToken);
 
             EnumMemberDeclarationSyntax CreateNewFlagsMember(EnumMemberDeclarationSyntax enumMember)
             {
-                if (!ConvertHelpers.CanConvert(value, numericType))
+                if (!ConvertHelpers.CanConvertFromUInt64(value, numericType))
                     return enumMember;
 
                 IFieldSymbol fieldSymbol = semanticModel.GetDeclaredSymbol(enumMember, cancellationToken);
@@ -123,7 +130,7 @@ namespace Roslynator.CSharp.Refactorings
 
             EnumMemberDeclarationSyntax CreateNewMember(EnumMemberDeclarationSyntax enumMember)
             {
-                if (!ConvertHelpers.CanConvert(value, numericType))
+                if (!ConvertHelpers.CanConvertFromUInt64(value, numericType))
                     return enumMember;
 
                 EnumMemberDeclarationSyntax newEnumMember = CreateNewEnumMember(enumMember, value, numericType);
@@ -142,6 +149,9 @@ namespace Roslynator.CSharp.Refactorings
             EqualsValueClauseSyntax equalsValue = EqualsValueClause(
                 Token(TriviaList(ElasticSpace), SyntaxKind.EqualsToken, TriviaList(ElasticSpace)),
                 NumericLiteralExpression(value, numericType));
+
+            if (enumMember.EqualsValue != null)
+                equalsValue = equalsValue.WithTriviaFrom(enumMember.EqualsValue);
 
             return enumMember.WithEqualsValue(equalsValue);
         }

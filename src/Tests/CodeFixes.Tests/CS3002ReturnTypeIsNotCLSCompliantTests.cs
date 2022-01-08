@@ -1,18 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.CodeFixes.Tests
 {
-    public class CS3002ReturnTypeIsNotCLSCompliantTests : AbstractCSharpCompilerDiagnosticFixVerifier
+    public class CS3002ReturnTypeIsNotCLSCompliantTests : AbstractCSharpCompilerDiagnosticFixVerifier<MemberDeclarationCodeFixProvider>
     {
-        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.ReturnTypeIsNotCLSCompliant;
+        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.CS3002_ReturnTypeIsNotCLSCompliant;
 
-        public override CodeFixProvider FixProvider { get; } = new MemberDeclarationCodeFixProvider();
-
-        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.ReturnTypeIsNotCLSCompliant)]
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS3002_ReturnTypeIsNotCLSCompliant)]
         public async Task Test()
         {
             await VerifyFixAsync(@"

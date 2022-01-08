@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,17 +12,17 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class SelectedMemberDeclarationsRefactoring
     {
-        public static ImmutableDictionary<Accessibility, string> _accessiblityIdentifierMap = ImmutableDictionary.CreateRange(new KeyValuePair<Accessibility, string>[]
-        {
-            new KeyValuePair<Accessibility, string>(Accessibility.Public, EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, nameof(Accessibility.Public))),
-            new KeyValuePair<Accessibility, string>(Accessibility.Internal, EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, nameof(Accessibility.Internal))),
-            new KeyValuePair<Accessibility, string>(Accessibility.Protected, EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, nameof(Accessibility.Protected))),
-            new KeyValuePair<Accessibility, string>(Accessibility.Private, EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, nameof(Accessibility.Private)))
-        });
+        public static ImmutableDictionary<Accessibility, string> _accessibilityIdentifierMap = ImmutableDictionary.CreateRange(new[]
+            {
+                new KeyValuePair<Accessibility, string>(Accessibility.Public, EquivalenceKey.Create(RefactoringDescriptors.ChangeAccessibility.Id, nameof(Accessibility.Public))),
+                new KeyValuePair<Accessibility, string>(Accessibility.Internal, EquivalenceKey.Create(RefactoringDescriptors.ChangeAccessibility.Id, nameof(Accessibility.Internal))),
+                new KeyValuePair<Accessibility, string>(Accessibility.Protected, EquivalenceKey.Create(RefactoringDescriptors.ChangeAccessibility.Id, nameof(Accessibility.Protected))),
+                new KeyValuePair<Accessibility, string>(Accessibility.Private, EquivalenceKey.Create(RefactoringDescriptors.ChangeAccessibility.Id, nameof(Accessibility.Private)))
+            });
 
         public static async Task ComputeRefactoringAsync(RefactoringContext context, MemberDeclarationListSelection selectedMembers)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ChangeAccessibility)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ChangeAccessibility)
                 && !selectedMembers.Parent.IsKind(SyntaxKind.InterfaceDeclaration))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -41,19 +41,19 @@ namespace Roslynator.CSharp.Refactorings
             }
 
             if (context.IsAnyRefactoringEnabled(
-                RefactoringIdentifiers.UseExpressionBodiedMember,
-                RefactoringIdentifiers.ExpandExpressionBody))
+                RefactoringDescriptors.ConvertBlockBodyToExpressionBody,
+                RefactoringDescriptors.ConvertExpressionBodyToBlockBody))
             {
-                InvertBodyAndExpressionBodyRefactoring.ComputeRefactoring(context, selectedMembers);
+                ConvertBodyAndExpressionBodyRefactoring.ComputeRefactoring(context, selectedMembers);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.InitializeFieldFromConstructor)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.InitializeFieldFromConstructor)
                 && !selectedMembers.Parent.IsKind(SyntaxKind.InterfaceDeclaration))
             {
                 InitializeFieldFromConstructorRefactoring.ComputeRefactoring(context, selectedMembers);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddEmptyLineBetweenDeclarations))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddEmptyLineBetweenDeclarations))
             {
                 AddEmptyLineBetweenDeclarationsRefactoring.ComputeRefactoring(context, selectedMembers);
             }
@@ -66,19 +66,20 @@ namespace Roslynator.CSharp.Refactorings
                     {
                         context.RegisterRefactoring(
                             ChangeAccessibilityRefactoring.GetTitle(accessibility),
-                            async cancellationToken =>
+                            async ct =>
                             {
-                                SemanticModel semanticModel = await context.Document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                                return await ChangeAccessibilityRefactoring.RefactorAsync(context.Document.Solution(), selectedMembers, accessibility, semanticModel, cancellationToken).ConfigureAwait(false);
+                                SemanticModel semanticModel = await context.Document.GetSemanticModelAsync(ct).ConfigureAwait(false);
+                                return await ChangeAccessibilityRefactoring.RefactorAsync(context.Document.Solution(), selectedMembers, accessibility, semanticModel, ct).ConfigureAwait(false);
                             },
-                            _accessiblityIdentifierMap[accessibility]);
+                            _accessibilityIdentifierMap[accessibility]);
                     }
                     else
                     {
                         context.RegisterRefactoring(
                             ChangeAccessibilityRefactoring.GetTitle(accessibility),
-                            cancellationToken => ChangeAccessibilityRefactoring.RefactorAsync(context.Document, selectedMembers, accessibility, cancellationToken),
-                            EquivalenceKey.Join(RefactoringIdentifiers.ChangeAccessibility, accessibility.ToString()));
+                            ct => ChangeAccessibilityRefactoring.RefactorAsync(context.Document, selectedMembers, accessibility, ct),
+                            RefactoringDescriptors.ChangeAccessibility,
+                            accessibility.ToString());
                     }
                 }
             }
@@ -99,6 +100,14 @@ namespace Roslynator.CSharp.Refactorings
                         case SyntaxKind.InterfaceDeclaration:
                             {
                                 if (((InterfaceDeclarationSyntax)member).Modifiers.Contains(SyntaxKind.PartialKeyword))
+                                    return true;
+
+                                break;
+                            }
+                        case SyntaxKind.RecordDeclaration:
+                        case SyntaxKind.RecordStructDeclaration:
+                            {
+                                if (((RecordDeclarationSyntax)member).Modifiers.Contains(SyntaxKind.PartialKeyword))
                                     return true;
 
                                 break;

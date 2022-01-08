@@ -1,29 +1,23 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1084UseCoalesceExpressionInsteadOfConditionalExpressionTests : AbstractCSharpFixVerifier
+    public class RCS1084UseCoalesceExpressionInsteadOfConditionalExpressionTests : AbstractCSharpDiagnosticVerifier<SimplifyNullCheckAnalyzer, ConditionalExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UseCoalesceExpressionInsteadOfConditionalExpression;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new SimplifyNullCheckAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new ConditionalExpressionCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UseCoalesceExpressionInsteadOfConditionalExpression;
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseCoalesceExpressionInsteadOfConditionalExpression)]
         [InlineData("s != null ? s : \"\"", "s ?? \"\"")]
         [InlineData("s == null ? \"\" : s", "s ?? \"\"")]
-
         [InlineData("(s != null) ? (s) : (\"\")", "s ?? \"\"")]
         [InlineData("(s == null) ? (\"\") : (s)", "s ?? \"\"")]
-        public async Task Test_ReferenceType(string fromData, string toData)
+        public async Task Test_ReferenceType(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -35,7 +29,7 @@ class C
         s = [||];
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseCoalesceExpressionInsteadOfConditionalExpression)]
@@ -43,7 +37,7 @@ class C
         [InlineData("(ni == null) ? 1 : ni.Value", "ni ?? 1")]
         [InlineData("(ni.HasValue) ? ni.Value : 1", "ni ?? 1")]
         [InlineData("(!ni.HasValue) ? 1 : ni.Value", "ni ?? 1")]
-        public async Task Test_ValueType(string fromData, string toData)
+        public async Task Test_ValueType(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@"
 class C
@@ -56,7 +50,7 @@ class C
         i = [||];
     }
 }
-", fromData, toData);
+", source, expected);
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseCoalesceExpressionInsteadOfConditionalExpression)]
@@ -73,7 +67,7 @@ class C
         s = (s == null) ? s : """";
     }
 }
-");
+", options: Options.WithAllowUnsafe(true));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UseCoalesceExpressionInsteadOfConditionalExpression)]
@@ -90,7 +84,7 @@ class C
         i = (i != null) ? i : default(int*);
     }
 }
-");
+", options: Options.WithAllowUnsafe(true));
         }
     }
 }

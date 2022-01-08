@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
@@ -17,9 +17,31 @@ namespace Roslynator.CSharp
             string equivalenceKey = null)
         {
             return CodeAction.Create(
-                title ?? "Change type to 'var'",
+                title ?? "Use implicit type",
                 ct => DocumentRefactorings.ChangeTypeToVarAsync(document, type, ct),
                 equivalenceKey);
+        }
+
+        public static CodeAction ChangeTypeToVar(
+            Document document,
+            TupleExpressionSyntax tupleExpression,
+            string title = null,
+            string equivalenceKey = null)
+        {
+            return CodeAction.Create(
+                title ?? "Use implicit type",
+                ct => DocumentRefactorings.ChangeTypeToVarAsync(document, tupleExpression, ct),
+                equivalenceKey);
+        }
+
+        public static CodeAction UseExplicitType(
+            Document document,
+            TypeSyntax type,
+            ITypeSymbol newTypeSymbol,
+            SemanticModel semanticModel,
+            string equivalenceKey = null)
+        {
+            return ChangeType(document, type, newTypeSymbol, semanticModel, title: "Use explicit type", equivalenceKey: equivalenceKey);
         }
 
         public static CodeAction ChangeType(
@@ -32,7 +54,9 @@ namespace Roslynator.CSharp
         {
             if (title == null)
             {
-                string newTypeName = SymbolDisplay.ToMinimalDisplayString(newTypeSymbol, semanticModel, type.SpanStart);
+                SymbolDisplayFormat format = GetSymbolDisplayFormat(type, newTypeSymbol, semanticModel);
+
+                string newTypeName = SymbolDisplay.ToMinimalDisplayString(newTypeSymbol, semanticModel, type.SpanStart, format);
 
                 if ((type.Parent is MethodDeclarationSyntax methodDeclaration && methodDeclaration.ReturnType == type)
                     || (type.Parent is LocalFunctionStatementSyntax localFunction && localFunction.ReturnType == type))
@@ -48,7 +72,7 @@ namespace Roslynator.CSharp
             return ChangeType(document, type, newTypeSymbol, title, equivalenceKey);
         }
 
-        public static CodeAction ChangeType(
+        private static CodeAction ChangeType(
             Document document,
             TypeSyntax type,
             ITypeSymbol newTypeSymbol,
@@ -61,7 +85,23 @@ namespace Roslynator.CSharp
                 equivalenceKey);
         }
 
-        public static CodeAction AddCastExpression(
+        private static SymbolDisplayFormat GetSymbolDisplayFormat(
+            ExpressionSyntax expression,
+            ITypeSymbol newTypeSymbol,
+            SemanticModel semanticModel)
+        {
+            if (newTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated
+                && (semanticModel.GetNullableContext(expression.SpanStart) & NullableContext.WarningsEnabled) != 0)
+            {
+                return SymbolDisplayFormats.FullName;
+            }
+            else
+            {
+                return SymbolDisplayFormats.FullName_WithoutNullableReferenceTypeModifier;
+            }
+        }
+
+        public static CodeAction AddExplicitCast(
             Document document,
             ExpressionSyntax expression,
             ITypeSymbol destinationType,
@@ -69,13 +109,15 @@ namespace Roslynator.CSharp
             string title = null,
             string equivalenceKey = null)
         {
-            string typeName = SymbolDisplay.ToMinimalDisplayString(destinationType, semanticModel, expression.SpanStart);
+            SymbolDisplayFormat format = GetSymbolDisplayFormat(expression, destinationType, semanticModel);
+
+            string typeName = SymbolDisplay.ToMinimalDisplayString(destinationType, semanticModel, expression.SpanStart, format);
 
             TypeSyntax newType = ParseTypeName(typeName);
 
             return CodeAction.Create(
-                title ?? $"Cast to '{typeName}'",
-                ct => DocumentRefactorings.AddCastExpressionAsync(document, expression, newType, ct),
+                title ?? "Add explicit cast",
+                ct => DocumentRefactorings.AddExplicitCastAsync(document, expression, newType, ct),
                 equivalenceKey);
         }
 
@@ -132,6 +174,18 @@ namespace Roslynator.CSharp
             return CodeAction.Create(
                 title ?? "Remove async/await",
                 ct => DocumentRefactorings.RemoveAsyncAwaitAsync(document, asyncKeyword, ct),
+                equivalenceKey);
+        }
+
+        public static CodeAction RemoveParentheses(
+            Document document,
+            ParenthesizedExpressionSyntax parenthesizedExpression,
+            string title = null,
+            string equivalenceKey = null)
+        {
+            return CodeAction.Create(
+                title ?? "Remove parentheses",
+                ct => DocumentRefactorings.RemoveParenthesesAsync(document, parenthesizedExpression, ct),
                 equivalenceKey);
         }
     }

@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1240UnnecessaryOperatorTests : AbstractCSharpFixVerifier
+    public class RCS1240UnnecessaryOperatorTests : AbstractCSharpDiagnosticVerifier<BinaryOperatorAnalyzer, BinaryExpressionCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.UnnecessaryOperator;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new BinaryOperatorAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new BinaryExpressionCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.UnnecessaryOperator;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.UnnecessaryOperator)]
         public async Task Test()

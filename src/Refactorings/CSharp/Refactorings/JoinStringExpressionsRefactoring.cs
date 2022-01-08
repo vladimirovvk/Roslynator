@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -23,16 +23,16 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         "Join string expressions",
-                        cancellationToken => ToInterpolatedStringAsync(context.Document, concatenationInfo, cancellationToken),
-                        RefactoringIdentifiers.JoinStringExpressions);
+                        ct => ToInterpolatedStringAsync(context.Document, concatenationInfo, ct),
+                        RefactoringDescriptors.JoinStringExpressions);
                 }
             }
             else if (analysis.ContainsStringLiteral)
             {
                 context.RegisterRefactoring(
                     "Join string literals",
-                    cancellationToken => ToStringLiteralAsync(context.Document, concatenationInfo, multiline: false, cancellationToken: cancellationToken),
-                    RefactoringIdentifiers.JoinStringExpressions);
+                    ct => ToStringLiteralAsync(context.Document, concatenationInfo, multiline: false, cancellationToken: ct),
+                    RefactoringDescriptors.JoinStringExpressions);
 
                 if (concatenationInfo.BinaryExpression
                     .DescendantTrivia(concatenationInfo.Span ?? concatenationInfo.BinaryExpression.Span)
@@ -40,8 +40,9 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         "Join string literals into multiline string literal",
-                        cancellationToken => ToStringLiteralAsync(context.Document, concatenationInfo, multiline: true, cancellationToken: cancellationToken),
-                        EquivalenceKey.Join(RefactoringIdentifiers.JoinStringExpressions, "Multiline"));
+                        ct => ToStringLiteralAsync(context.Document, concatenationInfo, multiline: true, cancellationToken: ct),
+                        RefactoringDescriptors.JoinStringExpressions,
+                        "Multiline");
                 }
             }
         }
@@ -60,7 +61,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             in StringConcatenationExpressionInfo concatenationInfo,
             bool multiline,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ExpressionSyntax newExpression = (multiline)
                 ? concatenationInfo.ToMultiLineStringLiteralExpression()
@@ -79,6 +80,8 @@ namespace Roslynator.CSharp.Refactorings
 
             BinaryExpressionSyntax binaryExpression = concatenationInfo.BinaryExpression;
 
+            string newText = null;
+
             if (concatenationInfo.Span.HasValue)
             {
                 TextSpan span = concatenationInfo.Span.Value;
@@ -87,18 +90,20 @@ namespace Roslynator.CSharp.Refactorings
 
                 string s = binaryExpression.ToString();
 
-                s = s.Remove(span.Start - start)
-                    + expression
-                    + s.Substring(span.End - start);
+                newText = "";
 
-                expression = SyntaxFactory.ParseExpression(s);
+                if (span.Start > start)
+                    newText = s.Remove(span.Start - start);
+
+                newText += expression;
+
+                if (span.End < binaryExpression.Span.End)
+                    newText += s.Substring(span.End - start);
             }
 
-            expression = expression
-                .WithTriviaFrom(binaryExpression)
-                .WithFormatterAnnotation();
-
-            return document.ReplaceNodeAsync(binaryExpression, expression, cancellationToken);
+            return document.WithTextChangeAsync(
+                new TextChange(binaryExpression.Span, newText ?? expression.ToString()),
+                cancellationToken);
         }
     }
 }

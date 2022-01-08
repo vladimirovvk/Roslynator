@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -65,21 +65,12 @@ namespace Roslynator.CSharp.Syntax
                 if (count == 0)
                     return true;
 
-                if (count == 1)
-                {
-                    XmlNodeSyntax node = content[0];
-
-                    if (node.IsKind(SyntaxKind.XmlText))
-                    {
-                        var xmlText = (XmlTextSyntax)node;
-
-                        return xmlText.TextTokens.All(IsWhitespaceOrNewLine);
-                    }
-                }
+                if (content.SingleOrDefault(shouldThrow: false) is XmlTextSyntax xmlText)
+                    return xmlText.TextTokens.All(f => IsWhitespaceOrNewLine(f));
 
                 return false;
 
-                bool IsWhitespaceOrNewLine(SyntaxToken token)
+                static bool IsWhitespaceOrNewLine(SyntaxToken token)
                 {
                     switch (token.Kind())
                     {
@@ -145,9 +136,15 @@ namespace Roslynator.CSharp.Syntax
             return default;
         }
 
-        internal bool IsLocalName(string localName, StringComparison comparison = StringComparison.Ordinal)
+        internal bool HasLocalName(string localName, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
         {
             return string.Equals(LocalName, localName, comparison);
+        }
+
+        internal bool HasLocalName(string localName1, string localName2, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+        {
+            return HasLocalName(localName1, comparison)
+                || HasLocalName(localName2, comparison);
         }
     }
 }

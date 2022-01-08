@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,14 +23,14 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberAbstract
 
             context.RegisterRefactoring(
                 "Make method abstract",
-                cancellationToken => RefactorAsync(context.Document, methodDeclaration, cancellationToken),
-                RefactoringIdentifiers.MakeMemberAbstract);
+                ct => RefactorAsync(context.Document, methodDeclaration, ct),
+                RefactoringDescriptors.MakeMemberAbstract);
         }
 
         public static Task<Document> RefactorAsync(
             Document document,
             MethodDeclarationSyntax methodDeclaration,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             MethodDeclarationSyntax newNode = methodDeclaration
                 .WithExpressionBody(null)

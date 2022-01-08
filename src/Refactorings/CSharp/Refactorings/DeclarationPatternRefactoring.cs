@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -13,7 +13,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         internal static async Task ComputeRefactoringAsync(RefactoringContext context, DeclarationPatternSyntax declarationPattern)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RenameIdentifierAccordingToTypeName))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RenameIdentifierAccordingToTypeName))
             {
                 VariableDesignationSyntax designation = declarationPattern.Designation;
 
@@ -46,8 +46,8 @@ namespace Roslynator.CSharp.Refactorings
                             {
                                 context.RegisterRefactoring(
                                     $"Rename '{oldName}' to '{newName}'",
-                                    cancellationToken => Renamer.RenameSymbolAsync(context.Solution, symbol, newName, default(OptionSet), cancellationToken),
-                                    RefactoringIdentifiers.RenameIdentifierAccordingToTypeName);
+                                    ct => Renamer.RenameSymbolAsync(context.Solution, symbol, newName, default(OptionSet), ct),
+                                    RefactoringDescriptors.RenameIdentifierAccordingToTypeName);
                             }
                         }
                     }

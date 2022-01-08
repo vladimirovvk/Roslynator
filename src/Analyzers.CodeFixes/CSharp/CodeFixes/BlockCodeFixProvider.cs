@@ -1,5 +1,6 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Threading;
@@ -10,26 +11,25 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CodeFixes;
-using Roslynator.CSharp.Refactorings;
+using static Roslynator.CSharp.CSharpFactory;
 
 namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(BlockCodeFixProvider))]
     [Shared]
-    public class BlockCodeFixProvider : BaseCodeFixProvider
+    public sealed class BlockCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
                     DiagnosticIdentifiers.SimplifyLazyInitialization,
-                    DiagnosticIdentifiers.FormatSingleLineBlock,
                     DiagnosticIdentifiers.RemoveUnnecessaryBraces);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -46,17 +46,7 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Simplify lazy initialization",
-                                ct => SimplifyLazyInitializationRefactoring.RefactorAsync(document, block, ct),
-                                GetEquivalenceKey(diagnostic));
-
-                            context.RegisterCodeFix(codeAction, diagnostic);
-                            break;
-                        }
-                    case DiagnosticIdentifiers.FormatSingleLineBlock:
-                        {
-                            CodeAction codeAction = CodeAction.Create(
-                                "Format block",
-                                ct => FormatSingleLineBlockAsync(document, block, ct),
+                                ct => SimplifyLazyInitializationAsync(document, block, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -74,20 +64,6 @@ namespace Roslynator.CSharp.CodeFixes
                         }
                 }
             }
-        }
-
-        private static Task<Document> FormatSingleLineBlockAsync(
-            Document document,
-            BlockSyntax block,
-            CancellationToken cancellationToken)
-        {
-            SyntaxToken closeBrace = block.CloseBraceToken;
-
-            BlockSyntax newBlock = block
-                .WithCloseBraceToken(closeBrace.WithLeadingTrivia(closeBrace.LeadingTrivia.Add(CSharpFactory.NewLine())))
-                .WithFormatterAnnotation();
-
-            return document.ReplaceNodeAsync(block, newBlock, cancellationToken);
         }
 
         private static Task<Document> RemoveBracesAsync(
@@ -126,13 +102,75 @@ namespace Roslynator.CSharp.CodeFixes
 
             return document.ReplaceNodeAsync(switchSection, newSwitchSection, cancellationToken);
 
-            SyntaxTriviaList AddTriviaIfNecessary(SyntaxTriviaList trivia, SyntaxTriviaList triviaToAdd)
+            static SyntaxTriviaList AddTriviaIfNecessary(SyntaxTriviaList trivia, SyntaxTriviaList triviaToAdd)
             {
                 if (triviaToAdd.Any(f => f.IsKind(SyntaxKind.SingleLineCommentTrivia)))
                     trivia = trivia.AddRange(triviaToAdd);
 
                 return trivia;
             }
+        }
+
+        private static Task<Document> SimplifyLazyInitializationAsync(
+            Document document,
+            BlockSyntax block,
+            CancellationToken cancellationToken)
+        {
+            SyntaxList<StatementSyntax> statements = block.Statements;
+
+            var ifStatement = (IfStatementSyntax)statements[0];
+
+            var returnStatement = (ReturnStatementSyntax)statements[1];
+
+            var expressionStatement = (ExpressionStatementSyntax)ifStatement.SingleNonBlockStatementOrDefault();
+
+            var assignment = (AssignmentExpressionSyntax)expressionStatement.Expression;
+
+            ExpressionSyntax expression = returnStatement.Expression;
+
+            IdentifierNameSyntax valueName = null;
+
+            if (expression.IsKind(SyntaxKind.SimpleMemberAccessExpression))
+            {
+                var memberAccess = (MemberAccessExpressionSyntax)expression;
+
+                if ((memberAccess.Name is IdentifierNameSyntax identifierName)
+                    && string.Equals(identifierName.Identifier.ValueText, "Value", StringComparison.Ordinal))
+                {
+                    expression = memberAccess.Expression;
+                    valueName = identifierName;
+                }
+            }
+
+            expression = expression.WithoutTrivia();
+
+            ExpressionSyntax coalesceExpression;
+
+            if (document.SupportsLanguageFeature(CSharpLanguageFeature.NullCoalescingAssignmentOperator))
+            {
+                coalesceExpression = CoalesceAssignmentExpression(expression, assignment.Right.WithoutTrivia());
+            }
+            else
+            {
+                ExpressionSyntax right = SimpleAssignmentExpression(expression, assignment.Right.WithoutTrivia()).Parenthesize();
+
+                if (valueName != null)
+                    right = SimpleMemberAccessExpression(right.Parenthesize(), valueName);
+
+                coalesceExpression = CoalesceExpression(expression, right);
+            }
+
+            ReturnStatementSyntax newReturnStatement = returnStatement
+                .WithExpression(coalesceExpression)
+                .WithLeadingTrivia(ifStatement.GetLeadingTrivia());
+
+            SyntaxList<StatementSyntax> newStatements = statements
+                .Replace(returnStatement, newReturnStatement)
+                .RemoveAt(0);
+
+            BlockSyntax newBlock = block.WithStatements(newStatements);
+
+            return document.ReplaceNodeAsync(block, newBlock, cancellationToken);
         }
     }
 }

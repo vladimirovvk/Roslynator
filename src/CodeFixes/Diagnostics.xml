@@ -345,7 +345,7 @@
     HelpUrl="http://docs.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246" />
   <Diagnostic
     Id="CS0262"
-    Identifier="PartialDeclarationsHaveConfictingAccessibilityModifiers"
+    Identifier="PartialDeclarationsHaveConflictingAccessibilityModifiers"
     Severity="Error"
     Title="Partial declarations of 'type' have conflicting accessibility modifiers."
     Message="Partial declarations of '{0}' have conflicting accessibility modifiers"
@@ -371,6 +371,13 @@
     Title="The partial modifier can only appear immediately before 'class', 'struct', or 'interface'."
     Message="The 'partial' modifier can only appear immediately before 'class', 'struct', 'interface', or 'void'"
     HelpUrl="http://docs.microsoft.com/en-us/dotnet/csharp/misc/cs0267" />
+  <Diagnostic
+    Id="CS0272"
+    Identifier="PropertyOrIndexerCannotBeUsedInThisContextBecauseSetAccessorIsAccessible"
+    Severity="Error"
+    Title="The property or indexer 'name' cannot be used in this context because the set accessor is inaccessible."
+    Message="The property or indexer '{0}' cannot be used in this context because the set accessor is inaccessible"
+    HelpUrl="http://docs.microsoft.com/en-us/dotnet/csharp/misc/cs0272" />
   <Diagnostic
     Id="CS0275"
     Identifier="AccessibilityModifiersMayNotBeUsedOnAccessorsInInterface"
@@ -981,6 +988,13 @@
     Message="Optional parameters must appear after all required parameters"
     HelpUrl="" />
   <Diagnostic
+    Id="CS1741"
+    Identifier="RefOrOutParameterCannotHaveDefaultValue"
+    Severity="Error"
+    Title="A ref or out parameter cannot have a default value."
+    Message="A ref or out parameter cannot have a default value"
+    HelpUrl="" />
+  <Diagnostic
     Id="CS1743"
     Identifier="CannotSpecifyDefaultValueForThisParameter"
     Severity="Error"
@@ -1121,6 +1135,13 @@
     Message="'{0}' is not CLS-compliant because base interface '{1}' is not CLS-compliant"
     HelpUrl="http://docs.microsoft.com/en-us/dotnet/csharp/misc/cs3027" />
   <Diagnostic
+    Id="CS7036"
+    Identifier="ThereIsNoArgumentGivenThatCorrespondsToRequiredFormalParameter"
+    Severity="Error"
+    Title="There is no argument given that corresponds to the required formal parameter 'parameter' of 'member'."
+    Message="There is no argument given that corresponds to the required formal parameter '{0}' of '{1}'"
+    HelpUrl="" />
+  <Diagnostic
     Id="CS8050"
     Identifier="OnlyAutoImplementedPropertiesCanHaveInitializers"
     Severity="Error"
@@ -1154,5 +1175,33 @@
     Severity="Error"
     Title="Instance fields of read-only structs must be read-only."
     Message="Instance fields of readonly structs must be readonly"
+    HelpUrl="" />
+  <Diagnostic
+    Id="CS8403"
+    Identifier="MethodWithIteratorBlockMustBeAsyncToReturnIAsyncEnumerableOfT"
+    Severity="Error"
+    Title="Method with an iterator block must be 'async' to return 'IAsyncEnumerable&lt;T&lt;'."
+    Message="Method '{0}' with an iterator block must be 'async' to return '{1}'"
+    HelpUrl="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs8403" />
+  <Diagnostic
+	Id="CS8618"
+    Identifier="NonNullableMemberIsUninitialized"
+	Severity="Warning"
+    Title="Non-nullable member is uninitialized. Consider declaring the member as nullable." 
+	Message="Non-nullable {0} '{1}' is uninitialized. Consider declaring the {0} as nullable"
+	HelpUrl="" />
+  <Diagnostic
+	Id="CS8625"
+    Identifier="CannotConvertNullLiteralToNonNullableReferenceType"
+	Severity="Warning"
+	Title="Cannot convert null literal to non-nullable reference type."
+	Message="Cannot convert null literal to non-nullable reference type"
+    HelpUrl="" />
+  <Diagnostic 
+    Id="CS8632"
+    Identifier="AnnotationForNullableReferenceTypesShouldOnlyBeUsedWithinNullableAnnotationsContext"
+    Severity="Warning"
+    Title="The annotation for nullable reference types should only be used in code within a '#nullable' annotations context." 
+    Message="The annotation for nullable reference types should only be used in code within a '#nullable' annotations context" 
     HelpUrl="" />
 </Diagnostics>

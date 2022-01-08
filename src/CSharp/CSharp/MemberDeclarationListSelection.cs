@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using Microsoft.CodeAnalysis;
@@ -33,7 +33,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="compilationUnit"></param>
         /// <param name="span"></param>
-        /// <returns></returns>
         public static MemberDeclarationListSelection Create(CompilationUnitSyntax compilationUnit, TextSpan span)
         {
             if (compilationUnit == null)
@@ -47,7 +46,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="namespaceDeclaration"></param>
         /// <param name="span"></param>
-        /// <returns></returns>
         public static MemberDeclarationListSelection Create(NamespaceDeclarationSyntax namespaceDeclaration, TextSpan span)
         {
             if (namespaceDeclaration == null)
@@ -61,7 +59,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="typeDeclaration"></param>
         /// <param name="span"></param>
-        /// <returns></returns>
         public static MemberDeclarationListSelection Create(TypeDeclarationSyntax typeDeclaration, TextSpan span)
         {
             if (typeDeclaration == null)

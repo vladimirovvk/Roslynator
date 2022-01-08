@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -19,11 +19,11 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UsePatternMatchingInsteadOfIsAndCastCodeFixProvider))]
     [Shared]
-    public class UsePatternMatchingInsteadOfIsAndCastCodeFixProvider : BaseCodeFixProvider
+    public sealed class UsePatternMatchingInsteadOfIsAndCastCodeFixProvider : BaseCodeFixProvider
     {
         private const string Title = "Use pattern matching";
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.UsePatternMatchingInsteadOfIsAndCast); }
         }
@@ -33,7 +33,7 @@ namespace Roslynator.CSharp.CodeFixes
             return null;
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -46,7 +46,7 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 CodeAction codeAction = CodeAction.Create(
                     Title,
-                    cancellationToken => RefactorAsync(context.Document, logicalAndExpression, cancellationToken),
+                    ct => RefactorAsync(context.Document, logicalAndExpression, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -57,7 +57,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                 CodeAction codeAction = CodeAction.Create(
                     Title,
-                    cancellationToken => RefactorAsync(context.Document, ifStatement, cancellationToken),
+                    ct => RefactorAsync(context.Document, ifStatement, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -121,7 +121,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             IEnumerable<SyntaxNode> nodes = nodeToRewrite
                 .DescendantNodes()
-                .Where(f => f.IsKind(SyntaxKind.IdentifierName) && symbol.Equals(semanticModel.GetSymbol(f, cancellationToken)))
+                .Where(f => f.IsKind(SyntaxKind.IdentifierName) && SymbolEqualityComparer.Default.Equals(symbol, semanticModel.GetSymbol(f, cancellationToken)))
                 .Select(f =>
                 {
                     if (f.IsParentKind(SyntaxKind.SimpleMemberAccessExpression)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -14,34 +14,42 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UseNameOfOperatorAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UseNameOfOperatorAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.UseNameOfOperator,
-                    DiagnosticDescriptors.UseNameOfOperatorFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.UseNameOfOperator,
+                        DiagnosticRules.UseNameOfOperatorFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
             context.RegisterCompilationStartAction(startContext =>
             {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.UseNameOfOperator))
-                    return;
-
                 if (((CSharpCompilation)startContext.Compilation).LanguageVersion < LanguageVersion.CSharp6)
                     return;
 
-                startContext.RegisterSyntaxNodeAction(AnalyzeArgument, SyntaxKind.Argument);
+                startContext.RegisterSyntaxNodeAction(
+                    c =>
+                    {
+                        if (DiagnosticRules.UseNameOfOperator.IsEffective(c))
+                            AnalyzeArgument(c);
+                    },
+                    SyntaxKind.Argument);
             });
         }
 
@@ -54,7 +62,7 @@ namespace Roslynator.CSharp.Analysis
 
             var memberAccessExpression = (MemberAccessExpressionSyntax)expression;
 
-            if (!(context.SemanticModel.GetSymbol(memberAccessExpression, context.CancellationToken) is IFieldSymbol fieldSymbol))
+            if (context.SemanticModel.GetSymbol(memberAccessExpression, context.CancellationToken) is not IFieldSymbol fieldSymbol)
                 return;
 
             INamedTypeSymbol containingType = fieldSymbol.ContainingType;
@@ -65,10 +73,10 @@ namespace Roslynator.CSharp.Analysis
             if (containingType.HasAttribute(MetadataNames.System_FlagsAttribute))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseNameOfOperator, invocationInfo.InvocationExpression);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseNameOfOperator, invocationInfo.InvocationExpression);
         }
 
-        public static void AnalyzeArgument(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeArgument(SyntaxNodeAnalysisContext context)
         {
             var argument = (ArgumentSyntax)context.Node;
 
@@ -193,10 +201,11 @@ namespace Roslynator.CSharp.Analysis
             LiteralExpressionSyntax literalExpression,
             string identifier)
         {
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.UseNameOfOperator,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.UseNameOfOperator,
                 literalExpression.GetLocation(),
-                ImmutableDictionary.CreateRange(new KeyValuePair<string, string>[] { new KeyValuePair<string, string>("Identifier", identifier) }));
+                ImmutableDictionary.CreateRange(new[] { new KeyValuePair<string, string>("Identifier", identifier) }));
 
             string text = literalExpression.Token.Text;
 
@@ -205,19 +214,21 @@ namespace Roslynator.CSharp.Analysis
                 SyntaxTree syntaxTree = literalExpression.SyntaxTree;
                 TextSpan span = literalExpression.Span;
 
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.UseNameOfOperatorFadeOut,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.UseNameOfOperatorFadeOut,
                     Location.Create(syntaxTree, new TextSpan(span.Start, (text[0] == '@') ? 2 : 1)));
 
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.UseNameOfOperatorFadeOut,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.UseNameOfOperatorFadeOut,
                     Location.Create(syntaxTree, new TextSpan(span.End - 1, 1)));
             }
         }
 
         private readonly struct ParameterInfo
         {
-            public static ParameterInfo Empty { get; } = new ParameterInfo();
+            public static ParameterInfo Empty { get; } = new();
 
             private ParameterInfo(SyntaxNode node, ParameterSyntax parameter)
             {

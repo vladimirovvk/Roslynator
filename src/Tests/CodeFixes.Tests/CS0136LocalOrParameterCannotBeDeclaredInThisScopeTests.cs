@@ -1,25 +1,19 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
-
-#pragma warning disable CA1034
 
 namespace Roslynator.CSharp.CodeFixes.Tests
 {
-    public abstract class CS0136LocalOrParameterCannotBeDeclaredInThisScopeTests : AbstractCSharpCompilerDiagnosticFixVerifier
+    public class CS0136LocalOrParameterCannotBeDeclaredInThisScopeTests : AbstractCSharpCompilerDiagnosticFixVerifier<VariableDeclarationCodeFixProvider>
     {
-        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter;
+        public override string DiagnosticId { get; } = CompilerDiagnosticIdentifiers.CS0136_LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter;
 
-        public class LocalTests : CS0136LocalOrParameterCannotBeDeclaredInThisScopeTests
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS0136_LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter)]
+        public async Task Test_ReplaceVariableDeclarationWithAssignment()
         {
-            public override CodeFixProvider FixProvider { get; } = new VariableDeclarationCodeFixProvider();
-
-            [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter)]
-            public async Task Test_ReplaceVariableDeclarationWithAssignment()
-            {
-                await VerifyFixAsync(@"
+            await VerifyFixAsync(@"
 class C
 {
     void M()
@@ -48,13 +42,13 @@ class C
     }
 }
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId));
-            }
+        }
 
-            [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter)]
-            public async Task TestNoFix()
-            {
-                await VerifyNoFixAsync(
-    @"
+        [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.CS0136_LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter)]
+        public async Task TestNoFix()
+        {
+            await VerifyNoFixAsync(
+@"
 class C
 {
     void M()
@@ -68,42 +62,6 @@ class C
     }
 }
 ", equivalenceKey: EquivalenceKey.Create(DiagnosticId));
-            }
-        }
-
-        public class ParameterTests : CS0136LocalOrParameterCannotBeDeclaredInThisScopeTests
-        {
-            public override CodeFixProvider FixProvider { get; } = new ParameterCannotBeDeclaredInThisScopeCodeFixProvider();
-
-            [Fact, Trait(Traits.CodeFix, CompilerDiagnosticIdentifiers.LocalOrParameterCannotBeDeclaredInThisScopeBecauseThatNameIsUsedInEnclosingScopeToDefineLocalOrParameter)]
-            public async Task Test_RemoveParameter()
-            {
-                await VerifyFixAsync(@"
-class C
-{
-    void M()
-    {
-        string value = null;
-
-        void LF(string value)
-        {
-        }
-    }
-}
-", @"
-class C
-{
-    void M()
-    {
-        string value = null;
-
-        void LF()
-        {
-        }
-    }
-}
-", equivalenceKey: EquivalenceKey.Create(DiagnosticId));
-            }
         }
     }
 }

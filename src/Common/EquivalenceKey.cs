@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -10,6 +10,11 @@ namespace Roslynator
         private const string Prefix = "Roslynator" + Separator;
 
         private const string Separator = ".";
+
+        public static string Create(RefactoringDescriptor descriptor, string additionalKey1 = null, string additionalKey2 = null)
+        {
+            return Create(descriptor.Id, additionalKey1, additionalKey2);
+        }
 
         public static string Create(Diagnostic diagnostic, string additionalKey1 = null, string additionalKey2 = null)
         {

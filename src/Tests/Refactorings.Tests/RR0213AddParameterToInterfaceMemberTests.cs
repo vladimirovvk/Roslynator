@@ -1,23 +1,19 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
-using Roslynator.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
 {
     public class RR0213AddParameterToInterfaceMemberTests : AbstractCSharpRefactoringVerifier
     {
-        private readonly CodeVerificationOptions _options;
-
-        public RR0213AddParameterToInterfaceMemberTests()
-        {
-            _options = base.Options.AddAllowedCompilerDiagnosticIds(new string[] { "CS0535", "CS0539" });
-        }
-
-        public override CodeVerificationOptions Options => _options;
-
         public override string RefactoringId { get; } = RefactoringIdentifiers.AddParameterToInterfaceMember;
+
+        public override CSharpTestOptions Options
+        {
+            get { return base.Options.AddAllowedCompilerDiagnosticIds(new[] { "CS0535", "CS0539" }); }
+        }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.AddParameterToInterfaceMember)]
         public async Task Test_Method()
@@ -46,7 +42,7 @@ class C : IFoo
     {
     }
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, "M:IFoo.M(System.Object)"));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, "M:IFoo.M(System.Object)"));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.AddParameterToInterfaceMember)]
@@ -78,7 +74,7 @@ class C : IFoo
         p2 = null;
     }
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, "M:IFoo.M(System.Object)"));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, "M:IFoo.M(System.Object)"));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.AddParameterToInterfaceMember)]
@@ -110,7 +106,7 @@ class C : IFoo
         p2 = 0;
     }
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, "M:IFoo.M(System.Object)"));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, "M:IFoo.M(System.Object)"));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.AddParameterToInterfaceMember)]
@@ -140,7 +136,7 @@ class C : IFoo<string>
     {
     }
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, "M:IFoo`1.M(`0)"));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, "M:IFoo`1.M(`0)"));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.AddParameterToInterfaceMember)]
@@ -166,7 +162,7 @@ class C : IFoo
 {
     public object this[object p, object p2] => null;
 }
-", equivalenceKey: EquivalenceKey.Join(RefactoringId, "P:IFoo.Item(System.Object)"));
+", equivalenceKey: EquivalenceKey.Create(RefactoringId, "P:IFoo.Item(System.Object)"));
         }
     }
 }

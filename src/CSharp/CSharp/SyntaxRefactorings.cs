@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -49,6 +49,9 @@ namespace Roslynator.CSharp
                     return (T)(SyntaxNode)AddAttributeLists((ClassDeclarationSyntax)(SyntaxNode)node, keepDocumentationCommentOnTop, attributeLists, f => f.AttributeLists.Any(), (f, g) => f.WithAttributeLists(g), (f, g) => f.AddAttributeLists(g));
                 case SyntaxKind.TypeParameter:
                     return (T)(SyntaxNode)AddAttributeLists((TypeParameterSyntax)(SyntaxNode)node, keepDocumentationCommentOnTop, attributeLists, f => f.AttributeLists.Any(), (f, g) => f.WithAttributeLists(g), (f, g) => f.AddAttributeLists(g));
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return (T)(SyntaxNode)AddAttributeLists((RecordDeclarationSyntax)(SyntaxNode)node, keepDocumentationCommentOnTop, attributeLists, f => f.AttributeLists.Any(), (f, g) => f.WithAttributeLists(g), (f, g) => f.AddAttributeLists(g));
                 case SyntaxKind.StructDeclaration:
                     return (T)(SyntaxNode)AddAttributeLists((StructDeclarationSyntax)(SyntaxNode)node, keepDocumentationCommentOnTop, attributeLists, f => f.AttributeLists.Any(), (f, g) => f.WithAttributeLists(g), (f, g) => f.AddAttributeLists(g));
                 case SyntaxKind.PropertyDeclaration:
@@ -225,9 +228,126 @@ namespace Roslynator.CSharp
             if (node == null)
                 throw new ArgumentNullException(nameof(node));
 
-            var remover = new CommentRemover(node, comments, span);
+            List<SyntaxTrivia> commentsToRemove = null;
 
-            return (TNode)remover.Visit(node);
+            foreach (SyntaxTrivia trivia in node.DescendantTrivia(span, descendIntoTrivia: true))
+            {
+                if (span.Contains(trivia.Span))
+                {
+                    switch (trivia.Kind())
+                    {
+                        case SyntaxKind.SingleLineCommentTrivia:
+                            {
+                                if ((comments & CommentFilter.SingleLine) == 0)
+                                    break;
+
+                                AddTrivia(trivia);
+
+                                SyntaxTriviaList triviaList = trivia.GetContainingList();
+
+                                int index = triviaList.IndexOf(trivia);
+
+                                if (index > 0)
+                                {
+                                    SyntaxTrivia previousTrivia = triviaList[index - 1];
+
+                                    if (previousTrivia.IsKind(SyntaxKind.WhitespaceTrivia))
+                                        AddTrivia(previousTrivia);
+                                }
+
+                                if (index < triviaList.Count - 1)
+                                {
+                                    SyntaxTrivia nextTrivia = triviaList[index + 1];
+
+                                    if (nextTrivia.IsKind(SyntaxKind.EndOfLineTrivia))
+                                        AddTrivia(nextTrivia);
+                                }
+
+                                break;
+                            }
+                        case SyntaxKind.SingleLineDocumentationCommentTrivia:
+                            {
+                                if ((comments & CommentFilter.SingleLineDocumentation) == 0)
+                                    break;
+
+                                AddTrivia(trivia);
+
+                                SyntaxTriviaList triviaList = trivia.GetContainingList();
+
+                                int index = triviaList.IndexOf(trivia);
+
+                                if (index > 0)
+                                {
+                                    SyntaxTrivia previousTrivia = triviaList[index - 1];
+
+                                    if (previousTrivia.IsKind(SyntaxKind.WhitespaceTrivia))
+                                        AddTrivia(previousTrivia);
+                                }
+
+                                break;
+                            }
+                        case SyntaxKind.MultiLineCommentTrivia:
+                            {
+                                if ((comments & CommentFilter.MultiLine) != 0)
+                                    RemoveMultiline(trivia);
+
+                                break;
+                            }
+                        case SyntaxKind.MultiLineDocumentationCommentTrivia:
+                            {
+                                if ((comments & CommentFilter.MultiLineDocumentation) != 0)
+                                    RemoveMultiline(trivia);
+
+                                break;
+                            }
+                    }
+                }
+            }
+
+            return (commentsToRemove != null)
+                ? node.ReplaceTrivia(commentsToRemove, (_, __) => EmptyWhitespace())
+                : node;
+
+            void AddTrivia(SyntaxTrivia trivia)
+            {
+                (commentsToRemove ??= new List<SyntaxTrivia>()).Add(trivia);
+            }
+
+            void RemoveMultiline(SyntaxTrivia trivia)
+            {
+                AddTrivia(trivia);
+
+                SyntaxTriviaList triviaList = trivia.GetContainingList();
+
+                int index = triviaList.IndexOf(trivia);
+
+                if (index > 0)
+                {
+                    SyntaxTrivia previousTrivia = triviaList[index - 1];
+
+                    if (previousTrivia.IsKind(SyntaxKind.WhitespaceTrivia))
+                        AddTrivia(previousTrivia);
+                }
+
+                if (index < triviaList.Count - 1)
+                {
+                    SyntaxTrivia nextTrivia = triviaList[index + 1];
+
+                    if (nextTrivia.IsKind(SyntaxKind.WhitespaceTrivia))
+                    {
+                        index++;
+                        AddTrivia(nextTrivia);
+                    }
+                }
+
+                if (index < triviaList.Count - 1)
+                {
+                    SyntaxTrivia nextTrivia = triviaList[index + 1];
+
+                    if (nextTrivia.IsKind(SyntaxKind.EndOfLineTrivia))
+                        AddTrivia(nextTrivia);
+                }
+            }
         }
 
         public static TNode RemoveTrivia<TNode>(TNode node, TextSpan? span = null) where TNode : SyntaxNode
@@ -329,6 +449,23 @@ namespace Roslynator.CSharp
             structDeclaration = structDeclaration.WithMembers(structDeclaration.Members.ReplaceAt(index, newMember));
 
             return structDeclaration.RemoveNode(structDeclaration.Members[index], GetRemoveOptions(newMember));
+        }
+
+        public static RecordDeclarationSyntax RemoveMember(RecordDeclarationSyntax recordDeclaration, MemberDeclarationSyntax member)
+        {
+            if (recordDeclaration == null)
+                throw new ArgumentNullException(nameof(recordDeclaration));
+
+            if (member == null)
+                throw new ArgumentNullException(nameof(member));
+
+            int index = recordDeclaration.Members.IndexOf(member);
+
+            MemberDeclarationSyntax newMember = RemoveSingleLineDocumentationComment(member);
+
+            recordDeclaration = recordDeclaration.WithMembers(recordDeclaration.Members.ReplaceAt(index, newMember));
+
+            return recordDeclaration.RemoveNode(recordDeclaration.Members[index], GetRemoveOptions(newMember));
         }
 
         public static TypeDeclarationSyntax RemoveMember(TypeDeclarationSyntax typeDeclaration, MemberDeclarationSyntax member)
@@ -512,7 +649,7 @@ namespace Roslynator.CSharp
 
                     while (i >= 0)
                     {
-                        if (!(statements[i] is ExpressionStatementSyntax expressionStatement))
+                        if (statements[i] is not ExpressionStatementSyntax expressionStatement)
                             break;
 
                         ExpressionSyntax expression = expressionStatement.Expression;
@@ -566,6 +703,29 @@ namespace Roslynator.CSharp
                 incrementors: incrementors,
                 closeParenToken: Token(default, SyntaxKind.CloseParenToken, whileStatement.CloseParenToken.TrailingTrivia),
                 statement: statement);
+        }
+
+        public static BinaryExpressionSyntax SwapBinaryOperands(BinaryExpressionSyntax binaryExpression)
+        {
+            ExpressionSyntax left = binaryExpression.Left;
+            ExpressionSyntax right = binaryExpression.Right;
+            SyntaxToken token = binaryExpression.OperatorToken;
+
+            SyntaxKind tokenKind = token.Kind();
+
+            SyntaxKind newTokenKind = tokenKind switch
+            {
+                SyntaxKind.LessThanToken => SyntaxKind.GreaterThanToken,
+                SyntaxKind.LessThanEqualsToken => SyntaxKind.GreaterThanEqualsToken,
+                SyntaxKind.GreaterThanToken => SyntaxKind.LessThanToken,
+                SyntaxKind.GreaterThanEqualsToken => SyntaxKind.LessThanEqualsToken,
+                _ => tokenKind,
+            };
+
+            return binaryExpression.Update(
+                left: right.WithTriviaFrom(left),
+                operatorToken: Token(token.LeadingTrivia, newTokenKind, token.TrailingTrivia),
+                right: left.WithTriviaFrom(right));
         }
     }
 }

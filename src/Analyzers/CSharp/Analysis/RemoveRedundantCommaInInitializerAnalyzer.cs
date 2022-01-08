@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,29 +11,33 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantCommaInInitializerAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantCommaInInitializerAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveRedundantCommaInInitializer); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveRedundantCommaInInitializer);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
             context.RegisterSyntaxNodeAction(
-                AnalyzeInitializerExpression,
+                f => AnalyzeInitializerExpression(f),
                 SyntaxKind.ArrayInitializerExpression,
                 SyntaxKind.ObjectInitializerExpression,
                 SyntaxKind.CollectionInitializerExpression);
         }
 
-        public static void AnalyzeInitializerExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeInitializerExpression(SyntaxNodeAnalysisContext context)
         {
             var initializer = (InitializerExpressionSyntax)context.Node;
 
@@ -51,7 +55,7 @@ namespace Roslynator.CSharp.Analysis
 
             Debug.Assert(!token.IsMissing);
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantCommaInInitializer, token);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantCommaInInitializer, token);
         }
     }
 }

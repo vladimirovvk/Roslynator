@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CSharp;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using static Roslynator.CodeGeneration.CSharp.CSharpFactory2;
-using static Roslynator.MetadataNames.CodeAnalysis;
+using static Roslynator.RoslynMetadataNames;
 using static Roslynator.CodeGeneration.CSharp.Symbols;
 using static Roslynator.CSharp.CSharpFactory;
 
@@ -16,7 +16,7 @@ namespace Roslynator.CodeGeneration.CSharp
 {
     public partial class CSharpSyntaxWalkerGenerator
     {
-        private static readonly SymbolDisplayFormat _parameterSymbolDisplayFormat = SymbolDisplayFormats.Default.WithParameterOptions(
+        private static readonly SymbolDisplayFormat _parameterSymbolDisplayFormat = SymbolDisplayFormats.DisplayName_WithoutNullableReferenceTypeModifier.WithParameterOptions(
             SymbolDisplayParameterOptions.IncludeDefaultValue
                 | SymbolDisplayParameterOptions.IncludeExtensionThis
                 | SymbolDisplayParameterOptions.IncludeName
@@ -72,6 +72,7 @@ namespace Roslynator.CodeGeneration.CSharp
 
             if (EliminateDefaultVisit)
             {
+                AddIfNotNull(CreateVisitAbstractSyntaxMethodDeclaration(Microsoft_CodeAnalysis_CSharp_Syntax_BaseExpressionColonSyntax));
                 AddIfNotNull(CreateVisitAbstractSyntaxMethodDeclaration(Microsoft_CodeAnalysis_CSharp_Syntax_BaseTypeSyntax));
                 AddIfNotNull(CreateVisitAbstractSyntaxMethodDeclaration(Microsoft_CodeAnalysis_CSharp_Syntax_CrefSyntax));
                 AddIfNotNull(CreateVisitAbstractSyntaxMethodDeclaration(Microsoft_CodeAnalysis_CSharp_Syntax_ExpressionSyntax));
@@ -133,7 +134,7 @@ namespace Roslynator.CodeGeneration.CSharp
             ITypeSymbol propertyType = context.PropertyType;
             string propertyName = context.PropertyName;
 
-            if (propertyType.OriginalDefinition.Equals(SyntaxListSymbol))
+            if (SymbolEqualityComparer.Default.Equals(propertyType.OriginalDefinition, SyntaxListSymbol))
             {
                 if (UseCustomVisitMethod)
                 {
@@ -144,7 +145,7 @@ namespace Roslynator.CodeGeneration.CSharp
                     context.AddStatement(VisitStatement("VisitList", parameterName, propertyName));
                 }
             }
-            else if (propertyType.OriginalDefinition.Equals(SeparatedSyntaxListSymbol))
+            else if (SymbolEqualityComparer.Default.Equals(propertyType.OriginalDefinition, SeparatedSyntaxListSymbol))
             {
                 if (UseCustomVisitMethod)
                 {
@@ -155,14 +156,14 @@ namespace Roslynator.CodeGeneration.CSharp
                     context.AddStatement(VisitStatement("VisitSeparatedList", parameterName, propertyName));
                 }
             }
-            else if (propertyType.Equals(SyntaxTokenListSymbol))
+            else if (SymbolEqualityComparer.Default.Equals(propertyType, SyntaxTokenListSymbol))
             {
                 if (Depth >= SyntaxWalkerDepth.Token)
                 {
                     context.AddStatement(VisitStatement("VisitTokenList", parameterName, propertyName));
                 }
             }
-            else if (propertyType.Equals(SyntaxTokenSymbol))
+            else if (SymbolEqualityComparer.Default.Equals(propertyType, SyntaxTokenSymbol))
             {
                 if (Depth >= SyntaxWalkerDepth.Token)
                 {
@@ -222,6 +223,16 @@ namespace Roslynator.CodeGeneration.CSharp
                     case "XmlElementStartTagSyntax":
                     case "XmlNameSyntax":
                     case "XmlPrefixSyntax":
+                    case "PositionalPatternClauseSyntax":
+                    case "PropertyPatternClauseSyntax":
+                    case "SubpatternSyntax":
+                    case "FunctionPointerParameterListSyntax":
+                    case "FunctionPointerCallingConventionSyntax":
+                    case "FunctionPointerCallingConventionListSyntax":
+                    case "FunctionPointerUnmanagedCallingConventionSyntax":
+                    case "FunctionPointerUnmanagedCallingConventionListSyntax":
+                    case "LineDirectivePositionSyntax":
+                    case "BaseExpressionColonSyntax":
                         {
                             if (UseCustomVisitMethod)
                             {
@@ -407,11 +418,12 @@ namespace Roslynator.CodeGeneration.CSharp
                     SimpleMemberAccessExpression(
                         IdentifierName(variableName),
                         IdentifierName(listPropertySymbol.Name)),
-                    VisitStatement(methodName, forEachVariableName), checkShouldVisit: true);
+                    VisitStatement(methodName, forEachVariableName),
+                    checkShouldVisit: true);
             }
             else
             {
-                methodName = (listPropertySymbol.Type.OriginalDefinition.Equals(SyntaxListSymbol)) ? "VisitList" : "VisitSeparatedList";
+                methodName = (SymbolEqualityComparer.Default.Equals(listPropertySymbol.Type.OriginalDefinition, SyntaxListSymbol)) ? "VisitList" : "VisitSeparatedList";
 
                 statement = VisitStatement(methodName, variableName, listPropertySymbol.Name);
             }
@@ -444,6 +456,7 @@ namespace Roslynator.CodeGeneration.CSharp
                     case "VariableDesignationSyntax":
                     case "XmlAttributeSyntax":
                     case "XmlNodeSyntax":
+                    case "BaseExpressionColonSyntax":
                         {
                             if (typeSymbol
                                 .ContainingNamespace
@@ -534,8 +547,12 @@ namespace Roslynator.CodeGeneration.CSharp
                 TypeParameterList(TypeParameter("TNode")),
                 ParameterList(Parameter(GenericName("SeparatedSyntaxList", IdentifierName("TNode")), "list")),
                 SingletonList(TypeParameterConstraintClause("TNode", TypeConstraint(IdentifierName("SyntaxNode")))),
-                Block(ForEachVisitStatement("TNode", "node", IdentifierName("list"),
-                    VisitStatement("Visit", "node"), checkShouldVisit: true)),
+                Block(ForEachVisitStatement(
+                    "TNode",
+                    "node",
+                    IdentifierName("list"),
+                    VisitStatement("Visit", "node"),
+                    checkShouldVisit: true)),
                 default(ArrowExpressionClauseSyntax));
         }
 
@@ -554,7 +571,8 @@ namespace Roslynator.CodeGeneration.CSharp
                                 "SyntaxToken",
                                 "token",
                                 IdentifierName("list"),
-                                VisitStatement("VisitToken", "token"), checkShouldVisit: true)))));
+                                VisitStatement("VisitToken", "token"),
+                                checkShouldVisit: true)))));
         }
 
         internal virtual MethodDeclarationSyntax CreateVisitAbstractSyntaxMethodDeclaration(MetadataName metadataName)
@@ -584,32 +602,32 @@ namespace Roslynator.CodeGeneration.CSharp
                     yield return SwitchSection(
                         labels,
                         List(new StatementSyntax[]
-                        {
-                            ExpressionStatement(
-                                InvocationExpression(
-                                    IdentifierName("Visit" + name2.Remove(name2.Length - 6)),
-                                    ArgumentList(Argument(CastExpression(IdentifierName(name2), IdentifierName("node")))))),
-                            BreakStatement()
-                        }));
+                            {
+                                ExpressionStatement(
+                                    InvocationExpression(
+                                        IdentifierName("Visit" + name2.Remove(name2.Length - 6)),
+                                        ArgumentList(Argument(CastExpression(IdentifierName(name2), IdentifierName("node")))))),
+                                BreakStatement()
+                            }));
                 }
 
                 yield return DefaultSwitchSection(
                     List(new StatementSyntax[]
-                    {
-                        ExpressionStatement(
-                            SimpleMemberInvocationExpression(
-                                IdentifierName("Debug"),
-                                IdentifierName("Fail"),
-                                ArgumentList(
-                                    Argument(
-                                        ParseExpression(@"$""Unrecognized kind '{node.Kind()}'."""))))),
-                        ExpressionStatement(
-                            SimpleMemberInvocationExpression(
-                                BaseExpression(),
-                                IdentifierName("Visit"),
-                                ArgumentList(Argument(IdentifierName("node"))))),
-                        BreakStatement()
-                    }));
+                        {
+                            ExpressionStatement(
+                                SimpleMemberInvocationExpression(
+                                    IdentifierName("Debug"),
+                                    IdentifierName("Fail"),
+                                    ArgumentList(
+                                        Argument(
+                                            ParseExpression(@"$""Unrecognized kind '{node.Kind()}'."""))))),
+                            ExpressionStatement(
+                                SimpleMemberInvocationExpression(
+                                    BaseExpression(),
+                                    IdentifierName("Visit"),
+                                    ArgumentList(Argument(IdentifierName("node"))))),
+                            BreakStatement()
+                        }));
             }
         }
     }

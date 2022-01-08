@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -14,26 +14,30 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UnconstrainedTypeParameterCheckedForNullAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UnconstrainedTypeParameterCheckedForNullAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UnconstrainedTypeParameterCheckedForNull); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UnconstrainedTypeParameterCheckedForNull);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeEqualsExpression, SyntaxKind.EqualsExpression);
-            context.RegisterSyntaxNodeAction(AnalyzeNotEqualsExpression, SyntaxKind.NotEqualsExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeEqualsExpression(f), SyntaxKind.EqualsExpression);
+            context.RegisterSyntaxNodeAction(f => AnalyzeNotEqualsExpression(f), SyntaxKind.NotEqualsExpression);
         }
 
-        public static void AnalyzeEqualsExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeEqualsExpression(SyntaxNodeAnalysisContext context)
         {
             if (context.Node.ContainsDiagnostics)
                 return;
@@ -41,7 +45,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, (BinaryExpressionSyntax)context.Node, NullCheckStyles.EqualsToNull);
         }
 
-        public static void AnalyzeNotEqualsExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeNotEqualsExpression(SyntaxNodeAnalysisContext context)
         {
             if (context.Node.ContainsDiagnostics)
                 return;
@@ -57,7 +61,7 @@ namespace Roslynator.CSharp.Analysis
                 && IsUnconstrainedTypeParameter(context.SemanticModel.GetTypeSymbol(nullCheck.Expression, context.CancellationToken))
                 && !binaryExpression.SpanContainsDirectives())
             {
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UnconstrainedTypeParameterCheckedForNull, binaryExpression);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UnconstrainedTypeParameterCheckedForNull, binaryExpression);
             }
         }
 

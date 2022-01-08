@@ -1,35 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
-using Roslynator.Tests;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1223MarkTypeWithDebuggerDisplayAttributeTests : AbstractCSharpFixVerifier
+    public class RCS1223MarkTypeWithDebuggerDisplayAttributeTests : AbstractCSharpDiagnosticVerifier<MarkTypeWithDebuggerDisplayAttributeAnalyzer, MarkTypeWithDebuggerDisplayAttributeCodeFixProvider>
     {
-        private readonly CodeVerificationOptions _options;
-
-        public RCS1223MarkTypeWithDebuggerDisplayAttributeTests()
-        {
-            //TODO: Remove after upgrade to C# 7.2
-            _options = base.Options.AddAllowedCompilerDiagnosticId(CompilerDiagnosticIdentifiers.MoreThanOneProtectionModifier);
-        }
-
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.MarkTypeWithDebuggerDisplayAttribute;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new MarkTypeWithDebuggerDisplayAttributeAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new MarkTypeWithDebuggerDisplayAttributeCodeFixProvider();
-
-        public override CodeVerificationOptions Options
-        {
-            get { return _options; }
-        }
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.MarkTypeWithDebuggerDisplayAttribute;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MarkTypeWithDebuggerDisplayAttribute)]
         public async Task Test_PublicClass()
@@ -276,10 +257,8 @@ internal class IC
 ");
         }
 
-        //TODO: Test after upgrade to C# 7.2
-#pragma warning disable xUnit1013
-        public async Task TestNoDiagnostic_NonPubliclyVisibleType_PrivateProtecteed()
-#pragma warning restore xUnit1013
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MarkTypeWithDebuggerDisplayAttribute)]
+        public async Task TestNoDiagnostic_NonPubliclyVisibleType_PrivateProtected()
         {
             await VerifyNoDiagnosticAsync(@"
 using System.Diagnostics;
@@ -293,6 +272,18 @@ public class C
         protected internal class PIC { }
         protected class DC { }
     }
+}
+");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.MarkTypeWithDebuggerDisplayAttribute)]
+        public async Task TestNoDiagnostic_AbstractClass()
+        {
+            await VerifyNoDiagnosticAsync(@"
+using System.Diagnostics;
+
+public abstract class C
+{
 }
 ");
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -23,7 +23,7 @@ namespace Roslynator.CSharp.Refactorings
 
             int firstIndex = selectedLabels.FirstIndex;
 
-            if (!(labels[firstIndex] is CaseSwitchLabelSyntax label))
+            if (labels[firstIndex] is not CaseSwitchLabelSyntax label)
                 return;
 
             ExpressionSyntax value = label.Value;
@@ -36,7 +36,7 @@ namespace Roslynator.CSharp.Refactorings
 
                 for (int i = firstIndex + 1; i <= selectedLabels.LastIndex; i++)
                 {
-                    if (!(labels[i] is CaseSwitchLabelSyntax label2))
+                    if (labels[i] is not CaseSwitchLabelSyntax label2)
                         return;
 
                     if (!label2.Value.IsKind(SyntaxKind.StringLiteralExpression))
@@ -49,7 +49,7 @@ namespace Roslynator.CSharp.Refactorings
                         context.RegisterRefactoring(
                             Title,
                             ct => RefactorAsync(context.Document, selectedLabels, StringLiteralExpressionLabelComparer.Instance, ct),
-                            RefactoringIdentifiers.SortCaseLabels);
+                            RefactoringDescriptors.SortCaseLabels);
 
                         return;
                     }
@@ -73,7 +73,7 @@ namespace Roslynator.CSharp.Refactorings
 
                 for (int i = firstIndex + 1; i <= selectedLabels.LastIndex; i++)
                 {
-                    if (!(labels[i] is CaseSwitchLabelSyntax label2))
+                    if (labels[i] is not CaseSwitchLabelSyntax label2)
                         return;
 
                     if (!label2.Value.IsKind(SyntaxKind.SimpleMemberAccessExpression))
@@ -91,7 +91,7 @@ namespace Roslynator.CSharp.Refactorings
                         context.RegisterRefactoring(
                             Title,
                             ct => RefactorAsync(context.Document, selectedLabels, SimpleMemberAccessExpressionLabelComparer.Instance, ct),
-                            RefactoringIdentifiers.SortCaseLabels);
+                            RefactoringDescriptors.SortCaseLabels);
 
                         return;
                     }
@@ -105,7 +105,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             SyntaxListSelection<SwitchLabelSyntax> selectedLabels,
             IComparer<SwitchLabelSyntax> comparer,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxList<SwitchLabelSyntax> labels = selectedLabels.UnderlyingList;
 
@@ -114,7 +114,7 @@ namespace Roslynator.CSharp.Refactorings
                 selectedLabels.Count,
                 selectedLabels.OrderBy(f => f, comparer));
 
-            var section = (SwitchSectionSyntax)labels.First().Parent;
+            var section = (SwitchSectionSyntax)labels[0].Parent;
 
             SwitchSectionSyntax newSection = section.WithLabels(newLabels);
 
@@ -123,7 +123,7 @@ namespace Roslynator.CSharp.Refactorings
 
         private sealed class StringLiteralExpressionLabelComparer : IComparer<SwitchLabelSyntax>
         {
-            public static StringLiteralExpressionLabelComparer Instance { get; } = new StringLiteralExpressionLabelComparer();
+            public static StringLiteralExpressionLabelComparer Instance { get; } = new();
 
             public int Compare(SwitchLabelSyntax x, SwitchLabelSyntax y)
             {
@@ -148,7 +148,7 @@ namespace Roslynator.CSharp.Refactorings
 
         private sealed class SimpleMemberAccessExpressionLabelComparer : IComparer<SwitchLabelSyntax>
         {
-            public static SimpleMemberAccessExpressionLabelComparer Instance { get; } = new SimpleMemberAccessExpressionLabelComparer();
+            public static SimpleMemberAccessExpressionLabelComparer Instance { get; } = new();
 
             public int Compare(SwitchLabelSyntax x, SwitchLabelSyntax y)
             {

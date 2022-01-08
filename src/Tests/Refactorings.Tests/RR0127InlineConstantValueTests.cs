@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Refactorings.Tests
@@ -32,7 +33,7 @@ class C
         s = null;
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -58,7 +59,7 @@ class C
         s = @""x"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -88,7 +89,7 @@ class C
         s = @""x"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -114,7 +115,7 @@ class C
         s = @""x"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -146,7 +147,7 @@ namespace A.B
         }
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -172,7 +173,7 @@ class C
         bool b = true;
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -198,7 +199,7 @@ class C
         char c = '\n';
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -224,7 +225,7 @@ class C
         int i = 2147483647;
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -250,7 +251,7 @@ class C
         long l = 1;
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -278,7 +279,7 @@ class C
         string s = ""aa"";
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -310,7 +311,7 @@ namespace A.B
         }
     }
 }
-", additionalSources: new string[] { @"
+", additionalFiles: new[] { @"
 namespace A.B
 {
     class C2
@@ -326,7 +327,7 @@ namespace A.B
         public const string K3 = @""x"";
     }
 }
-", }, equivalenceKey: RefactoringId);
+", }, equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
 
         [Fact, Trait(Traits.Refactoring, RefactoringIdentifiers.InlineConstantValue)]
@@ -348,7 +349,7 @@ class C
         var options = [|StringSplitOptions.None|];
     }
 }
-", equivalenceKey: RefactoringId);
+", equivalenceKey: EquivalenceKey.Create(RefactoringId));
         }
     }
 }

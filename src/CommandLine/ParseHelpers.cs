@@ -1,8 +1,9 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
@@ -12,7 +13,52 @@ namespace Roslynator.CommandLine
 {
     internal static class ParseHelpers
     {
-        private static readonly Regex _lowerLetterUpperLetterRegex = new Regex(@"\p{Ll}\p{Lu}");
+        private static readonly Regex _lowerLetterUpperLetterRegex = new(@"\p{Ll}\p{Lu}");
+
+        public static bool TryParseCodeExpression<T>(
+            string expression,
+            string filePath,
+            string optionName1,
+            string optionName2,
+            string returnTypeName,
+            Type returnType,
+            string parameterTypeName,
+            Type parameterType,
+            string parameterName,
+            out Func<ISymbol, T> func)
+        {
+            func = null;
+
+            if (string.IsNullOrEmpty(expression))
+            {
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    WriteLine($"It is required to specify either '{optionName1}' or '{optionName2}'.", Verbosity.Quiet);
+                    return false;
+                }
+
+                if (!TryReadAllText(filePath, out filePath, ex => WriteError(ex)))
+                    return false;
+
+                return DelegateFactory.TryCreateFromSourceText(filePath, returnType, parameterType, out func);
+            }
+            else if (!string.IsNullOrEmpty(filePath))
+            {
+                WriteLine($"It is not allowed to specify both '{optionName1}' and '{optionName2}'.", Verbosity.Quiet);
+                return false;
+            }
+
+            return DelegateFactory.TryCreateFromExpression(
+                expression,
+                "C",
+                "M",
+                returnTypeName,
+                returnType,
+                parameterTypeName,
+                parameterType,
+                parameterName,
+                out func);
+        }
 
         public static bool TryParseMSBuildProperties(IEnumerable<string> values, out Dictionary<string, string> properties)
         {
@@ -41,7 +87,7 @@ namespace Roslynator.CommandLine
                 int maxLength = properties.Max(f => f.Key.Length);
 
                 foreach (KeyValuePair<string, string> kvp in properties)
-                    WriteLine($"Add MSBuild property {kvp.Key.PadRight(maxLength)} = {kvp.Value}", ConsoleColor.DarkGray, Verbosity.Detailed);
+                    WriteLine($"Add MSBuild property {kvp.Key.PadRight(maxLength)} = {kvp.Value}", ConsoleColors.DarkGray, Verbosity.Detailed);
             }
 
             return true;
@@ -64,7 +110,7 @@ namespace Roslynator.CommandLine
                 string key = property.Substring(0, index);
                 string value = property.Substring(index + 1);
 
-                (properties ?? (properties = new List<KeyValuePair<string, string>>())).Add(new KeyValuePair<string, string>(key, value));
+                (properties ??= new List<KeyValuePair<string, string>>()).Add(new KeyValuePair<string, string>(key, value));
             }
 
             return true;
@@ -121,7 +167,10 @@ namespace Roslynator.CommandLine
             foreach (string value in values)
             {
                 if (!TryParseOptionValueAsEnum(value, optionName, out TEnum result2))
+                {
+                    result = default;
                     return false;
+                }
 
                 builder.Add(result2);
             }
@@ -224,15 +273,84 @@ namespace Roslynator.CommandLine
                 if (!MetadataName.TryParse(value, out MetadataName metadataName))
                 {
                     WriteLine($"Unable to parse metadata name '{value}'.", Verbosity.Quiet);
+                    metadataNames = default;
                     return false;
                 }
 
-                (builder ?? (builder = ImmutableArray.CreateBuilder<MetadataName>())).Add(metadataName);
+                (builder ??= ImmutableArray.CreateBuilder<MetadataName>()).Add(metadataName);
             }
 
             metadataNames = builder?.ToImmutableArray() ?? ImmutableArray<MetadataName>.Empty;
 
             return true;
+        }
+
+        public static bool TryParseVersion(string value, out Version version)
+        {
+            if (!Version.TryParse(value, out version))
+            {
+                WriteLine($"Could not parse '{value}' as version.", Verbosity.Quiet);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool TryEnsureFullPath(IEnumerable<string> paths, out ImmutableArray<string> fullPaths)
+        {
+            ImmutableArray<string>.Builder builder = ImmutableArray.CreateBuilder<string>();
+
+            foreach (string path in paths)
+            {
+                if (!TryEnsureFullPath(path, out string fullPath))
+                {
+                    fullPaths = default;
+                    return false;
+                }
+
+                builder.Add(fullPath);
+            }
+
+            fullPaths = builder.ToImmutableArray();
+            return true;
+        }
+
+        public static bool TryEnsureFullPath(string path, out string result)
+        {
+            try
+            {
+                if (!Path.IsPathRooted(path))
+                    path = Path.GetFullPath(path);
+
+                result = path;
+                return true;
+            }
+            catch (ArgumentException ex)
+            {
+                WriteLine($"Path '{path}' is invalid: {ex.Message}.", Verbosity.Quiet);
+                result = null;
+                return false;
+            }
+        }
+
+        public static bool TryReadAllText(
+            string path,
+            out string content,
+            Action<Exception> exceptionHandler = null)
+        {
+            try
+            {
+                content = File.ReadAllText(path);
+                return true;
+            }
+            catch (Exception ex) when (ex is ArgumentException
+                || ex is IOException
+                || ex is UnauthorizedAccessException)
+            {
+                exceptionHandler?.Invoke(ex);
+                content = null;
+                return false;
+            }
         }
     }
 }

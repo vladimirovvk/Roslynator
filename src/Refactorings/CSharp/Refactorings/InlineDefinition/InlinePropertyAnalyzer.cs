@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Linq;
@@ -13,7 +13,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
 {
     internal class InlinePropertyAnalyzer : InlineAnalyzer<IdentifierNameSyntax, PropertyDeclarationSyntax, IPropertySymbol>
     {
-        public static InlinePropertyAnalyzer Instance { get; } = new InlinePropertyAnalyzer();
+        public static InlinePropertyAnalyzer Instance { get; } = new();
 
         protected override bool ValidateNode(IdentifierNameSyntax node, TextSpan span)
         {
@@ -43,7 +43,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            if (!(semanticModel.GetSymbol(node, cancellationToken) is IPropertySymbol propertySymbol))
+            if (semanticModel.GetSymbol(node, cancellationToken) is not IPropertySymbol propertySymbol)
                 return null;
 
             if (propertySymbol.Language != LanguageNames.CSharp)
@@ -54,7 +54,7 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
 
             INamedTypeSymbol enclosingType = semanticModel.GetEnclosingNamedType(node.SpanStart, cancellationToken);
 
-            if (propertySymbol.ContainingType?.Equals(enclosingType) != true)
+            if (!SymbolEqualityComparer.Default.Equals(propertySymbol.ContainingType, enclosingType))
                 return null;
 
             if (!node.IsParentKind(SyntaxKind.MemberBindingExpression))
@@ -79,12 +79,13 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
 
             if (syntaxReference != null)
             {
-                return (PropertyDeclarationSyntax)await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false);
+                SyntaxNode node = await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false);
+
+                if (node is PropertyDeclarationSyntax propertyDeclaration)
+                    return propertyDeclaration;
             }
-            else
-            {
-                return null;
-            }
+
+            return null;
         }
 
         protected override ImmutableArray<ParameterInfo> GetParameterInfos(IdentifierNameSyntax node, IPropertySymbol symbol)
@@ -134,9 +135,9 @@ namespace Roslynator.CSharp.Refactorings.InlineDefinition
             return new InlinePropertyRefactoring(document, node, nodeEnclosingType, symbol, declaration, parameterInfos, nodeSemanticModel, declarationSemanticModel, cancellationToken);
         }
 
-        protected override string GetEquivalenceKey()
+        protected override RefactoringDescriptor GetDescriptor()
         {
-            return RefactoringIdentifiers.InlineProperty;
+            return RefactoringDescriptors.InlineProperty;
         }
     }
 }

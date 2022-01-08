@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -17,14 +17,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SimplifyNestedUsingStatementCodeFixProvider))]
     [Shared]
-    public class SimplifyNestedUsingStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class SimplifyNestedUsingStatementCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.SimplifyNestedUsingStatement); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -33,7 +33,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Remove braces",
-                cancellationToken => SimplifyNestedUsingStatementRefactoring.RefactorAsync(context.Document, usingStatement, cancellationToken),
+                ct => SimplifyNestedUsingStatementRefactoring.RefactorAsync(context.Document, usingStatement, ct),
                 GetEquivalenceKey(DiagnosticIdentifiers.SimplifyNestedUsingStatement));
 
             context.RegisterCodeFix(codeAction, context.Diagnostics);

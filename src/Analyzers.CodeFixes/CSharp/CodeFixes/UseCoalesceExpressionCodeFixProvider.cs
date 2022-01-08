@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -22,16 +22,16 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UseCoalesceExpressionCodeFixProvider))]
     [Shared]
-    public class UseCoalesceExpressionCodeFixProvider : BaseCodeFixProvider
+    public sealed class UseCoalesceExpressionCodeFixProvider : BaseCodeFixProvider
     {
         private const string Title = "Use coalesce expression";
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.UseCoalesceExpression); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -73,12 +73,10 @@ namespace Roslynator.CSharp.CodeFixes
 
             int index = statements.IndexOf(statement);
 
-            switch (statement.Kind())
+            switch (statement)
             {
-                case SyntaxKind.IfStatement:
+                case IfStatementSyntax ifStatement:
                     {
-                        var ifStatement = (IfStatementSyntax)statement;
-
                         var expressionStatement = (ExpressionStatementSyntax)ifStatement.SingleNonBlockStatementOrDefault();
 
                         var assignment = (AssignmentExpressionSyntax)expressionStatement.Expression;
@@ -110,22 +108,17 @@ namespace Roslynator.CSharp.CodeFixes
 
                         return await document.ReplaceNodeAsync(ifStatement, newNode, cancellationToken).ConfigureAwait(false);
                     }
-                case SyntaxKind.ExpressionStatement:
+                case ExpressionStatementSyntax expressionStatement:
                     {
-                        var expressionStatement = (ExpressionStatementSyntax)statement;
-
                         var assignment = (AssignmentExpressionSyntax)expressionStatement.Expression;
 
                         return await RefactorAsync(document, expressionStatement, (IfStatementSyntax)statements[index + 1], index, statementsInfo, assignment.Right, semanticModel, cancellationToken).ConfigureAwait(false);
                     }
-                case SyntaxKind.LocalDeclarationStatement:
+                case LocalDeclarationStatementSyntax localDeclaration:
                     {
-                        var localDeclaration = (LocalDeclarationStatementSyntax)statement;
-
                         ExpressionSyntax value = localDeclaration
                             .Declaration
-                            .Variables
-                            .First()
+                            .Variables[0]
                             .Initializer
                             .Value;
 
@@ -133,7 +126,7 @@ namespace Roslynator.CSharp.CodeFixes
                     }
                 default:
                     {
-                        Debug.Fail(statement.Kind().ToString());
+                        SyntaxDebug.Fail(statement);
 
                         return document;
                     }
@@ -189,7 +182,8 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 right = CastExpression(
                     targetType.ToTypeSyntax().WithSimplifierAnnotation(),
-                    right.Parenthesize()).WithSimplifierAnnotation();
+                    right.Parenthesize())
+                    .WithSimplifierAnnotation();
             }
 
             return CoalesceExpression(

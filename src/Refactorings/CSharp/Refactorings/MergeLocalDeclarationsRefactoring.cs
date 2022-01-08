@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -22,8 +22,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 "Merge local declarations",
-                cancellationToken => RefactorAsync(context.Document, selectedStatements, cancellationToken),
-                RefactoringIdentifiers.MergeLocalDeclarations);
+                ct => RefactorAsync(context.Document, selectedStatements, ct),
+                RefactoringDescriptors.MergeLocalDeclarations);
         }
 
         private static bool AreLocalDeclarations(
@@ -37,7 +37,7 @@ namespace Roslynator.CSharp.Refactorings
             {
                 StatementSyntax statement = statements[i];
 
-                if (!(statement is LocalDeclarationStatementSyntax localDeclaration))
+                if (statement is not LocalDeclarationStatementSyntax localDeclaration)
                     return false;
 
                 TypeSyntax type = localDeclaration.Declaration?.Type;
@@ -53,7 +53,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (typeSymbol.IsErrorType())
                     return false;
 
-                if (prevTypeSymbol != null && prevTypeSymbol != typeSymbol)
+                if (prevTypeSymbol != null && !SymbolEqualityComparer.Default.Equals(prevTypeSymbol, typeSymbol))
                     return false;
 
                 prevTypeSymbol = typeSymbol;
@@ -65,7 +65,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> RefactorAsync(
             Document document,
             StatementListSelection selectedStatements,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             LocalDeclarationStatementSyntax[] localDeclarations = selectedStatements
                 .Cast<LocalDeclarationStatementSyntax>()

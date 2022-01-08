@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -75,7 +75,6 @@ namespace Roslynator.CSharp
         /// <summary>
         /// Returns a chain which contains all expressions of <see cref="ExpressionChain"/> in reversed order.
         /// </summary>
-        /// <returns></returns>
         public Reversed Reverse()
         {
             return new Reversed(this);
@@ -91,7 +90,6 @@ namespace Roslynator.CSharp
         /// <summary>
         /// Gets the enumerator for the expressions.
         /// </summary>
-        /// <returns></returns>
         public Enumerator GetEnumerator()
         {
             return new Enumerator(this);
@@ -116,7 +114,6 @@ namespace Roslynator.CSharp
         /// <summary>
         /// Returns the string representation of the expressions, not including its leading and trailing trivia.
         /// </summary>
-        /// <returns></returns>
         public override string ToString()
         {
             return BinaryExpression?.ToString(ExpressionsSpan) ?? "";
@@ -161,13 +158,10 @@ namespace Roslynator.CSharp
             return !(info1 == info2);
         }
 
-        [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
-        [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "<Pending>")]
-        [SuppressMessage("Usage", "CA2231:Overload operator equals on overriding value type Equals", Justification = "<Pending>")]
-        [SuppressMessage("Usage", "RCS1223:Use DebuggerDisplay attribute for publicly visible type.", Justification = "<Pending>")]
+        [SuppressMessage("Usage", "RCS1223:Use DebuggerDisplay attribute for publicly visible type.")]
         public struct Enumerator
         {
-            private ExpressionChain _chain;
+            private readonly ExpressionChain _chain;
             private ExpressionSyntax _last;
             private ExpressionSyntax _current;
             private State _state;

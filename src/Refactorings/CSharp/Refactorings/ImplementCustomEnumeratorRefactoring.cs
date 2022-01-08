@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -43,7 +43,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 "Implement custom enumerator",
                 ct => RefactorAsync(context.Document, typeDeclaration, symbol, ienumerableOfT.TypeArguments.Single(), ct),
-                RefactoringIdentifiers.ImplementCustomEnumerator);
+                RefactoringDescriptors.ImplementCustomEnumerator);
         }
 
         private static Task<Document> RefactorAsync(

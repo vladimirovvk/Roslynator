@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -11,21 +11,26 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class NamedTypeSymbolAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class NamedTypeSymbolAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.ImplementNonGenericCounterpart); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.ImplementNonGenericCounterpart);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+            context.RegisterSymbolAction(f => AnalyzeNamedType(f), SymbolKind.NamedType);
         }
 
         private static void AnalyzeNamedType(SymbolAnalysisContext context)
@@ -46,12 +51,12 @@ namespace Roslynator.CSharp.Analysis
 
                     if (interfaces.Any())
                     {
-                        bool fIComparable = false;
-                        bool fIComparableOfT = false;
-                        bool fIComparer = false;
-                        bool fIComparerOfT = false;
-                        bool fIEqualityComparer = false;
-                        bool fIEqualityComparerOfT = false;
+                        var fIComparable = false;
+                        var fIComparableOfT = false;
+                        var fIComparer = false;
+                        var fIComparerOfT = false;
+                        var fIEqualityComparer = false;
+                        var fIEqualityComparerOfT = false;
 
                         foreach (INamedTypeSymbol interfaceSymbol in interfaces)
                         {
@@ -105,26 +110,26 @@ namespace Roslynator.CSharp.Analysis
                         if (fIComparableOfT
                             && !fIComparable)
                         {
-                            ReportDiagnostic(context, symbol, "IComparable");
+                            ReportDiagnostic(context, symbol, "IComparable", "IComparable<T>");
                         }
 
                         if (fIComparerOfT
                             && !fIComparer)
                         {
-                            ReportDiagnostic(context, symbol, "IComparer");
+                            ReportDiagnostic(context, symbol, "IComparer", "IComparer<T>");
                         }
 
                         if (fIEqualityComparerOfT
                             && !fIEqualityComparer)
                         {
-                            ReportDiagnostic(context, symbol, "IEqualityComparer");
+                            ReportDiagnostic(context, symbol, "IEqualityComparer", "IEqualityComparer<T>");
                         }
                     }
                 }
             }
         }
 
-        private static void ReportDiagnostic(SymbolAnalysisContext context, INamedTypeSymbol symbol, string interfaceName)
+        private static void ReportDiagnostic(SymbolAnalysisContext context, INamedTypeSymbol symbol, string interfaceName, string genericInterfaceName)
         {
             SyntaxToken identifier = default;
 
@@ -143,10 +148,11 @@ namespace Roslynator.CSharp.Analysis
 
             DiagnosticHelpers.ReportDiagnostic(
                 context,
-                DiagnosticDescriptors.ImplementNonGenericCounterpart,
+                DiagnosticRules.ImplementNonGenericCounterpart,
                 identifier.GetLocation(),
-                ImmutableDictionary.CreateRange(new KeyValuePair<string, string>[] { new KeyValuePair<string, string>("InterfaceName", interfaceName) }),
-                interfaceName);
+                ImmutableDictionary.CreateRange(new[] { new KeyValuePair<string, string>("InterfaceName", interfaceName) }),
+                interfaceName,
+                genericInterfaceName);
         }
     }
 }

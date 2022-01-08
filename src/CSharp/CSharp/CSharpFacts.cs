@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,20 +11,20 @@ namespace Roslynator.CSharp
 {
     public static class CSharpFacts
     {
-        internal static ImmutableArray<SyntaxKind> AssignmentExpressionKinds { get; } = ImmutableArray.CreateRange(new SyntaxKind[]
-        {
-            SyntaxKind.SimpleAssignmentExpression,
-            SyntaxKind.AddAssignmentExpression,
-            SyntaxKind.SubtractAssignmentExpression,
-            SyntaxKind.MultiplyAssignmentExpression,
-            SyntaxKind.DivideAssignmentExpression,
-            SyntaxKind.ModuloAssignmentExpression,
-            SyntaxKind.AndAssignmentExpression,
-            SyntaxKind.ExclusiveOrAssignmentExpression,
-            SyntaxKind.OrAssignmentExpression,
-            SyntaxKind.LeftShiftAssignmentExpression,
-            SyntaxKind.RightShiftAssignmentExpression
-        });
+        internal static ImmutableArray<SyntaxKind> AssignmentExpressionKinds { get; } = ImmutableArray.CreateRange(new[]
+            {
+                SyntaxKind.SimpleAssignmentExpression,
+                SyntaxKind.AddAssignmentExpression,
+                SyntaxKind.SubtractAssignmentExpression,
+                SyntaxKind.MultiplyAssignmentExpression,
+                SyntaxKind.DivideAssignmentExpression,
+                SyntaxKind.ModuloAssignmentExpression,
+                SyntaxKind.AndAssignmentExpression,
+                SyntaxKind.ExclusiveOrAssignmentExpression,
+                SyntaxKind.OrAssignmentExpression,
+                SyntaxKind.LeftShiftAssignmentExpression,
+                SyntaxKind.RightShiftAssignmentExpression
+            });
 
         internal static string GetTitle(SyntaxNode node)
         {
@@ -92,10 +92,14 @@ namespace Roslynator.CSharp
                     return "interface";
                 case SyntaxKind.EnumDeclaration:
                     return "enum";
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return "record";
                 case SyntaxKind.IncompleteMember:
                     return "member";
                 case SyntaxKind.GetAccessorDeclaration:
                 case SyntaxKind.SetAccessorDeclaration:
+                case SyntaxKind.InitAccessorDeclaration:
                 case SyntaxKind.AddAccessorDeclaration:
                 case SyntaxKind.RemoveAccessorDeclaration:
                 case SyntaxKind.UnknownAccessorDeclaration:
@@ -108,7 +112,7 @@ namespace Roslynator.CSharp
                     return "parameter";
                 default:
                     {
-                        Debug.Fail(node.Kind().ToString());
+                        SyntaxDebug.Fail(node);
 
                         if (node is StatementSyntax)
                             return "statement";
@@ -125,7 +129,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is comment trivia.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsCommentTrivia(SyntaxKind kind)
         {
             return kind.Is(
@@ -139,7 +142,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind can have statements. It can be either <see cref="BlockSyntax"/> or <see cref="SwitchSectionSyntax"/>.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool CanHaveStatements(SyntaxKind kind)
         {
             return kind.Is(SyntaxKind.Block, SyntaxKind.SwitchSection);
@@ -149,22 +151,27 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind can have members.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool CanHaveMembers(SyntaxKind kind)
         {
-            return kind.Is(
-                SyntaxKind.CompilationUnit,
-                SyntaxKind.NamespaceDeclaration,
-                SyntaxKind.ClassDeclaration,
-                SyntaxKind.StructDeclaration,
-                SyntaxKind.InterfaceDeclaration);
+            switch (kind)
+            {
+                case SyntaxKind.CompilationUnit:
+                case SyntaxKind.NamespaceDeclaration:
+                case SyntaxKind.FileScopedNamespaceDeclaration:
+                case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                case SyntaxKind.InterfaceDeclaration:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
         /// Returns true if a syntax of the specified kind if local function or anonymous function.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsFunction(SyntaxKind kind)
         {
             return kind.Is(
@@ -178,7 +185,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a for, foreach, while or do statement.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsIterationStatement(SyntaxKind kind)
         {
             return kind.Is(
@@ -193,7 +199,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is true or false literal expression.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsBooleanLiteralExpression(SyntaxKind kind)
         {
             return kind.Is(
@@ -205,7 +210,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a lambda expression.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsLambdaExpression(SyntaxKind kind)
         {
             return kind.Is(
@@ -217,7 +221,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is an anonymous method or lambda expression.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsAnonymousFunctionExpression(SyntaxKind kind)
         {
             return kind.Is(
@@ -230,7 +233,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a jump statement.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsJumpStatement(SyntaxKind kind)
         {
             switch (kind)
@@ -258,7 +260,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is pre/post increment/decrement expression.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsIncrementOrDecrementExpression(SyntaxKind kind)
         {
             return kind.Is(
@@ -272,7 +273,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a compound assignment expression.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsCompoundAssignmentExpression(SyntaxKind kind)
         {
             switch (kind)
@@ -297,7 +297,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind can have modifiers.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool CanHaveModifiers(SyntaxKind kind)
         {
             switch (kind)
@@ -316,10 +315,13 @@ namespace Roslynator.CSharp
                 case SyntaxKind.MethodDeclaration:
                 case SyntaxKind.OperatorDeclaration:
                 case SyntaxKind.PropertyDeclaration:
+                case SyntaxKind.RecordDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
                 case SyntaxKind.IncompleteMember:
                 case SyntaxKind.GetAccessorDeclaration:
                 case SyntaxKind.SetAccessorDeclaration:
+                case SyntaxKind.InitAccessorDeclaration:
                 case SyntaxKind.AddAccessorDeclaration:
                 case SyntaxKind.RemoveAccessorDeclaration:
                 case SyntaxKind.UnknownAccessorDeclaration:
@@ -349,7 +351,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind can have expression body.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool CanHaveExpressionBody(SyntaxKind kind)
         {
             switch (kind)
@@ -363,6 +364,28 @@ namespace Roslynator.CSharp
                 case SyntaxKind.DestructorDeclaration:
                 case SyntaxKind.GetAccessorDeclaration:
                 case SyntaxKind.SetAccessorDeclaration:
+                case SyntaxKind.InitAccessorDeclaration:
+                case SyntaxKind.AddAccessorDeclaration:
+                case SyntaxKind.RemoveAccessorDeclaration:
+                case SyntaxKind.LocalFunctionStatement:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        internal static bool CanHaveBody(SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind.MethodDeclaration:
+                case SyntaxKind.OperatorDeclaration:
+                case SyntaxKind.ConversionOperatorDeclaration:
+                case SyntaxKind.ConstructorDeclaration:
+                case SyntaxKind.DestructorDeclaration:
+                case SyntaxKind.GetAccessorDeclaration:
+                case SyntaxKind.SetAccessorDeclaration:
+                case SyntaxKind.InitAccessorDeclaration:
                 case SyntaxKind.AddAccessorDeclaration:
                 case SyntaxKind.RemoveAccessorDeclaration:
                 case SyntaxKind.LocalFunctionStatement:
@@ -376,7 +399,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind can have an embedded statement.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool CanHaveEmbeddedStatement(SyntaxKind kind)
         {
             switch (kind)
@@ -401,7 +423,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind can be an embedded statement.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool CanBeEmbeddedStatement(SyntaxKind kind)
         {
             switch (kind)
@@ -471,7 +492,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a predefined type.
         /// </summary>
         /// <param name="specialType"></param>
-        /// <returns></returns>
         public static bool IsPredefinedType(SpecialType specialType)
         {
             switch (specialType)
@@ -503,7 +523,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a simple type.
         /// </summary>
         /// <param name="specialType"></param>
-        /// <returns></returns>
         public static bool IsSimpleType(SpecialType specialType)
         {
             switch (specialType)
@@ -528,10 +547,34 @@ namespace Roslynator.CSharp
         }
 
         /// <summary>
+        /// Returns true if the specified type is a numeric type.
+        /// </summary>
+        /// <param name="specialType"></param>
+        public static bool IsNumericType(SpecialType specialType)
+        {
+            switch (specialType)
+            {
+                case SpecialType.System_SByte:
+                case SpecialType.System_Byte:
+                case SpecialType.System_Int16:
+                case SpecialType.System_UInt16:
+                case SpecialType.System_Int32:
+                case SpecialType.System_UInt32:
+                case SpecialType.System_Int64:
+                case SpecialType.System_UInt64:
+                case SpecialType.System_Decimal:
+                case SpecialType.System_Single:
+                case SpecialType.System_Double:
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Returns true if an expression of the specified type can be used in a prefix or postfix unary operator.
         /// </summary>
         /// <param name="specialType"></param>
-        /// <returns></returns>
         public static bool SupportsPrefixOrPostfixUnaryOperator(SpecialType specialType)
         {
             switch (specialType)
@@ -706,7 +749,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a switch label.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsSwitchLabel(SyntaxKind kind)
         {
             return kind.Is(
@@ -719,7 +761,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a boolean expression.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsBooleanExpression(SyntaxKind kind)
         {
             switch (kind)
@@ -746,7 +787,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a constraint.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsConstraint(SyntaxKind kind)
         {
             return kind.Is(
@@ -760,7 +800,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a literal expression.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsLiteralExpression(SyntaxKind kind)
         {
             switch (kind)
@@ -783,7 +822,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is #if, #else, #elif or #endif directive.
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         public static bool IsIfElseDirective(SyntaxKind kind)
         {
             switch (kind)
@@ -802,7 +840,6 @@ namespace Roslynator.CSharp
         /// Returns true if a syntax of the specified kind is a statement (which includes <see cref="SyntaxKind.Block"/>).
         /// </summary>
         /// <param name="kind"></param>
-        /// <returns></returns>
         internal static bool IsStatement(SyntaxKind kind)
         {
             switch (kind)
@@ -868,6 +905,8 @@ namespace Roslynator.CSharp
                     return SyntaxKind.AndAssignmentExpression;
                 case SyntaxKind.ExclusiveOrExpression:
                     return SyntaxKind.ExclusiveOrAssignmentExpression;
+                case SyntaxKind.CoalesceExpression:
+                    return SyntaxKind.CoalesceAssignmentExpression;
                 default:
                     return SyntaxKind.None;
             }
@@ -897,6 +936,8 @@ namespace Roslynator.CSharp
                     return SyntaxKind.AmpersandEqualsToken;
                 case SyntaxKind.ExclusiveOrAssignmentExpression:
                     return SyntaxKind.CaretEqualsToken;
+                case SyntaxKind.CoalesceAssignmentExpression:
+                    return SyntaxKind.QuestionQuestionEqualsToken;
                 default:
                     return SyntaxKind.None;
             }
@@ -1001,6 +1042,7 @@ namespace Roslynator.CSharp
                 case SyntaxKind.OrAssignmentExpression:
                 case SyntaxKind.LeftShiftAssignmentExpression:
                 case SyntaxKind.RightShiftAssignmentExpression:
+                case SyntaxKind.CoalesceAssignmentExpression:
                 case SyntaxKind.SimpleLambdaExpression:
                 case SyntaxKind.ParenthesizedLambdaExpression:
                     return 15;
@@ -1052,6 +1094,8 @@ namespace Roslynator.CSharp
                 case SyntaxKind.ClassDeclaration:
                 case SyntaxKind.InterfaceDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                case SyntaxKind.RecordDeclaration:
                 case SyntaxKind.MethodDeclaration:
                 case SyntaxKind.DelegateDeclaration:
                 case SyntaxKind.LocalFunctionStatement:

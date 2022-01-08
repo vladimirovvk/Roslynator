@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,40 +11,48 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UnnecessaryUnsafeContextAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UnnecessaryUnsafeContextAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UnnecessaryUnsafeContext); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UnnecessaryUnsafeContext);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeUnsafeStatement, SyntaxKind.UnsafeStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.ClassDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.StructDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.InterfaceDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeDelegateDeclaration, SyntaxKind.DelegateDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeLocalFunctionStatement, SyntaxKind.LocalFunctionStatement);
-            context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeOperatorDeclaration, SyntaxKind.OperatorDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeConversionOperatorDeclaration, SyntaxKind.ConversionOperatorDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeConstructorDeclaration, SyntaxKind.ConstructorDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeDestructorDeclaration, SyntaxKind.DestructorDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeIndexerDeclaration, SyntaxKind.IndexerDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeEventDeclaration, SyntaxKind.EventDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeEventFieldDeclaration, SyntaxKind.EventFieldDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeFieldDeclaration, SyntaxKind.FieldDeclaration);
+            context.RegisterSyntaxNodeAction(
+                f => AnalyzeTypeDeclaration(f),
+                SyntaxKind.ClassDeclaration,
+                SyntaxKind.StructDeclaration,
+                SyntaxKind.RecordStructDeclaration,
+                SyntaxKind.InterfaceDeclaration);
+
+            context.RegisterSyntaxNodeAction(f => AnalyzeUnsafeStatement(f), SyntaxKind.UnsafeStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeDelegateDeclaration(f), SyntaxKind.DelegateDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeLocalFunctionStatement(f), SyntaxKind.LocalFunctionStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeMethodDeclaration(f), SyntaxKind.MethodDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeOperatorDeclaration(f), SyntaxKind.OperatorDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeConversionOperatorDeclaration(f), SyntaxKind.ConversionOperatorDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeConstructorDeclaration(f), SyntaxKind.ConstructorDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeDestructorDeclaration(f), SyntaxKind.DestructorDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzePropertyDeclaration(f), SyntaxKind.PropertyDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIndexerDeclaration(f), SyntaxKind.IndexerDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeEventDeclaration(f), SyntaxKind.EventDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeEventFieldDeclaration(f), SyntaxKind.EventFieldDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeFieldDeclaration(f), SyntaxKind.FieldDeclaration);
         }
 
-        public static void AnalyzeUnsafeStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeUnsafeStatement(SyntaxNodeAnalysisContext context)
         {
             var unsafeStatement = (UnsafeStatementSyntax)context.Node;
 
@@ -54,10 +62,10 @@ namespace Roslynator.CSharp.Analysis
             if (!ParentDeclarationsContainsUnsafeModifier(unsafeStatement))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UnnecessaryUnsafeContext, unsafeStatement.UnsafeKeyword);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UnnecessaryUnsafeContext, unsafeStatement.UnsafeKeyword);
         }
 
-        public static void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
         {
             var localFunctionStatement = (LocalFunctionStatementSyntax)context.Node;
 
@@ -70,9 +78,9 @@ namespace Roslynator.CSharp.Analysis
 
             SyntaxNode parent = localFunctionStatement.Parent;
 
-            Debug.Assert(parent.IsKind(SyntaxKind.Block), parent.Kind().ToString());
+            SyntaxDebug.Assert(parent.IsKind(SyntaxKind.Block), parent);
 
-            if (!(parent is BlockSyntax))
+            if (parent is not BlockSyntax)
                 return;
 
             parent = parent.Parent;
@@ -80,87 +88,87 @@ namespace Roslynator.CSharp.Analysis
             if (!ParentDeclarationsContainsUnsafeModifier(parent))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UnnecessaryUnsafeContext, modifiers[index]);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UnnecessaryUnsafeContext, modifiers[index]);
         }
 
-        public static void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
         {
             var typeDeclaration = (TypeDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, typeDeclaration, typeDeclaration.Modifiers);
         }
 
-        public static void AnalyzeDelegateDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeDelegateDeclaration(SyntaxNodeAnalysisContext context)
         {
             var delegateDeclaration = (DelegateDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, delegateDeclaration, delegateDeclaration.Modifiers);
         }
 
-        public static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, methodDeclaration, methodDeclaration.Modifiers);
         }
 
-        public static void AnalyzeOperatorDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeOperatorDeclaration(SyntaxNodeAnalysisContext context)
         {
             var operatorDeclaration = (OperatorDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, operatorDeclaration, operatorDeclaration.Modifiers);
         }
 
-        public static void AnalyzeConversionOperatorDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeConversionOperatorDeclaration(SyntaxNodeAnalysisContext context)
         {
             var conversionOperatorDeclaration = (ConversionOperatorDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, conversionOperatorDeclaration, conversionOperatorDeclaration.Modifiers);
         }
 
-        public static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
         {
             var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, constructorDeclaration, constructorDeclaration.Modifiers);
         }
 
-        public static void AnalyzeDestructorDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeDestructorDeclaration(SyntaxNodeAnalysisContext context)
         {
             var destructorDeclaration = (DestructorDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, destructorDeclaration, destructorDeclaration.Modifiers);
         }
 
-        public static void AnalyzeEventDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeEventDeclaration(SyntaxNodeAnalysisContext context)
         {
             var eventDeclaration = (EventDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, eventDeclaration, eventDeclaration.Modifiers);
         }
 
-        public static void AnalyzeEventFieldDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeEventFieldDeclaration(SyntaxNodeAnalysisContext context)
         {
             var eventFieldDeclaration = (EventFieldDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, eventFieldDeclaration, eventFieldDeclaration.Modifiers);
         }
 
-        public static void AnalyzeFieldDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeFieldDeclaration(SyntaxNodeAnalysisContext context)
         {
             var fieldDeclaration = (FieldDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, fieldDeclaration, fieldDeclaration.Modifiers);
         }
 
-        public static void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
         {
             var propertyDeclaration = (PropertyDeclarationSyntax)context.Node;
 
             AnalyzeMemberDeclaration(context, propertyDeclaration, propertyDeclaration.Modifiers);
         }
 
-        public static void AnalyzeIndexerDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIndexerDeclaration(SyntaxNodeAnalysisContext context)
         {
             var indexerDeclaration = (IndexerDeclarationSyntax)context.Node;
 
@@ -180,7 +188,7 @@ namespace Roslynator.CSharp.Analysis
             if (!ParentTypeDeclarationsContainsUnsafeModifier(memberDeclaration))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UnnecessaryUnsafeContext, modifiers[index]);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UnnecessaryUnsafeContext, modifiers[index]);
         }
 
         private static bool ParentDeclarationsContainsUnsafeModifier(UnsafeStatementSyntax unsafeStatement)
@@ -230,7 +238,7 @@ namespace Roslynator.CSharp.Analysis
 
                 node = node.Parent;
 
-                Debug.Assert(node.IsKind(SyntaxKind.Block), node.Kind().ToString());
+                SyntaxDebug.Assert(node.IsKind(SyntaxKind.Block), node);
 
                 if (node.Kind() != SyntaxKind.Block)
                     break;
@@ -238,7 +246,7 @@ namespace Roslynator.CSharp.Analysis
                 node = node.Parent;
             }
 
-            Debug.Assert(node is MemberDeclarationSyntax, node.Kind().ToString());
+            SyntaxDebug.Assert(node is MemberDeclarationSyntax, node);
 
             if (node is MemberDeclarationSyntax memberDeclaration)
             {
@@ -255,7 +263,11 @@ namespace Roslynator.CSharp.Analysis
         {
             SyntaxNode parent = memberDeclaration.Parent;
 
-            while (parent.IsKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.InterfaceDeclaration))
+            while (parent.IsKind(
+                SyntaxKind.ClassDeclaration,
+                SyntaxKind.StructDeclaration,
+                SyntaxKind.RecordStructDeclaration,
+                SyntaxKind.InterfaceDeclaration))
             {
                 if (((TypeDeclarationSyntax)parent).Modifiers.Contains(SyntaxKind.UnsafeKeyword))
                     return true;

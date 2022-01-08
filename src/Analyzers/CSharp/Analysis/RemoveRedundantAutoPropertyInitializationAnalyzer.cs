@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,24 +10,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantAutoPropertyInitializationAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantAutoPropertyInitializationAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveRedundantAutoPropertyInitialization); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveRedundantAutoPropertyInitialization);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzePropertyDeclaration(f), SyntaxKind.PropertyDeclaration);
         }
 
-        public static void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
         {
             if (context.Node.ContainsDiagnostics)
                 return;
@@ -36,34 +41,49 @@ namespace Roslynator.CSharp.Analysis
 
             EqualsValueClauseSyntax initializer = propertyDeclaration.Initializer;
 
-            if (initializer == null)
+            ExpressionSyntax value = initializer?.Value?.WalkDownParentheses();
+
+            if (value == null)
+                return;
+
+            if (!CanBeConstantValue(value))
                 return;
 
             if (initializer.SpanOrLeadingTriviaContainsDirectives())
                 return;
 
-            ExpressionSyntax value = initializer.Value;
-
-            if (value == null)
-                return;
-
-            AccessorListSyntax accessorList = propertyDeclaration.AccessorList;
-
-            if (accessorList == null)
-                return;
-
-            if (accessorList.Accessors.Any(f => !f.IsAutoImplemented()))
+            if (propertyDeclaration.AccessorList?.Accessors.Any(f => !f.IsAutoImplemented()) != false)
                 return;
 
             ITypeSymbol typeSymbol = context.SemanticModel.GetTypeSymbol(propertyDeclaration.Type, context.CancellationToken);
 
-            if (typeSymbol?.IsErrorType() != false)
+            if (typeSymbol == null)
                 return;
 
             if (!context.SemanticModel.IsDefaultValue(typeSymbol, value, context.CancellationToken))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveRedundantAutoPropertyInitialization, value);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveRedundantAutoPropertyInitialization, value);
+        }
+
+        private static bool CanBeConstantValue(ExpressionSyntax value)
+        {
+            if (value is CastExpressionSyntax castExpression)
+                value = castExpression.Expression.WalkDownParentheses();
+
+            switch (value.Kind())
+            {
+                case SyntaxKind.NullLiteralExpression:
+                case SyntaxKind.NumericLiteralExpression:
+                case SyntaxKind.TrueLiteralExpression:
+                case SyntaxKind.FalseLiteralExpression:
+                case SyntaxKind.CharacterLiteralExpression:
+                case SyntaxKind.DefaultLiteralExpression:
+                case SyntaxKind.DefaultExpression:
+                    return true;
+                default:
+                    return false;
+            }
         }
     }
 }

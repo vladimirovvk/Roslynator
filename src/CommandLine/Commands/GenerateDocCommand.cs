@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -14,7 +15,7 @@ using static Roslynator.Logger;
 
 namespace Roslynator.CommandLine
 {
-    internal class GenerateDocCommand : MSBuildWorkspaceCommand
+    internal class GenerateDocCommand : MSBuildWorkspaceCommand<CommandResult>
     {
         private static readonly Encoding _defaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
@@ -25,6 +26,7 @@ namespace Roslynator.CommandLine
             NamespaceDocumentationParts ignoredNamespaceParts,
             TypeDocumentationParts ignoredTypeParts,
             MemberDocumentationParts ignoredMemberParts,
+            OmitMemberParts omitMemberParts,
             IncludeContainingNamespaceFilter includeContainingNamespaceFilter,
             Visibility visibility,
             in ProjectFilter projectFilter) : base(projectFilter)
@@ -35,6 +37,7 @@ namespace Roslynator.CommandLine
             IgnoredNamespaceParts = ignoredNamespaceParts;
             IgnoredTypeParts = ignoredTypeParts;
             IgnoredMemberParts = ignoredMemberParts;
+            OmitMemberParts = omitMemberParts;
             IncludeContainingNamespaceFilter = includeContainingNamespaceFilter;
             Visibility = visibility;
         }
@@ -51,6 +54,8 @@ namespace Roslynator.CommandLine
 
         public MemberDocumentationParts IgnoredMemberParts { get; }
 
+        public OmitMemberParts OmitMemberParts { get; }
+
         public IncludeContainingNamespaceFilter IncludeContainingNamespaceFilter { get; }
 
         public Visibility Visibility { get; }
@@ -64,13 +69,13 @@ namespace Roslynator.CommandLine
                 preferredCultureName: Options.PreferredCulture,
                 maxDerivedTypes: Options.MaxDerivedTypes,
                 placeSystemNamespaceFirst: !Options.NoPrecedenceForSystem,
-                formatDeclarationBaseList: !Options.NoFormatBaseList,
-                formatDeclarationConstraints: !Options.NoFormatConstraints,
+                wrapDeclarationBaseTypes: !Options.NoWrapBaseTypes,
+                wrapDeclarationConstraints: !Options.NoWrapConstraints,
                 markObsolete: !Options.NoMarkObsolete,
-                includeMemberInheritedFrom: !Options.OmitMemberInheritedFrom,
-                includeMemberOverrides: !Options.OmitMemberOverrides,
-                includeMemberImplements: !Options.OmitMemberImplements,
-                includeMemberConstantValue: !Options.OmitMemberConstantValue,
+                includeMemberInheritedFrom: (OmitMemberParts & OmitMemberParts.InheritedFrom) == 0,
+                includeMemberOverrides: (OmitMemberParts & OmitMemberParts.Overrides) == 0,
+                includeMemberImplements: (OmitMemberParts & OmitMemberParts.Implements) == 0,
+                includeMemberConstantValue: (OmitMemberParts & OmitMemberParts.ConstantValue) == 0,
                 includeInheritedInterfaceMembers: Options.IncludeInheritedInterfaceMembers,
                 includeAllDerivedTypes: Options.IncludeAllDerivedTypes,
                 includeAttributeArguments: !Options.OmitAttributeArguments,
@@ -108,8 +113,8 @@ namespace Roslynator.CommandLine
                 }
                 catch (IOException ex)
                 {
-                    WriteLine(ex.ToString(), Verbosity.Quiet);
-                    return CommandResult.Fail;
+                    WriteError(ex);
+                    return CommandResults.Fail;
                 }
             }
 
@@ -121,14 +126,14 @@ namespace Roslynator.CommandLine
 
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
 
-                WriteLine($"  Save '{path}'", ConsoleColor.DarkGray, Verbosity.Detailed);
+                WriteLine($"  Save '{path}'", ConsoleColors.DarkGray, Verbosity.Detailed);
 
                 File.WriteAllText(path, documentationFile.Content, _defaultEncoding);
             }
 
             WriteLine($"Documentation successfully generated to '{Options.Output}'.", Verbosity.Minimal);
 
-            return CommandResult.Success;
+            return CommandResults.Success;
         }
     }
 }

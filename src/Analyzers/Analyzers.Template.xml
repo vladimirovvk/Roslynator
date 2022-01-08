@@ -17,6 +17,24 @@
         <After><![CDATA[]]></After>
       </Sample>
     </Samples>
+    <Configuration></Configuration>
+    <Options>
+      <Option Identifier="">
+        <Title></Title>
+        <Id></Id>
+        <OptionKey></OptionKey>
+        <OptionValue></OptionValue>
+        <Kind></Kind>
+        <IsEnabledByDefault>false</IsEnabledByDefault>
+        <SupportsFadeOut>false</SupportsFadeOut>
+        <Samples>
+          <Sample>
+            <Before><![CDATA[]]></Before>
+            <After><![CDATA[]]></After>
+          </Sample>
+        </Samples>
+      </Option>
+    </Options>
     <Remarks></Remarks>
     <Links>
       <Link>

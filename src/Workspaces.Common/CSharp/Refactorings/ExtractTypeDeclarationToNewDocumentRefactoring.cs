@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,7 +16,7 @@ namespace Roslynator.CSharp.Refactorings
         public static async Task<Solution> RefactorAsync(
             Document document,
             MemberDeclarationSyntax memberDeclaration,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
@@ -50,8 +50,8 @@ namespace Roslynator.CSharp.Refactorings
                 .Where(f => f != memberDeclaration);
 
             CompilationUnitSyntax newCompilationUnit = compilationUnit.RemoveNodes(
-                 membersToRemove,
-                 SyntaxRemoveOptions.KeepUnbalancedDirectives);
+                membersToRemove,
+                SyntaxRemoveOptions.KeepUnbalancedDirectives);
 
             SyntaxList<AttributeListSyntax> attributeLists = newCompilationUnit.AttributeLists;
 

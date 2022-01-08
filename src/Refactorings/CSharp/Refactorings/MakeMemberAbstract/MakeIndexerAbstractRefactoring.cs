@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,14 +24,14 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberAbstract
 
             context.RegisterRefactoring(
                 "Make indexer abstract",
-                cancellationToken => RefactorAsync(context.Document, indexerDeclaration, cancellationToken),
-                RefactoringIdentifiers.MakeMemberAbstract);
+                ct => RefactorAsync(context.Document, indexerDeclaration, ct),
+                RefactoringDescriptors.MakeMemberAbstract);
         }
 
         public static Task<Document> RefactorAsync(
             Document document,
             IndexerDeclarationSyntax indexerDeclaration,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             AccessorListSyntax accessorList = AccessorList();
 
@@ -47,16 +47,16 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberAbstract
                 if (getter != null)
                 {
                     accessorList = accessorList.AddAccessors(getter
-                       .WithBody(null)
-                       .WithSemicolonToken(SemicolonToken()));
+                        .WithBody(null)
+                        .WithSemicolonToken(SemicolonToken()));
                 }
 
                 AccessorDeclarationSyntax setter = indexerDeclaration.Setter();
                 if (setter != null)
                 {
                     accessorList = accessorList.AddAccessors(setter
-                       .WithBody(null)
-                       .WithSemicolonToken(SemicolonToken()));
+                        .WithBody(null)
+                        .WithSemicolonToken(SemicolonToken()));
                 }
             }
 

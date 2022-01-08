@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -51,7 +51,7 @@ namespace Roslynator.CSharp.Refactorings
 
         private static ExpressionSyntax GetCondition(InvocationExpressionSyntax invocation)
         {
-            var lambda = (LambdaExpressionSyntax)invocation.ArgumentList.Arguments.First().Expression;
+            var lambda = (LambdaExpressionSyntax)invocation.ArgumentList.Arguments[0].Expression;
 
             return (ExpressionSyntax)lambda.Body;
         }

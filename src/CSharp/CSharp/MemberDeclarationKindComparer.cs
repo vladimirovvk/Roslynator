@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +8,7 @@ namespace Roslynator.CSharp
 {
     internal class MemberDeclarationKindComparer : IComparer<SyntaxKind>
     {
-        public static MemberDeclarationKindComparer Default { get; } = new MemberDeclarationKindComparer();
+        public static MemberDeclarationKindComparer Default { get; } = new();
 
         public int Compare(SyntaxKind x, SyntaxKind y)
         {
@@ -49,10 +49,14 @@ namespace Roslynator.CSharp
                     return 14;
                 case SyntaxKind.ClassDeclaration:
                     return 15;
-                case SyntaxKind.NamespaceDeclaration:
+                case SyntaxKind.RecordDeclaration:
                     return 16;
-                case SyntaxKind.IncompleteMember:
+                case SyntaxKind.RecordStructDeclaration:
                     return 17;
+                case SyntaxKind.NamespaceDeclaration:
+                    return 18;
+                case SyntaxKind.IncompleteMember:
+                    return 19;
                 default:
                     {
                         Debug.Fail($"unknown member '{kind}'");

@@ -1,8 +1,6 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -12,21 +10,26 @@ using Microsoft.CodeAnalysis.Text;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveFileWithNoCodeAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveFileWithNoCodeAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveFileWithNoCode); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveFileWithNoCode);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeCompilationUnit, SyntaxKind.CompilationUnit);
+            context.RegisterSyntaxNodeAction(f => AnalyzeCompilationUnit(f), SyntaxKind.CompilationUnit);
         }
 
         private static void AnalyzeCompilationUnit(SyntaxNodeAnalysisContext context)
@@ -41,12 +44,11 @@ namespace Roslynator.CSharp.Analysis
             {
                 SyntaxTree syntaxTree = compilationUnit.SyntaxTree;
 
-                Debug.Assert(!GeneratedCodeUtility.IsGeneratedCodeFile(syntaxTree.FilePath), syntaxTree.FilePath);
-
                 if (!GeneratedCodeUtility.IsGeneratedCodeFile(syntaxTree.FilePath))
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context,
-                        DiagnosticDescriptors.RemoveFileWithNoCode,
+                    DiagnosticHelpers.ReportDiagnostic(
+                        context,
+                        DiagnosticRules.RemoveFileWithNoCode,
                         Location.Create(syntaxTree, default(TextSpan)));
                 }
             }

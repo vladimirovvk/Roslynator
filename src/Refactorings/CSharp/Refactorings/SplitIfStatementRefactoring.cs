@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -25,17 +25,17 @@ namespace Roslynator.CSharp.Refactorings
                     context.RegisterRefactoring(
                         "Split if",
                         ct => SplitSimpleIfAsync(context.Document, ifStatement, ct),
-                        RefactoringIdentifiers.SplitIfStatement);
+                        RefactoringDescriptors.SplitIf);
                 }
             }
             else if (ifStatement.Parent.IsKind(SyntaxKind.ElseClause)
-                    && ifStatement.Else == null
-                    && ifStatement.Condition.IsKind(SyntaxKind.LogicalOrExpression))
+                && ifStatement.Else == null
+                && ifStatement.Condition.IsKind(SyntaxKind.LogicalOrExpression))
             {
                 context.RegisterRefactoring(
                     "Split if",
                     ct => SplitLastElseIfAsync(context.Document, ifStatement, ct),
-                    RefactoringIdentifiers.SplitIfStatement);
+                    RefactoringDescriptors.SplitIf);
             }
         }
 

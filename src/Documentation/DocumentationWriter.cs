@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -442,11 +442,11 @@ namespace Roslynator.Documentation
             if (Options.IncludeAttributeArguments)
                 additionalOptions |= SymbolDisplayAdditionalOptions.IncludeAttributeArguments;
 
-            if (Options.FormatDeclarationBaseList)
-                additionalOptions |= SymbolDisplayAdditionalOptions.FormatBaseList;
+            if (Options.WrapDeclarationBaseTypes)
+                additionalOptions |= SymbolDisplayAdditionalOptions.WrapBaseTypes;
 
-            if (Options.FormatDeclarationConstraints)
-                additionalOptions |= SymbolDisplayAdditionalOptions.FormatConstraints;
+            if (Options.WrapDeclarationConstraints)
+                additionalOptions |= SymbolDisplayAdditionalOptions.WrapConstraints;
 
             if (Options.OmitIEnumerable)
                 additionalOptions |= SymbolDisplayAdditionalOptions.OmitIEnumerable;
@@ -793,14 +793,14 @@ namespace Roslynator.Documentation
                         WriteStartBulletItem();
                         WriteTypeLink(en.Current.AttributeClass, includeContainingNamespace: Options.IncludeContainingNamespace(IncludeContainingNamespaceFilter.Attribute));
 
-                        if (symbol != en.Current.Target)
+                        if (!SymbolEqualityComparer.Default.Equals(symbol, en.Current.Target))
                         {
                             WriteInheritedFrom(en.Current.Target.OriginalDefinition, TypeSymbolDisplayFormats.Name_ContainingTypes_TypeParameters);
                         }
 
                         WriteEndBulletItem();
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     WriteLine();
                 }
@@ -848,8 +848,8 @@ namespace Roslynator.Documentation
                         WriteStartBulletItem();
                         WriteLink(en.Current, TypeSymbolDisplayFormats.Name_ContainingTypes_TypeParameters, additionalOptions, includeContainingNamespace: includeContainingNamespace);
                         WriteEndBulletItem();
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     WriteEndBulletList();
                 }
@@ -878,8 +878,8 @@ namespace Roslynator.Documentation
                         element.WriteContentTo(this);
                         WriteLine();
                         WriteLine();
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
                 }
             }
 
@@ -914,7 +914,7 @@ namespace Roslynator.Documentation
             {
                 if (en.MoveNext())
                 {
-                    bool hasCombinedValue = false;
+                    var hasCombinedValue = false;
 
                     EnumSymbolInfo enumInfo = default;
 
@@ -984,8 +984,8 @@ namespace Roslynator.Documentation
                         }
 
                         WriteEndTableRow();
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     WriteEndTable();
                 }
@@ -1080,8 +1080,8 @@ namespace Roslynator.Documentation
                         WriteStartBulletItem();
                         WriteLink(en.Current, TypeSymbolDisplayFormats.Name_ContainingTypes_TypeParameters, additionalOptions: SymbolDisplayAdditionalMemberOptions.UseItemPropertyName | SymbolDisplayAdditionalMemberOptions.UseOperatorName, includeContainingNamespace: Options.IncludeContainingNamespace(IncludeContainingNamespaceFilter.SeeAlso));
                         WriteEndBulletItem();
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     WriteEndBulletList();
                 }
@@ -1181,7 +1181,7 @@ namespace Roslynator.Documentation
 
             var baseTypes = new List<INamedTypeSymbol>();
             int count = 0;
-            bool isMaxReached = false;
+            var isMaxReached = false;
 
             WriteStartBulletList();
             WriteClassHierarchy(ImmutableHashSet<INamedTypeSymbol>.Empty);
@@ -1266,8 +1266,8 @@ namespace Roslynator.Documentation
 
                                 break;
                             }
-                        }
-                        while (en.MoveNext());
+
+                        } while (en.MoveNext());
                     }
                 }
 
@@ -1288,7 +1288,7 @@ namespace Roslynator.Documentation
                 }
             }
 
-            string CreateLocalLink(ISymbol symbol)
+            static string CreateLocalLink(ISymbol symbol)
             {
                 return DocumentationUtility.CreateLocalLink(symbol, "class-hierarchy-");
             }
@@ -1350,7 +1350,7 @@ namespace Roslynator.Documentation
                         WriteObsolete(symbol);
 
                         bool isInherited = containingType != null
-                            && symbol.ContainingType != containingType;
+                            && !SymbolEqualityComparer.Default.Equals(symbol.ContainingType, containingType);
 
                         if (symbol.Kind == SymbolKind.Parameter)
                         {
@@ -1395,8 +1395,8 @@ namespace Roslynator.Documentation
 
                         WriteEndTableCell();
                         WriteEndTableRow();
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     WriteEndTable();
                 }
@@ -1573,8 +1573,8 @@ namespace Roslynator.Documentation
                             WriteEntityRef("mdash");
                             WriteEndBulletItem();
                         }
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     WriteEndBulletList();
                 }
@@ -1695,8 +1695,8 @@ namespace Roslynator.Documentation
                         WriteStartBulletItem();
                         WriteLink(en.Current, TypeSymbolDisplayFormats.Name_ContainingTypes_Namespaces);
                         WriteEndBulletItem();
-                    }
-                    while (en.MoveNext());
+
+                    } while (en.MoveNext());
 
                     WriteEndBulletList();
                 }
@@ -1795,7 +1795,7 @@ namespace Roslynator.Documentation
                         WriteContainingNamespacePrefix(symbol);
                     }
 
-                    bool includeTypeParameters = false;
+                    var includeTypeParameters = false;
 
                     if (Peek(i).IsPunctuation("<")
                         && symbol.IsDefinition

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -12,21 +12,21 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ConditionalExpressionClauseCodeFixProvider))]
     [Shared]
-    public class ConditionalExpressionClauseCodeFixProvider : BaseCodeFixProvider
+    public sealed class ConditionalExpressionClauseCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.TypeOfConditionalExpressionCannotBeDetermined); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0173_TypeOfConditionalExpressionCannotBeDetermined); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddCastExpression))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddExplicitCast, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out ConditionalExpressionSyntax conditionalExpression))
                 return;
@@ -53,7 +53,7 @@ namespace Roslynator.CSharp.CodeFixes
             if (destinationType == null)
                 return;
 
-            CodeFixRegistrator.AddCastExpression(context, diagnostic, whenTrue, destinationType, semanticModel);
+            CodeFixRegistrator.AddExplicitCast(context, diagnostic, whenTrue, destinationType, semanticModel);
         }
 
         private static ITypeSymbol FindDestinationType(ExpressionSyntax expression, ITypeSymbol type, SemanticModel semanticModel)

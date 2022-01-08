@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -30,6 +30,21 @@ namespace Roslynator.CSharp.Analysis
             return null;
         }
 
+        public static List<IMethodSymbol> GetMissingBaseConstructors(
+            RecordDeclarationSyntax recordDeclaration,
+            SemanticModel semanticModel,
+            CancellationToken cancellationToken)
+        {
+            INamedTypeSymbol symbol = semanticModel.GetDeclaredSymbol(recordDeclaration, cancellationToken);
+
+            INamedTypeSymbol baseSymbol = symbol?.BaseType;
+
+            if (baseSymbol?.IsObject() == false)
+                return GetMissingBaseConstructors(symbol, baseSymbol);
+
+            return null;
+        }
+
         private static List<IMethodSymbol> GetMissingBaseConstructors(INamedTypeSymbol symbol, INamedTypeSymbol baseSymbol)
         {
             ImmutableArray<IMethodSymbol> constructors = symbol.InstanceConstructors.RemoveAll(f => f.IsImplicitlyDeclared);
@@ -41,7 +56,7 @@ namespace Roslynator.CSharp.Analysis
                 if (IsAccessibleFromDerivedClass(baseConstructor)
                     && constructors.IndexOf(baseConstructor, ParametersComparer.Instance) == -1)
                 {
-                    (missing ?? (missing = new List<IMethodSymbol>())).Add(baseConstructor);
+                    (missing ??= new List<IMethodSymbol>()).Add(baseConstructor);
                 }
             }
 
@@ -92,7 +107,7 @@ namespace Roslynator.CSharp.Analysis
 
         private class ParametersComparer : EqualityComparer<IMethodSymbol>
         {
-            public static ParametersComparer Instance { get; } = new ParametersComparer();
+            public static ParametersComparer Instance { get; } = new();
 
             public override bool Equals(IMethodSymbol x, IMethodSymbol y)
             {
@@ -113,7 +128,7 @@ namespace Roslynator.CSharp.Analysis
 
                 for (int i = 0; i < parameters1.Length; i++)
                 {
-                    if (!parameters1[i].Type.Equals(parameters2[i].Type))
+                    if (!SymbolEqualityComparer.Default.Equals(parameters1[i].Type, parameters2[i].Type))
                         return false;
                 }
 

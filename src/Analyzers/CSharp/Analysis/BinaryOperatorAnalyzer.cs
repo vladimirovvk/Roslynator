@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -13,38 +14,89 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class BinaryOperatorAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class BinaryOperatorAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.ExpressionIsAlwaysEqualToTrueOrFalse,
-                    DiagnosticDescriptors.UnnecessaryOperator);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.ExpressionIsAlwaysEqualToTrueOrFalse,
+                        DiagnosticRules.UnnecessaryOperator);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (!startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.UnnecessaryOperator))
+            context.RegisterSyntaxNodeAction(
+                c =>
                 {
-                    startContext.RegisterSyntaxNodeAction(AnalyzeLessThanExpression, SyntaxKind.LessThanExpression);
-                    startContext.RegisterSyntaxNodeAction(AnalyzeGreaterThanExpression, SyntaxKind.GreaterThanExpression);
-                }
+                    if (DiagnosticRules.UnnecessaryOperator.IsEffective(c))
+                        AnalyzeLessThanExpression(c);
+                },
+                SyntaxKind.LessThanExpression);
 
-                startContext.RegisterSyntaxNodeAction(AnalyzeLessThanOrEqualExpression, SyntaxKind.LessThanOrEqualExpression);
-                startContext.RegisterSyntaxNodeAction(AnalyzeGreaterThanOrEqualExpression, SyntaxKind.GreaterThanOrEqualExpression);
-                startContext.RegisterSyntaxNodeAction(AnalyzeLogicalOrExpression, SyntaxKind.LogicalOrExpression);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.UnnecessaryOperator.IsEffective(c))
+                        AnalyzeGreaterThanExpression(c);
+                },
+                SyntaxKind.GreaterThanExpression);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.ExpressionIsAlwaysEqualToTrueOrFalse.IsEffective(c))
+                        AnalyzeSimpleMemberAccessExpression(c);
+                },
+                SyntaxKind.SimpleMemberAccessExpression);
+
+            context.RegisterSyntaxNodeAction(c => AnalyzeLessThanOrEqualExpression(c), SyntaxKind.LessThanOrEqualExpression);
+            context.RegisterSyntaxNodeAction(c => AnalyzeGreaterThanOrEqualExpression(c), SyntaxKind.GreaterThanOrEqualExpression);
+            context.RegisterSyntaxNodeAction(c => AnalyzeLogicalOrExpression(c), SyntaxKind.LogicalOrExpression);
+        }
+
+        // x == double.NaN >>> double.IsNaN(x)
+        // x != double.NaN >>> !double.IsNaN(x)
+        private void AnalyzeSimpleMemberAccessExpression(SyntaxNodeAnalysisContext context)
+        {
+            var simpleMemberAccess = (MemberAccessExpressionSyntax)context.Node;
+
+            if (simpleMemberAccess.Name is not IdentifierNameSyntax identifierName)
+                return;
+
+            if (identifierName.Identifier.ValueText != "NaN")
+                return;
+
+            ExpressionSyntax expression = simpleMemberAccess.WalkUpParentheses();
+
+            SyntaxNode binaryExpression = expression.Parent;
+
+            if (!binaryExpression.IsKind(SyntaxKind.EqualsExpression, SyntaxKind.NotEqualsExpression))
+                return;
+
+            ISymbol symbol = context.SemanticModel.GetSymbol(simpleMemberAccess, context.CancellationToken);
+
+            if (symbol?.ContainingType?.SpecialType != SpecialType.System_Double)
+                return;
+
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.ExpressionIsAlwaysEqualToTrueOrFalse,
+                binaryExpression.GetLocation(),
+                ImmutableDictionary.CreateRange(new[] { new KeyValuePair<string, string>("DoubleNaN", (((BinaryExpressionSyntax)binaryExpression).Left == expression) ? "Right" : "Left") }),
+                (binaryExpression.IsKind(SyntaxKind.EqualsExpression)) ? "false" : "true");
         }
 
         // x:
@@ -59,7 +111,7 @@ namespace Roslynator.CSharp.Analysis
 
         // x >= 0 >>> true
         // 0 >= x >>> 0 == x
-        public static void AnalyzeGreaterThanOrEqualExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeGreaterThanOrEqualExpression(SyntaxNodeAnalysisContext context)
         {
             var greaterThanOrEqualExpression = (BinaryExpressionSyntax)context.Node;
 
@@ -68,12 +120,12 @@ namespace Roslynator.CSharp.Analysis
             if (!info.Success)
                 return;
 
-            if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.ExpressionIsAlwaysEqualToTrueOrFalse)
+            if (DiagnosticRules.ExpressionIsAlwaysEqualToTrueOrFalse.IsEffective(context)
                 && IsAlwaysEqualToTrueOrFalse(greaterThanOrEqualExpression, info.Left, info.Right, context.SemanticModel, context.CancellationToken))
             {
                 ReportExpressionAlwaysEqualToTrueOrFalse(context, "true");
             }
-            else if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.UnnecessaryOperator)
+            else if (DiagnosticRules.UnnecessaryOperator.IsEffective(context)
                 && IsUnnecessaryRelationalOperator(info.Right, info.Left, context.SemanticModel, context.CancellationToken))
             {
                 ReportUnnecessaryRelationalOperator(context, info.OperatorToken);
@@ -81,7 +133,7 @@ namespace Roslynator.CSharp.Analysis
         }
 
         // 0 > x >>> false
-        public static void AnalyzeGreaterThanExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeGreaterThanExpression(SyntaxNodeAnalysisContext context)
         {
             var greaterThanExpression = (BinaryExpressionSyntax)context.Node;
 
@@ -98,7 +150,7 @@ namespace Roslynator.CSharp.Analysis
 
         // 0 <= x >>> true
         // x <= 0 >>> x == 0
-        public static void AnalyzeLessThanOrEqualExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLessThanOrEqualExpression(SyntaxNodeAnalysisContext context)
         {
             var lessThanOrEqualExpression = (BinaryExpressionSyntax)context.Node;
 
@@ -107,12 +159,12 @@ namespace Roslynator.CSharp.Analysis
             if (!info.Success)
                 return;
 
-            if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.ExpressionIsAlwaysEqualToTrueOrFalse)
+            if (DiagnosticRules.ExpressionIsAlwaysEqualToTrueOrFalse.IsEffective(context)
                 && IsAlwaysEqualToTrueOrFalse(lessThanOrEqualExpression, info.Right, info.Left, context.SemanticModel, context.CancellationToken))
             {
                 ReportExpressionAlwaysEqualToTrueOrFalse(context, "true");
             }
-            else if (!context.IsAnalyzerSuppressed(DiagnosticDescriptors.UnnecessaryOperator)
+            else if (DiagnosticRules.UnnecessaryOperator.IsEffective(context)
                 && IsUnnecessaryRelationalOperator(info.Left, info.Right, context.SemanticModel, context.CancellationToken))
             {
                 ReportUnnecessaryRelationalOperator(context, info.OperatorToken);
@@ -120,7 +172,7 @@ namespace Roslynator.CSharp.Analysis
         }
 
         // x < 0 >>> false
-        public static void AnalyzeLessThanExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLessThanExpression(SyntaxNodeAnalysisContext context)
         {
             var lessThanExpression = (BinaryExpressionSyntax)context.Node;
 
@@ -168,10 +220,10 @@ namespace Roslynator.CSharp.Analysis
 
             bool IsReversedForStatement()
             {
-                if (!(left is IdentifierNameSyntax identifierName))
+                if (left is not IdentifierNameSyntax identifierName)
                     return false;
 
-                if (!(binaryExpression.WalkUpParentheses().Parent is ForStatementSyntax forStatement))
+                if (binaryExpression.WalkUpParentheses().Parent is not ForStatementSyntax forStatement)
                     return false;
 
                 VariableDeclarationSyntax declaration = forStatement.Declaration;
@@ -305,7 +357,7 @@ namespace Roslynator.CSharp.Analysis
         {
             DiagnosticHelpers.ReportDiagnostic(
                 context,
-                DiagnosticDescriptors.ExpressionIsAlwaysEqualToTrueOrFalse,
+                DiagnosticRules.ExpressionIsAlwaysEqualToTrueOrFalse,
                 node,
                 booleanName);
         }
@@ -314,7 +366,7 @@ namespace Roslynator.CSharp.Analysis
         {
             DiagnosticHelpers.ReportDiagnostic(
                 context,
-                DiagnosticDescriptors.UnnecessaryOperator,
+                DiagnosticRules.UnnecessaryOperator,
                 Location.Create(operatorToken.SyntaxTree, new TextSpan(operatorToken.SpanStart, 1)),
                 operatorToken.ToString());
         }

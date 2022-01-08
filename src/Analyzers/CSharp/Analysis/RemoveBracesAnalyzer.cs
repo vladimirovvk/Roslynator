@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,44 +11,104 @@ using static Roslynator.CSharp.Analysis.EmbeddedStatementAnalysis;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveBracesAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveBracesAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.RemoveBraces,
-                    DiagnosticDescriptors.RemoveBracesFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.RemoveBraces,
+                        DiagnosticRules.RemoveBracesFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveBraces))
-                    return;
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeIfStatement(c);
+                },
+                SyntaxKind.IfStatement);
 
-                startContext.RegisterSyntaxNodeAction(AnalyzeIfStatement, SyntaxKind.IfStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeCommonForEachStatement, SyntaxKind.ForEachStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeCommonForEachStatement, SyntaxKind.ForEachVariableStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeForStatement, SyntaxKind.ForStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeUsingStatement, SyntaxKind.UsingStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeWhileStatement, SyntaxKind.WhileStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeDoStatement, SyntaxKind.DoStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeLockStatement, SyntaxKind.LockStatement);
-                startContext.RegisterSyntaxNodeAction(AnalyzeFixedStatement, SyntaxKind.FixedStatement);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeCommonForEachStatement(c);
+                },
+                SyntaxKind.ForEachStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeCommonForEachStatement(c);
+                },
+                SyntaxKind.ForEachVariableStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeForStatement(c);
+                },
+                SyntaxKind.ForStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeUsingStatement(c);
+                },
+                SyntaxKind.UsingStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeWhileStatement(c);
+                },
+                SyntaxKind.WhileStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeDoStatement(c);
+                },
+                SyntaxKind.DoStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeLockStatement(c);
+                },
+                SyntaxKind.LockStatement);
+
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveBraces.IsEffective(c))
+                        AnalyzeFixedStatement(c);
+                },
+                SyntaxKind.FixedStatement);
         }
 
-        public static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
         {
             var ifStatement = (IfStatementSyntax)context.Node;
 
@@ -66,7 +126,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, block);
         }
 
-        public static void AnalyzeCommonForEachStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeCommonForEachStatement(SyntaxNodeAnalysisContext context)
         {
             var forEachStatement = (CommonForEachStatementSyntax)context.Node;
 
@@ -81,7 +141,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, block);
         }
 
-        public static void AnalyzeForStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeForStatement(SyntaxNodeAnalysisContext context)
         {
             var forStatement = (ForStatementSyntax)context.Node;
 
@@ -96,7 +156,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, block);
         }
 
-        public static void AnalyzeUsingStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeUsingStatement(SyntaxNodeAnalysisContext context)
         {
             var usingStatement = (UsingStatementSyntax)context.Node;
 
@@ -111,7 +171,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, block);
         }
 
-        public static void AnalyzeWhileStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeWhileStatement(SyntaxNodeAnalysisContext context)
         {
             var whileStatement = (WhileStatementSyntax)context.Node;
 
@@ -126,7 +186,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, block);
         }
 
-        public static void AnalyzeDoStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeDoStatement(SyntaxNodeAnalysisContext context)
         {
             var doStatement = (DoStatementSyntax)context.Node;
 
@@ -141,7 +201,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, block);
         }
 
-        public static void AnalyzeLockStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeLockStatement(SyntaxNodeAnalysisContext context)
         {
             var lockStatement = (LockStatementSyntax)context.Node;
 
@@ -156,7 +216,7 @@ namespace Roslynator.CSharp.Analysis
             Analyze(context, block);
         }
 
-        public static void AnalyzeFixedStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeFixedStatement(SyntaxNodeAnalysisContext context)
         {
             var fixedStatement = (FixedStatementSyntax)context.Node;
 
@@ -173,7 +233,7 @@ namespace Roslynator.CSharp.Analysis
 
         private static BlockSyntax GetFixableBlock(StatementSyntax statement)
         {
-            if (!(statement is BlockSyntax block))
+            if (statement is not BlockSyntax block)
                 return null;
 
             statement = block.Statements.SingleOrDefault(shouldThrow: false);
@@ -207,9 +267,9 @@ namespace Roslynator.CSharp.Analysis
 
             string title = CSharpFacts.GetTitle(block.Parent);
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.RemoveBraces, block, title);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.RemoveBraces, block, title);
 
-            CSharpDiagnosticHelpers.ReportBraces(context, DiagnosticDescriptors.RemoveBracesFadeOut, block, title);
+            CSharpDiagnosticHelpers.ReportBraces(context, DiagnosticRules.RemoveBracesFadeOut, block, title);
         }
     }
 }

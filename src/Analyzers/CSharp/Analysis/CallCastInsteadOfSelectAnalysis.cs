@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -56,7 +56,7 @@ namespace Roslynator.CSharp.Analysis
             if (castExpression == null)
                 return;
 
-            if (!(castExpression.Expression is IdentifierNameSyntax identifierName))
+            if (castExpression.Expression is not IdentifierNameSyntax identifierName)
                 return;
 
             if (!string.Equals(lambdaInfo.Parameter.Identifier.ValueText, identifierName.Identifier.ValueText, StringComparison.Ordinal))
@@ -65,8 +65,9 @@ namespace Roslynator.CSharp.Analysis
             if (semanticModel.GetMethodSymbol(castExpression, cancellationToken)?.MethodKind == MethodKind.Conversion)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.OptimizeLinqMethodCall,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.OptimizeLinqMethodCall,
                 Location.Create(invocationExpression.SyntaxTree, TextSpan.FromBounds(invocationInfo.Name.SpanStart, invocationExpression.Span.End)));
         }
 

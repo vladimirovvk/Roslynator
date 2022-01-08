@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,24 +10,29 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class MergePreprocessorDirectivesAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class MergePreprocessorDirectivesAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.MergePreprocessorDirectives); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.MergePreprocessorDirectives);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzePragmaWarningDirectiveTrivia, SyntaxKind.PragmaWarningDirectiveTrivia);
+            context.RegisterSyntaxNodeAction(f => AnalyzePragmaWarningDirectiveTrivia(f), SyntaxKind.PragmaWarningDirectiveTrivia);
         }
 
-        public static void AnalyzePragmaWarningDirectiveTrivia(SyntaxNodeAnalysisContext context)
+        private static void AnalyzePragmaWarningDirectiveTrivia(SyntaxNodeAnalysisContext context)
         {
             var directive = (PragmaWarningDirectiveTriviaSyntax)context.Node;
 
@@ -101,7 +106,7 @@ namespace Roslynator.CSharp.Analysis
             if (!list[i].IsKind(SyntaxKind.PragmaWarningDirectiveTrivia))
                 return;
 
-            if (!(list[i].GetStructure() is PragmaWarningDirectiveTriviaSyntax nextDirective))
+            if (list[i].GetStructure() is not PragmaWarningDirectiveTriviaSyntax nextDirective)
                 return;
 
             SyntaxToken disableOrRestoreKeyword = directive.DisableOrRestoreKeyword;
@@ -117,7 +122,7 @@ namespace Roslynator.CSharp.Analysis
                 return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.MergePreprocessorDirectives, directive);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.MergePreprocessorDirectives, directive);
         }
 
         private static bool IsSuppressingThisAnalyzer(SeparatedSyntaxList<ExpressionSyntax> errorCodes)

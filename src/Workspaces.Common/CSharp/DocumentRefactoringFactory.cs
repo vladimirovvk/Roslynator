@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -22,7 +22,7 @@ namespace Roslynator.CSharp
             if (!newTypeSymbol.OriginalDefinition.EqualsOrInheritsFromTaskOfT())
                 return default;
 
-            if (!(semanticModel.GetEnclosingSymbol(variableDeclaration.SpanStart, cancellationToken) is IMethodSymbol methodSymbol))
+            if (semanticModel.GetEnclosingSymbol(variableDeclaration.SpanStart, cancellationToken) is not IMethodSymbol methodSymbol)
                 return default;
 
             if (!methodSymbol.MethodKind.Is(MethodKind.Ordinary, MethodKind.LocalFunction))
@@ -40,17 +40,13 @@ namespace Roslynator.CSharp
 
             foreach (SyntaxNode descendant in bodyOrExpressionBody.DescendantNodes())
             {
-                if (descendant.IsKind(SyntaxKind.ReturnStatement))
-                {
-                    var returnStatement = (ReturnStatementSyntax)descendant;
-
-                    if (returnStatement
+                if (descendant is ReturnStatementSyntax returnStatement
+                    && returnStatement
                         .Expression?
                         .WalkDownParentheses()
                         .IsKind(SyntaxKind.AwaitExpression) == false)
-                    {
-                        return default;
-                    }
+                {
+                    return default;
                 }
             }
 

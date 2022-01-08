@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1040RemoveEmptyElseClauseTests : AbstractCSharpFixVerifier
+    public class RCS1040RemoveEmptyElseClauseTests : AbstractCSharpDiagnosticVerifier<RemoveEmptyElseClauseAnalyzer, ElseClauseCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.RemoveEmptyElseClause;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new RemoveEmptyElseClauseAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new ElseClauseCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.RemoveEmptyElseClause;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveEmptyElseClause)]
         public async Task Test()
@@ -94,7 +89,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveEmptyElseClause)]
-        public async Task TestNoDiagnostic_IfElseEmbededInIfWithElse()
+        public async Task TestNoDiagnostic_IfElseEmbeddedInIfWithElse()
         {
             await VerifyNoDiagnosticAsync(@"
 class C
@@ -115,7 +110,7 @@ class C
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.RemoveEmptyElseClause)]
-        public async Task TestNoDiagnostic_IfElseEmbededInIfWithElse2()
+        public async Task TestNoDiagnostic_IfElseEmbeddedInIfWithElse2()
         {
             await VerifyNoDiagnosticAsync(@"
 class C

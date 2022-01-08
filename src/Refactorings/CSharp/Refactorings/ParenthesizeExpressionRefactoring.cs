@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -51,7 +51,21 @@ namespace Roslynator.CSharp.Refactorings
                     }
                 case SyntaxKind.QualifiedName:
                     {
-                        return !node.IsParentKind(SyntaxKind.NamespaceDeclaration, SyntaxKind.UsingDirective);
+                        switch (node.Parent?.Kind())
+                        {
+                            case SyntaxKind.NamespaceDeclaration:
+                            case SyntaxKind.UsingDirective:
+                            case SyntaxKind.QualifiedName:
+                            case SyntaxKind.VariableDeclaration:
+                            case SyntaxKind.TupleElement:
+                                {
+                                    return false;
+                                }
+                            default:
+                                {
+                                    return true;
+                                }
+                        }
                     }
                 case SyntaxKind.TupleType:
                 case SyntaxKind.GenericName:
@@ -68,6 +82,7 @@ namespace Roslynator.CSharp.Refactorings
                             case SyntaxKind.PropertyDeclaration:
                             case SyntaxKind.EventDeclaration:
                             case SyntaxKind.IndexerDeclaration:
+                            case SyntaxKind.Parameter:
                                 return false;
                         }
 
@@ -143,13 +158,13 @@ namespace Roslynator.CSharp.Refactorings
                     }
             }
 
-            return !(parent is AssignmentExpressionSyntax);
+            return parent is not AssignmentExpressionSyntax;
         }
 
         public static async Task<Document> RefactorAsync(
             Document document,
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 

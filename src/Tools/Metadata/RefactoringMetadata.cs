@@ -1,8 +1,9 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -13,6 +14,7 @@ namespace Roslynator.Metadata
         public RefactoringMetadata(
             string id,
             string identifier,
+            string optionKey,
             string title,
             bool isEnabledByDefault,
             bool isObsolete,
@@ -22,11 +24,19 @@ namespace Roslynator.Metadata
             IEnumerable<SyntaxMetadata> syntaxes,
             IEnumerable<ImageMetadata> images,
             IEnumerable<SampleMetadata> samples,
-            IEnumerable<LinkMetadata> links,
-            bool isDevelopment = false)
+            IEnumerable<LinkMetadata> links)
         {
+            if (optionKey == null
+                && !isObsolete)
+            {
+                throw new ArgumentNullException(nameof(optionKey));
+            }
+
+            Debug.Assert(isObsolete || Regex.IsMatch(optionKey, @"\A[a-z]+(_[a-z]+)*\z"), $"{id} {identifier}: {optionKey}");
+
             Id = id;
             Identifier = identifier;
+            OptionKey = optionKey;
             Title = title;
             IsEnabledByDefault = isEnabledByDefault;
             IsObsolete = isObsolete;
@@ -37,12 +47,13 @@ namespace Roslynator.Metadata
             Images = new ReadOnlyCollection<ImageMetadata>(images?.ToArray() ?? Array.Empty<ImageMetadata>());
             Samples = new ReadOnlyCollection<SampleMetadata>(samples?.ToArray() ?? Array.Empty<SampleMetadata>());
             Links = new ReadOnlyCollection<LinkMetadata>(links?.ToArray() ?? Array.Empty<LinkMetadata>());
-            IsDevelopment = isDevelopment;
         }
 
         public string Id { get; }
 
         public string Identifier { get; }
+
+        public string OptionKey { get; }
 
         public string Title { get; }
 
@@ -63,8 +74,6 @@ namespace Roslynator.Metadata
         public IReadOnlyList<SampleMetadata> Samples { get; }
 
         public IReadOnlyList<LinkMetadata> Links { get; }
-
-        public bool IsDevelopment { get; }
 
         public IEnumerable<ImageMetadata> ImagesOrDefaultImage()
         {

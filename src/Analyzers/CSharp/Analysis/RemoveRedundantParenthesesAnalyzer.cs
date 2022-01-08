@@ -1,7 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,32 +11,37 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantParenthesesAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantParenthesesAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.RemoveRedundantParentheses,
-                    DiagnosticDescriptors.RemoveRedundantParenthesesFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.RemoveRedundantParentheses,
+                        DiagnosticRules.RemoveRedundantParenthesesFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterCompilationStartAction(startContext =>
-            {
-                if (startContext.IsAnalyzerSuppressed(DiagnosticDescriptors.RemoveRedundantParentheses))
-                    return;
-
-                startContext.RegisterSyntaxNodeAction(AnalyzeParenthesizedExpression, SyntaxKind.ParenthesizedExpression);
-            });
+            context.RegisterSyntaxNodeAction(
+                c =>
+                {
+                    if (DiagnosticRules.RemoveRedundantParentheses.IsEffective(c))
+                        AnalyzeParenthesizedExpression(c);
+                },
+                SyntaxKind.ParenthesizedExpression);
         }
 
         private static void AnalyzeParenthesizedExpression(SyntaxNodeAnalysisContext context)
@@ -168,7 +174,8 @@ namespace Roslynator.CSharp.Analysis
                     }
                 case SyntaxKind.Interpolation:
                     {
-                        if (expression.Kind() != SyntaxKind.ConditionalExpression
+                        if (!expression.IsKind(SyntaxKind.ConditionalExpression)
+                            && !expression.DescendantNodes().Any(f => f.IsKind(SyntaxKind.AliasQualifiedName))
                             && ((InterpolationSyntax)parent).Expression == parenthesizedExpression)
                         {
                             ReportDiagnostic();
@@ -178,6 +185,9 @@ namespace Roslynator.CSharp.Analysis
                     }
                 case SyntaxKind.AwaitExpression:
                     {
+                        if (parenthesizedExpression.Expression.IsKind(SyntaxKind.SwitchExpression))
+                            return;
+
                         if (CSharpFacts.GetOperatorPrecedence(expression.Kind()) <= CSharpFacts.GetOperatorPrecedence(SyntaxKind.AwaitExpression))
                             ReportDiagnostic();
 
@@ -186,8 +196,36 @@ namespace Roslynator.CSharp.Analysis
                 case SyntaxKind.ArrayInitializerExpression:
                 case SyntaxKind.CollectionInitializerExpression:
                     {
-                        if (!(expression is AssignmentExpressionSyntax))
+                        if (expression is not AssignmentExpressionSyntax)
                             ReportDiagnostic();
+
+                        break;
+                    }
+                case SyntaxKind.SimpleLambdaExpression:
+                case SyntaxKind.ParenthesizedLambdaExpression:
+                    {
+                        switch (parent.Parent.Kind())
+                        {
+                            case SyntaxKind.ParenthesizedExpression:
+                            case SyntaxKind.ArrowExpressionClause:
+                            case SyntaxKind.Argument:
+                            case SyntaxKind.ReturnStatement:
+                            case SyntaxKind.YieldReturnStatement:
+                            case SyntaxKind.SimpleAssignmentExpression:
+                            case SyntaxKind.AddAssignmentExpression:
+                            case SyntaxKind.SubtractAssignmentExpression:
+                                {
+                                    ReportDiagnostic();
+                                    break;
+                                }
+#if DEBUG
+                            default:
+                                {
+                                    SyntaxDebug.Fail(parent.Parent);
+                                    break;
+                                }
+#endif
+                        }
 
                         break;
                     }
@@ -195,13 +233,14 @@ namespace Roslynator.CSharp.Analysis
 
             void ReportDiagnostic()
             {
-                DiagnosticHelpers.ReportDiagnostic(context,
-                   DiagnosticDescriptors.RemoveRedundantParentheses,
-                   openParen.GetLocation(),
-                   additionalLocations: ImmutableArray.Create(closeParen.GetLocation()));
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.RemoveRedundantParentheses,
+                    openParen.GetLocation(),
+                    additionalLocations: ImmutableArray.Create(closeParen.GetLocation()));
 
-                DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.RemoveRedundantParenthesesFadeOut, openParen);
-                DiagnosticHelpers.ReportToken(context, DiagnosticDescriptors.RemoveRedundantParenthesesFadeOut, closeParen);
+                DiagnosticHelpers.ReportToken(context, DiagnosticRules.RemoveRedundantParenthesesFadeOut, openParen);
+                DiagnosticHelpers.ReportToken(context, DiagnosticRules.RemoveRedundantParenthesesFadeOut, closeParen);
             }
         }
     }

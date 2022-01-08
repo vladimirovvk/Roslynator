@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,14 +15,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(EndRegionDirectiveTriviaCodeFixProvider))]
     [Shared]
-    public class EndRegionDirectiveTriviaCodeFixProvider : BaseCodeFixProvider
+    public sealed class EndRegionDirectiveTriviaCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.AddOrRemoveRegionName); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -37,7 +37,7 @@ namespace Roslynator.CSharp.CodeFixes
                 (trivia.IsKind(SyntaxKind.PreprocessingMessageTrivia))
                     ? "Add region name to #endregion"
                     : "Remove region name from #endregion",
-                cancellationToken => AddOrRemoveRegionNameRefactoring.RefactorAsync(context.Document, endRegionDirective, trivia, cancellationToken),
+                ct => AddOrRemoveRegionNameRefactoring.RefactorAsync(context.Document, endRegionDirective, trivia, ct),
                 GetEquivalenceKey(DiagnosticIdentifiers.AddOrRemoveRegionName));
 
             context.RegisterCodeFix(codeAction, context.Diagnostics);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using Microsoft.CodeAnalysis;
@@ -20,7 +20,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="classDeclaration"></param>
         /// <param name="member"></param>
-        /// <returns></returns>
         public ClassDeclarationSyntax Insert(ClassDeclarationSyntax classDeclaration, MemberDeclarationSyntax member)
         {
             if (classDeclaration == null)
@@ -37,7 +36,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="compilationUnit"></param>
         /// <param name="member"></param>
-        /// <returns></returns>
         public CompilationUnitSyntax Insert(CompilationUnitSyntax compilationUnit, MemberDeclarationSyntax member)
         {
             if (compilationUnit == null)
@@ -54,7 +52,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="interfaceDeclaration"></param>
         /// <param name="member"></param>
-        /// <returns></returns>
         public InterfaceDeclarationSyntax Insert(InterfaceDeclarationSyntax interfaceDeclaration, MemberDeclarationSyntax member)
         {
             if (interfaceDeclaration == null)
@@ -71,7 +68,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="namespaceDeclaration"></param>
         /// <param name="member"></param>
-        /// <returns></returns>
         public NamespaceDeclarationSyntax Insert(NamespaceDeclarationSyntax namespaceDeclaration, MemberDeclarationSyntax member)
         {
             if (namespaceDeclaration == null)
@@ -88,7 +84,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="structDeclaration"></param>
         /// <param name="member"></param>
-        /// <returns></returns>
         public StructDeclarationSyntax Insert(StructDeclarationSyntax structDeclaration, MemberDeclarationSyntax member)
         {
             if (structDeclaration == null)
@@ -101,11 +96,26 @@ namespace Roslynator.CSharp
         }
 
         /// <summary>
+        /// Creates a new <see cref="RecordDeclarationSyntax"/> with the specified member inserted.
+        /// </summary>
+        /// <param name="recordDeclaration"></param>
+        /// <param name="member"></param>
+        public RecordDeclarationSyntax Insert(RecordDeclarationSyntax recordDeclaration, MemberDeclarationSyntax member)
+        {
+            if (recordDeclaration == null)
+                throw new ArgumentNullException(nameof(recordDeclaration));
+
+            if (member == null)
+                throw new ArgumentNullException(nameof(member));
+
+            return recordDeclaration.WithMembers(Insert(recordDeclaration.Members, member));
+        }
+
+        /// <summary>
         /// Creates a new <see cref="TypeDeclarationSyntax"/> with the specified member removed.
         /// </summary>
         /// <param name="typeDeclaration"></param>
         /// <param name="member"></param>
-        /// <returns></returns>
         public TypeDeclarationSyntax Insert(TypeDeclarationSyntax typeDeclaration, MemberDeclarationSyntax member)
         {
             if (typeDeclaration == null)
@@ -122,7 +132,6 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="members"></param>
         /// <param name="member"></param>
-        /// <returns></returns>
         internal SyntaxList<MemberDeclarationSyntax> Insert(SyntaxList<MemberDeclarationSyntax> members, MemberDeclarationSyntax member)
         {
             int index = GetInsertIndex(members, member);

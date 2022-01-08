@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -23,7 +23,7 @@ namespace Roslynator.CSharp.Refactorings
 
             for (int i = 0; i < selectedStatements.Count; i++)
             {
-                if (!(selectedStatements[i] is IfStatementSyntax ifStatement))
+                if (selectedStatements[i] is not IfStatementSyntax ifStatement)
                     return;
 
                 if (!ifStatement.IsSimpleIf())
@@ -53,9 +53,9 @@ namespace Roslynator.CSharp.Refactorings
             Document document = context.Document;
 
             context.RegisterRefactoring(
-                "Merge if statements",
+                "Merge 'if' statements",
                 ct => RefactorAsync(document, selectedStatements, ct),
-                RefactoringIdentifiers.MergeIfStatements);
+                RefactoringDescriptors.MergeIfStatements);
         }
 
         private static Task<Document> RefactorAsync(
@@ -112,12 +112,12 @@ namespace Roslynator.CSharp.Refactorings
             if (statement2 == null)
                 return false;
 
-            if (!(statement1 is BlockSyntax block1))
+            if (statement1 is not BlockSyntax block1)
                 return CSharpFactory.AreEquivalent(statement1, statement2.SingleNonBlockStatementOrDefault());
 
             SyntaxList<StatementSyntax> statements1 = block1.Statements;
 
-            if (!(statement2 is BlockSyntax block2))
+            if (statement2 is not BlockSyntax block2)
                 return CSharpFactory.AreEquivalent(statement2, statement1.SingleNonBlockStatementOrDefault());
 
             SyntaxList<StatementSyntax> statements2 = block2.Statements;

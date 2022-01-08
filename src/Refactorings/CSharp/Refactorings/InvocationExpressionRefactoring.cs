@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -14,10 +14,10 @@ namespace Roslynator.CSharp.Refactorings
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, InvocationExpressionSyntax invocationExpression)
         {
             if (context.IsAnyRefactoringEnabled(
-                RefactoringIdentifiers.UseElementAccessInsteadOfEnumerableMethod,
-                RefactoringIdentifiers.InvertLinqMethodCall,
-                RefactoringIdentifiers.CallExtensionMethodAsInstanceMethod,
-                RefactoringIdentifiers.CallIndexOfInsteadOfContains))
+                RefactoringDescriptors.UseElementAccessInsteadOfLinqMethod,
+                RefactoringDescriptors.InvertLinqMethodCall,
+                RefactoringDescriptors.CallExtensionMethodAsInstanceMethod,
+                RefactoringDescriptors.CallIndexOfInsteadOfContains))
             {
                 ExpressionSyntax expression = invocationExpression.Expression;
 
@@ -27,20 +27,20 @@ namespace Roslynator.CSharp.Refactorings
                     if (expression.IsKind(SyntaxKind.SimpleMemberAccessExpression)
                         && ((MemberAccessExpressionSyntax)expression).Name?.Span.Contains(context.Span) == true)
                     {
-                        if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseElementAccessInsteadOfEnumerableMethod))
+                        if (context.IsRefactoringEnabled(RefactoringDescriptors.UseElementAccessInsteadOfLinqMethod))
                             await UseElementAccessRefactoring.ComputeRefactoringsAsync(context, invocationExpression).ConfigureAwait(false);
 
-                        if (context.IsRefactoringEnabled(RefactoringIdentifiers.InvertLinqMethodCall))
+                        if (context.IsRefactoringEnabled(RefactoringDescriptors.InvertLinqMethodCall))
                         {
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
                             InvertLinqMethodCallRefactoring.ComputeRefactoring(context, invocationExpression, semanticModel);
                         }
 
-                        if (context.IsRefactoringEnabled(RefactoringIdentifiers.CallIndexOfInsteadOfContains))
+                        if (context.IsRefactoringEnabled(RefactoringDescriptors.CallIndexOfInsteadOfContains))
                             await CallIndexOfInsteadOfContainsRefactoring.ComputeRefactoringAsync(context, invocationExpression).ConfigureAwait(false);
                     }
 
-                    if (context.IsRefactoringEnabled(RefactoringIdentifiers.CallExtensionMethodAsInstanceMethod))
+                    if (context.IsRefactoringEnabled(RefactoringDescriptors.CallExtensionMethodAsInstanceMethod))
                     {
                         SyntaxNodeOrToken nodeOrToken = CallExtensionMethodAsInstanceMethodAnalysis.GetNodeOrToken(expression);
 
@@ -54,46 +54,47 @@ namespace Roslynator.CSharp.Refactorings
                             {
                                 context.RegisterRefactoring(
                                     CallExtensionMethodAsInstanceMethodRefactoring.Title,
-                                    cancellationToken =>
+                                    ct =>
                                     {
                                         return context.Document.ReplaceNodeAsync(
                                             analysis.InvocationExpression,
                                             analysis.NewInvocationExpression,
-                                            cancellationToken);
+                                            ct);
                                     },
-                                    RefactoringIdentifiers.CallExtensionMethodAsInstanceMethod);
+                                    RefactoringDescriptors.CallExtensionMethodAsInstanceMethod);
                             }
                         }
                     }
                 }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ReplaceStringFormatWithInterpolatedString)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertStringFormatToInterpolatedString)
                 && context.SupportsCSharp6)
             {
-                await ReplaceStringFormatWithInterpolatedStringRefactoring.ComputeRefactoringsAsync(context, invocationExpression).ConfigureAwait(false);
+                await ConvertStringFormatToInterpolatedStringRefactoring.ComputeRefactoringsAsync(context, invocationExpression).ConfigureAwait(false);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseBitwiseOperationInsteadOfCallingHasFlag))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertHasFlagCallToBitwiseOperation))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                if (UseBitwiseOperationInsteadOfCallingHasFlagAnalysis.IsFixable(invocationExpression, semanticModel, context.CancellationToken))
+                if (ConvertHasFlagCallToBitwiseOperationAnalysis.IsFixable(invocationExpression, semanticModel, context.CancellationToken))
                 {
                     context.RegisterRefactoring(
-                        UseBitwiseOperationInsteadOfCallingHasFlagRefactoring.Title,
-                        cancellationToken =>
+                        ConvertHasFlagCallToBitwiseOperationRefactoring.Title,
+                        ct =>
                         {
-                            return UseBitwiseOperationInsteadOfCallingHasFlagRefactoring.RefactorAsync(
+                            return ConvertHasFlagCallToBitwiseOperationRefactoring.RefactorAsync(
                                 context.Document,
                                 invocationExpression,
-                                cancellationToken);
+                                semanticModel,
+                                ct);
                         },
-                        RefactoringIdentifiers.UseBitwiseOperationInsteadOfCallingHasFlag);
+                        RefactoringDescriptors.ConvertHasFlagCallToBitwiseOperation);
                 }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.InlineMethod))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.InlineMethod))
                 await InlineMethodRefactoring.ComputeRefactoringsAsync(context, invocationExpression).ConfigureAwait(false);
         }
     }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,12 +9,13 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context, InterpolationSyntax interpolation)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveInterpolation)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveInterpolation)
                 && context.Span.IsContainedInSpan(interpolation.OpenBraceToken, interpolation.CloseBraceToken))
             {
-                context.RegisterRefactoring("Remove interpolation",
-                    cancellationToken => context.Document.RemoveNodeAsync(interpolation, SyntaxRemoveOptions.KeepUnbalancedDirectives, cancellationToken),
-                    RefactoringIdentifiers.RemoveInterpolation);
+                context.RegisterRefactoring(
+                    "Remove interpolation",
+                    ct => context.Document.RemoveNodeAsync(interpolation, SyntaxRemoveOptions.KeepUnbalancedDirectives, ct),
+                    RefactoringDescriptors.RemoveInterpolation);
             }
         }
     }

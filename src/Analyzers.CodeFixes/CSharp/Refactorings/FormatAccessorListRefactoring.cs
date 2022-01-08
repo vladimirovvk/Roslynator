@@ -1,13 +1,13 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Roslynator.CSharp.Analysis;
 using static Roslynator.CSharp.CSharpFactory;
 
 namespace Roslynator.CSharp.Refactorings
@@ -23,12 +23,10 @@ namespace Roslynator.CSharp.Refactorings
             {
                 SyntaxNode parent = accessorList.Parent;
 
-                switch (parent.Kind())
+                switch (parent)
                 {
-                    case SyntaxKind.PropertyDeclaration:
+                    case PropertyDeclarationSyntax propertyDeclaration:
                         {
-                            var propertyDeclaration = (PropertyDeclarationSyntax)parent;
-
                             TextSpan span = TextSpan.FromBounds(
                                 propertyDeclaration.Identifier.Span.End,
                                 accessorList.CloseBraceToken.SpanStart);
@@ -39,10 +37,8 @@ namespace Roslynator.CSharp.Refactorings
 
                             return await document.ReplaceNodeAsync(propertyDeclaration, newNode, cancellationToken).ConfigureAwait(false);
                         }
-                    case SyntaxKind.IndexerDeclaration:
+                    case IndexerDeclarationSyntax indexerDeclaration:
                         {
-                            var indexerDeclaration = (IndexerDeclarationSyntax)parent;
-
                             TextSpan span = TextSpan.FromBounds(
                                 indexerDeclaration.ParameterList.CloseBracketToken.Span.End,
                                 accessorList.CloseBraceToken.SpanStart);
@@ -55,7 +51,7 @@ namespace Roslynator.CSharp.Refactorings
                         }
                     default:
                         {
-                            Debug.Fail(parent.Kind().ToString());
+                            SyntaxDebug.Fail(parent);
                             return document;
                         }
                 }
@@ -78,7 +74,7 @@ namespace Roslynator.CSharp.Refactorings
 
             if (accessors.Count > 1)
             {
-                AccessorDeclarationSyntax accessor = accessors.First();
+                AccessorDeclarationSyntax accessor = accessors[0];
 
                 SyntaxTriviaList trailingTrivia = accessor.GetTrailingTrivia();
 
@@ -104,18 +100,54 @@ namespace Roslynator.CSharp.Refactorings
             }
             else
             {
-                return accessorList.ReplaceNodes(accessorList.Accessors, (f, g) =>
-                {
-                    if (FormatAccessorListAnalyzer.ShouldBeFormatted(f))
+                return accessorList.ReplaceNodes(
+                    accessorList.Accessors,
+                    (f, g) =>
                     {
-                        return f.RemoveWhitespace(f.Span);
-                    }
-                    else
-                    {
-                        return g;
-                    }
-                });
+                        if (ShouldBeFormatted(f))
+                        {
+                            return f.RemoveWhitespace(f.Span);
+                        }
+                        else
+                        {
+                            return g;
+                        }
+                    });
             }
+        }
+
+        private static bool ShouldBeFormatted(AccessorDeclarationSyntax accessor)
+        {
+            BlockSyntax body = accessor.Body;
+
+            if (body != null)
+            {
+                SyntaxList<StatementSyntax> statements = body.Statements;
+
+                if (statements.Count <= 1
+                    && accessor.SyntaxTree.IsMultiLineSpan(TextSpan.FromBounds(accessor.Keyword.SpanStart, accessor.Span.End))
+                    && (!statements.Any() || statements[0].IsSingleLine()))
+                {
+                    return accessor
+                        .DescendantTrivia(accessor.Span, descendIntoTrivia: true)
+                        .All(f => f.IsWhitespaceOrEndOfLineTrivia());
+                }
+            }
+            else
+            {
+                ArrowExpressionClauseSyntax expressionBody = accessor.ExpressionBody;
+
+                if (expressionBody != null
+                    && accessor.SyntaxTree.IsMultiLineSpan(TextSpan.FromBounds(accessor.Keyword.SpanStart, accessor.Span.End))
+                    && expressionBody.Expression?.IsSingleLine() == true)
+                {
+                    return accessor
+                        .DescendantTrivia(accessor.Span, descendIntoTrivia: true)
+                        .All(f => f.IsWhitespaceOrEndOfLineTrivia());
+                }
+            }
+
+            return false;
         }
     }
 }

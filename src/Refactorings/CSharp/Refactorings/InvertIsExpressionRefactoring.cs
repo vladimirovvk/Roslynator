@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,9 +48,9 @@ namespace Roslynator.CSharp.Refactorings
         private static void RegisterRefactoring(RefactoringContext context, ExpressionSyntax expression)
         {
             context.RegisterRefactoring(
-                "Invert is",
-                cancellationToken => RefactorAsync(context.Document, expression, cancellationToken),
-                RefactoringIdentifiers.InvertIsExpression);
+                "Invert 'is'",
+                ct => RefactorAsync(context.Document, expression, ct),
+                RefactoringDescriptors.InvertIsExpression);
         }
 
         private static async Task<Document> RefactorAsync(
@@ -60,7 +60,7 @@ namespace Roslynator.CSharp.Refactorings
         {
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-            ExpressionSyntax newNode = SyntaxInverter.LogicallyInvert(expression, semanticModel, cancellationToken);
+            ExpressionSyntax newNode = SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(expression, semanticModel, cancellationToken);
 
             return await document.ReplaceNodeAsync(expression, newNode, cancellationToken).ConfigureAwait(false);
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -13,33 +13,33 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AttributeCodeFixProvider))]
     [Shared]
-    public class AttributeCodeFixProvider : BaseCodeFixProvider
+    public sealed class AttributeCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.AttributeIsNotValidOnThisDeclarationType,
-                    CompilerDiagnosticIdentifiers.AttributeIsOnlyValidOnMethodsOrAttributeClasses);
+                    CompilerDiagnosticIdentifiers.CS0592_AttributeIsNotValidOnThisDeclarationType,
+                    CompilerDiagnosticIdentifiers.CS1689_AttributeIsOnlyValidOnMethodsOrAttributeClasses);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveAttribute))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveAttribute, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out AttributeSyntax attribute))
                 return;
 
             CodeAction codeAction = CodeAction.Create(
                 $"Remove attribute '{attribute.Name}'",
-                cancellationToken =>
+                ct =>
                 {
                     var attributeList = (AttributeListSyntax)attribute.Parent;
 
@@ -47,11 +47,11 @@ namespace Roslynator.CSharp.CodeFixes
 
                     if (attributes.Count == 1)
                     {
-                        return context.Document.RemoveNodeAsync(attributeList, cancellationToken);
+                        return context.Document.RemoveNodeAsync(attributeList, ct);
                     }
                     else
                     {
-                        return context.Document.RemoveNodeAsync(attribute, cancellationToken);
+                        return context.Document.RemoveNodeAsync(attribute, ct);
                     }
                 },
                 GetEquivalenceKey(diagnostic));

@@ -1,5 +1,6 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Threading;
@@ -16,19 +17,26 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(XmlNodeCodeFixProvider))]
     [Shared]
-    public class XmlNodeCodeFixProvider : BaseCodeFixProvider
+    public sealed class XmlNodeCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(DiagnosticIdentifiers.UnusedElementInDocumentationComment); }
+            get
+            {
+                return ImmutableArray.Create(
+                    DiagnosticIdentifiers.UnusedElementInDocumentationComment,
+                    DiagnosticIdentifiers.FixDocumentationCommentTag);
+            }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out XmlNodeSyntax xmlNode, findInsideTrivia: true))
                 return;
+
+            Document document = context.Document;
 
             foreach (Diagnostic diagnostic in context.Diagnostics)
             {
@@ -42,8 +50,22 @@ namespace Roslynator.CSharp.CodeFixes
 
                             CodeAction codeAction = CodeAction.Create(
                                 $"Remove element '{name}'",
-                                cancellationToken => RemoveUnusedElementInDocumentationCommentAsync(context.Document, elementInfo, cancellationToken),
+                                ct => RemoveUnusedElementInDocumentationCommentAsync(document, elementInfo, ct),
                                 GetEquivalenceKey(diagnostic, name));
+
+                            context.RegisterCodeFix(codeAction, diagnostic);
+                            break;
+                        }
+                    case DiagnosticIdentifiers.FixDocumentationCommentTag:
+                        {
+                            XmlElementInfo elementInfo = SyntaxInfo.XmlElementInfo(xmlNode);
+
+                            CodeAction codeAction = CodeAction.Create(
+                                (elementInfo.GetTag() == XmlTag.C)
+                                    ? "Rename tag to 'code'"
+                                    : "Rename tag to 'c'",
+                                ct => FixDocumentationCommentTagAsync(document, elementInfo, ct),
+                                GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
                             break;
@@ -86,7 +108,7 @@ namespace Roslynator.CSharp.CodeFixes
             else if (index == 1)
             {
                 if (count == 3
-                   && content[0] is XmlTextSyntax xmlText
+                    && content[0] is XmlTextSyntax xmlText
                     && IsWhitespace(xmlText)
                     && content[2] is XmlTextSyntax xmlText2
                     && IsNewLine(xmlText2))
@@ -108,7 +130,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             return document.RemoveNodeAsync(element, cancellationToken);
 
-            bool IsXmlTextBetweenLines(XmlTextSyntax xmlText)
+            static bool IsXmlTextBetweenLines(XmlTextSyntax xmlText)
             {
                 SyntaxTokenList tokens = xmlText.TextTokens;
 
@@ -137,14 +159,14 @@ namespace Roslynator.CSharp.CodeFixes
 
                 return true;
 
-                bool IsEmptyOrWhitespace(SyntaxToken token)
+                static bool IsEmptyOrWhitespace(SyntaxToken token)
                 {
                     return token.IsKind(SyntaxKind.XmlTextLiteralToken)
                         && StringUtility.IsEmptyOrWhitespace(token.ValueText);
                 }
             }
 
-            bool IsWhitespace(XmlTextSyntax xmlText)
+            static bool IsWhitespace(XmlTextSyntax xmlText)
             {
                 string text = xmlText.TextTokens.SingleOrDefault(shouldThrow: false).ValueText;
 
@@ -152,10 +174,37 @@ namespace Roslynator.CSharp.CodeFixes
                     && StringUtility.IsEmptyOrWhitespace(text);
             }
 
-            bool IsNewLine(XmlTextSyntax xmlText)
+            static bool IsNewLine(XmlTextSyntax xmlText)
             {
                 return xmlText.TextTokens.SingleOrDefault(shouldThrow: false).IsKind(SyntaxKind.XmlTextLiteralNewLineToken);
             }
+        }
+
+        private static Task<Document> FixDocumentationCommentTagAsync(
+            Document document,
+            in XmlElementInfo elementInfo,
+            CancellationToken cancellationToken)
+        {
+            var element = (XmlElementSyntax)elementInfo.Element;
+
+            XmlTag xmlTag = elementInfo.GetTag();
+
+            XmlElementSyntax newElement;
+
+            if (xmlTag == XmlTag.C)
+            {
+                newElement = element.UpdateName("code");
+            }
+            else if (xmlTag == XmlTag.Code)
+            {
+                newElement = element.UpdateName("c");
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+
+            return document.ReplaceNodeAsync(element, newElement, cancellationToken);
         }
     }
 }

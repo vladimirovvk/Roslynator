@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -12,9 +12,9 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DocumentCodeFixProvider))]
     [Shared]
-    public class DocumentCodeFixProvider : BaseCodeFixProvider
+    public sealed class DocumentCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.RemoveFileWithNoCode); }
         }
@@ -24,7 +24,7 @@ namespace Roslynator.CSharp.CodeFixes
             return null;
         }
 
-        public sealed override Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             foreach (Diagnostic diagnostic in context.Diagnostics)
             {
@@ -34,9 +34,9 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Remove file with no code",
-                                cancellationToken =>
+                                ct =>
                                 {
-                                    cancellationToken.ThrowIfCancellationRequested();
+                                    ct.ThrowIfCancellationRequested();
                                     return RemoveFromSolutionAsync(context.Document);
                                 },
                                 GetEquivalenceKey(diagnostic));

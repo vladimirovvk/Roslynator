@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -18,14 +18,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DirectiveTriviaCodeFixProvider))]
     [Shared]
-    public class DirectiveTriviaCodeFixProvider : BaseCodeFixProvider
+    public sealed class DirectiveTriviaCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.MergePreprocessorDirectives); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -36,7 +36,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 "Merge directives",
-                cancellationToken => RefactorAsync(context.Document, (PragmaWarningDirectiveTriviaSyntax)directive, cancellationToken),
+                ct => RefactorAsync(context.Document, (PragmaWarningDirectiveTriviaSyntax)directive, ct),
                 GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);
@@ -94,9 +94,10 @@ namespace Roslynator.CSharp.CodeFixes
                 i++;
             }
 
-            var textChange = new TextChange(TextSpan.FromBounds(start, end), StringBuilderCache.GetStringAndFree(sb));
-
-            return document.WithTextChangeAsync(textChange, cancellationToken);
+            return document.WithTextChangeAsync(
+                TextSpan.FromBounds(start, end),
+                StringBuilderCache.GetStringAndFree(sb),
+                cancellationToken);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.Metadata;
@@ -32,7 +32,7 @@ namespace Roslynator.CSharp.Analysis.Tests
     //TODO: Add tests for $Id$
     public class $ClassName$ : AbstractCSharpFixVerifier
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.$Identifier$;
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.$Identifier$;
 
         public override DiagnosticAnalyzer Analyzer { get; } = new $Identifier$Analyzer();
 
@@ -59,7 +59,7 @@ class C
 
         //[Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.$Identifier$)]
         //[InlineData("""", """")]
-        public async Task Test2(string fromData, string toData)
+        public async Task Test2(string source, string expected)
         {
             await VerifyDiagnosticAndFixAsync(@""
 using System;
@@ -73,7 +73,7 @@ class C
     {
     }
 }
-"", fromData, toData);
+"", source, expected);
         }
 
         //[Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.$Identifier$)]
@@ -96,7 +96,7 @@ class C
 
         //[Theory, Trait(Traits.Analyzer, DiagnosticIdentifiers.$Identifier$)]
         //[InlineData("""")]
-        public async Task TestNoDiagnostic2(string fromData)
+        public async Task TestNoDiagnostic2(string source)
         {
             await VerifyNoDiagnosticAsync(@""
 using System;
@@ -110,7 +110,7 @@ class C
     {
     }
 }
-"", fromData);
+"", source);
         }
     }
 }

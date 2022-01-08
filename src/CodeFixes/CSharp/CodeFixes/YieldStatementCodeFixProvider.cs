@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -14,28 +14,28 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(YieldStatementCodeFixProvider))]
     [Shared]
-    public class YieldStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class YieldStatementCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.YieldStatementCannotBeUsedInsideAnonymousMethodOrLambdaExpression); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS1621_YieldStatementCannotBeUsedInsideAnonymousMethodOrLambdaExpression); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveYieldKeyword))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveYieldKeyword, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out YieldStatementSyntax yieldStatement))
                 return;
 
             CodeAction codeAction = CodeAction.Create(
                 "Remove 'yield'",
-                cancellationToken =>
+                ct =>
                 {
                     SyntaxToken yieldKeyword = yieldStatement.YieldKeyword;
                     SyntaxToken returnKeyword = yieldStatement.ReturnOrBreakKeyword;
@@ -49,7 +49,7 @@ namespace Roslynator.CSharp.CodeFixes
                         yieldStatement.Expression,
                         yieldStatement.SemicolonToken);
 
-                    return context.Document.ReplaceNodeAsync(yieldStatement, newNode, cancellationToken);
+                    return context.Document.ReplaceNodeAsync(yieldStatement, newNode, ct);
                 },
                 GetEquivalenceKey(diagnostic));
 

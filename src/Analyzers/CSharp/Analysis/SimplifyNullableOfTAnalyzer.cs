@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,26 +12,30 @@ using Roslynator.CSharp;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class SimplifyNullableOfTAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class SimplifyNullableOfTAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.SimplifyNullableOfT); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.SimplifyNullableOfT);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeQualifiedName, SyntaxKind.QualifiedName);
-            context.RegisterSyntaxNodeAction(AnalyzeGenericName, SyntaxKind.GenericName);
+            context.RegisterSyntaxNodeAction(f => AnalyzeQualifiedName(f), SyntaxKind.QualifiedName);
+            context.RegisterSyntaxNodeAction(f => AnalyzeGenericName(f), SyntaxKind.GenericName);
         }
 
-        public static void AnalyzeGenericName(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeGenericName(SyntaxNodeAnalysisContext context)
         {
             var genericName = (GenericNameSyntax)context.Node;
 
@@ -56,26 +60,24 @@ namespace Roslynator.CSharp.Analysis
                 return;
             }
 
-            if (!(context.SemanticModel.GetSymbol(genericName, context.CancellationToken) is INamedTypeSymbol namedTypeSymbol))
+            if (context.SemanticModel.GetSymbol(genericName, context.CancellationToken) is not INamedTypeSymbol namedTypeSymbol)
                 return;
 
             if (!namedTypeSymbol.IsNullableType())
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.SimplifyNullableOfT, genericName);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.SimplifyNullableOfT, genericName);
         }
 
-        public static void AnalyzeQualifiedName(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeQualifiedName(SyntaxNodeAnalysisContext context)
         {
             var qualifiedName = (QualifiedNameSyntax)context.Node;
 
             if (qualifiedName.IsParentKind(SyntaxKind.UsingDirective, SyntaxKind.QualifiedCref))
                 return;
 
-            if (!qualifiedName.Right.IsKind(SyntaxKind.GenericName))
+            if (qualifiedName.Right is not GenericNameSyntax genericName)
                 return;
-
-            var genericName = (GenericNameSyntax)qualifiedName.Right;
 
             if (genericName
                 .TypeArgumentList?
@@ -89,7 +91,7 @@ namespace Roslynator.CSharp.Analysis
             if (IsWithinNameOfExpression(qualifiedName, context.SemanticModel, context.CancellationToken))
                 return;
 
-            if (!(context.SemanticModel.GetSymbol(qualifiedName, context.CancellationToken) is INamedTypeSymbol typeSymbol))
+            if (context.SemanticModel.GetSymbol(qualifiedName, context.CancellationToken) is not INamedTypeSymbol typeSymbol)
                 return;
 
             if (CSharpFacts.IsPredefinedType(typeSymbol.SpecialType))
@@ -98,13 +100,13 @@ namespace Roslynator.CSharp.Analysis
             if (!typeSymbol.IsNullableType())
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.SimplifyNullableOfT, qualifiedName);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.SimplifyNullableOfT, qualifiedName);
         }
 
         private static bool IsWithinNameOfExpression(
             SyntaxNode node,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             for (node = node.Parent; node != null; node = node.Parent)
             {

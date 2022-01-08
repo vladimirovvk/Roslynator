@@ -1,6 +1,7 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Composition;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Host;
@@ -13,7 +14,7 @@ namespace Roslynator.CSharp
     [ExportMetadata("ServiceType", "Roslynator.ISyntaxFactsService")]
     internal sealed class CSharpSyntaxFactsService : ISyntaxFactsService
     {
-        public static CSharpSyntaxFactsService Instance { get; } = new CSharpSyntaxFactsService();
+        public static CSharpSyntaxFactsService Instance { get; } = new();
 
         public string SingleLineCommentStart => "//";
 
@@ -57,6 +58,72 @@ namespace Roslynator.CSharp
         public bool AreEquivalent(SyntaxTree oldTree, SyntaxTree newTree)
         {
             return SyntaxFactory.AreEquivalent(oldTree, newTree, topLevel: false);
+        }
+
+        public SyntaxNode GetSymbolDeclaration(SyntaxToken identifier)
+        {
+            SyntaxNode parent = identifier.Parent;
+
+            if (!identifier.IsKind(SyntaxKind.IdentifierToken))
+                return null;
+
+            if (parent == null)
+                return null;
+
+            switch (parent.Kind())
+            {
+                case SyntaxKind.TupleElement:
+                case SyntaxKind.LocalFunctionStatement:
+                case SyntaxKind.VariableDeclarator:
+                case SyntaxKind.SingleVariableDesignation:
+                case SyntaxKind.CatchDeclaration:
+                case SyntaxKind.TypeParameter:
+                case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                case SyntaxKind.InterfaceDeclaration:
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.EnumDeclaration:
+                case SyntaxKind.DelegateDeclaration:
+                case SyntaxKind.EnumMemberDeclaration:
+                case SyntaxKind.MethodDeclaration:
+                case SyntaxKind.PropertyDeclaration:
+                case SyntaxKind.EventDeclaration:
+                case SyntaxKind.Parameter:
+                case SyntaxKind.ForEachStatement:
+                    {
+                        return parent;
+                    }
+                case SyntaxKind.IdentifierName:
+                    {
+                        parent = parent.Parent;
+
+                        if (parent.IsKind(SyntaxKind.NameEquals))
+                        {
+                            parent = parent.Parent;
+
+                            if (parent.IsKind(
+                                SyntaxKind.UsingDirective,
+                                SyntaxKind.AnonymousObjectMemberDeclarator))
+                            {
+                                return parent;
+                            }
+
+                            SyntaxDebug.Fail(parent);
+                            return null;
+                        }
+
+                        return parent;
+                    }
+            }
+
+            SyntaxDebug.Fail(parent);
+            return null;
+        }
+
+        public bool IsValidIdentifier(string name)
+        {
+            return SyntaxFacts.IsValidIdentifier(name);
         }
     }
 }

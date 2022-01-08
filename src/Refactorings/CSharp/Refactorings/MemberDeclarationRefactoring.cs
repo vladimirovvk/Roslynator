@@ -1,9 +1,9 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Roslynator.CSharp.Refactorings
 {
@@ -24,54 +24,63 @@ namespace Roslynator.CSharp.Refactorings
                 case SyntaxKind.EventDeclaration:
                 case SyntaxKind.NamespaceDeclaration:
                 case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.RecordDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
                 case SyntaxKind.InterfaceDeclaration:
                 case SyntaxKind.EnumDeclaration:
                     {
                         if (context.IsAnyRefactoringEnabled(
-                                RefactoringIdentifiers.RemoveMember,
-                                RefactoringIdentifiers.DuplicateMember,
-                                RefactoringIdentifiers.CommentOutMember)
-                            && BraceContainsSpan(member, context.Span))
+                            RefactoringDescriptors.RemoveMemberDeclaration,
+                            RefactoringDescriptors.CopyMemberDeclaration,
+                            RefactoringDescriptors.CommentOutMemberDeclaration))
                         {
-                            if (member.IsParentKind(
-                                SyntaxKind.NamespaceDeclaration,
-                                SyntaxKind.ClassDeclaration,
-                                SyntaxKind.StructDeclaration,
-                                SyntaxKind.InterfaceDeclaration,
-                                SyntaxKind.CompilationUnit))
+                            (SyntaxToken openBrace, SyntaxToken closeBrace) = GetBraces(member);
+
+                            if ((!openBrace.IsKind(SyntaxKind.None)
+                                && openBrace.Span.Contains(context.Span))
+                                || (!closeBrace.IsKind(SyntaxKind.None)
+                                    && closeBrace.Span.Contains(context.Span)))
                             {
-                                if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveMember))
+                                if (member.Parent != null
+                                    && CSharpFacts.CanHaveMembers(member.Parent.Kind()))
                                 {
-                                    context.RegisterRefactoring(CodeActionFactory.RemoveMemberDeclaration(context.Document, member, equivalenceKey: RefactoringIdentifiers.RemoveMember));
+                                    if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveMemberDeclaration))
+                                    {
+                                        context.RegisterRefactoring(CodeActionFactory.RemoveMemberDeclaration(context.Document, member, equivalenceKey: EquivalenceKey.Create(RefactoringDescriptors.RemoveMemberDeclaration)));
+                                    }
+
+                                    if (context.IsRefactoringEnabled(RefactoringDescriptors.CopyMemberDeclaration))
+                                    {
+                                        context.RegisterRefactoring(
+                                            $"Copy {CSharpFacts.GetTitle(member)}",
+                                            ct => CopyMemberDeclarationRefactoring.RefactorAsync(
+                                                context.Document,
+                                                member,
+                                                copyAfter: closeBrace.Span.Contains(context.Span),
+                                                ct),
+                                            RefactoringDescriptors.CopyMemberDeclaration);
+                                    }
                                 }
 
-                                if (context.IsRefactoringEnabled(RefactoringIdentifiers.DuplicateMember))
-                                {
-                                    context.RegisterRefactoring(
-                                        $"Duplicate {CSharpFacts.GetTitle(member)}",
-                                        cancellationToken => DuplicateMemberDeclarationRefactoring.RefactorAsync(context.Document, member, cancellationToken),
-                                        RefactoringIdentifiers.DuplicateMember);
-                                }
+                                if (context.IsRefactoringEnabled(RefactoringDescriptors.CommentOutMemberDeclaration))
+                                    CommentOutRefactoring.RegisterRefactoring(context, member);
                             }
-
-                            if (context.IsRefactoringEnabled(RefactoringIdentifiers.CommentOutMember))
-                                CommentOutRefactoring.RegisterRefactoring(context, member);
                         }
 
                         break;
                     }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveAllStatements))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveAllStatements))
                 RemoveAllStatementsRefactoring.ComputeRefactoring(context, member);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveAllMemberDeclarations))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveAllMemberDeclarations))
                 RemoveAllMemberDeclarationsRefactoring.ComputeRefactoring(context, member);
 
             if (context.IsAnyRefactoringEnabled(
-                    RefactoringIdentifiers.SwapMemberDeclarations,
-                    RefactoringIdentifiers.RemoveMemberDeclarations)
+                RefactoringDescriptors.SwapMemberDeclarations,
+                RefactoringDescriptors.RemoveMemberDeclarations)
                 && !member.Span.IntersectsWith(context.Span))
             {
                 MemberDeclarationsRefactoring.ComputeRefactoring(context, member);
@@ -95,6 +104,17 @@ namespace Roslynator.CSharp.Refactorings
                         await ClassDeclarationRefactoring.ComputeRefactoringsAsync(context, classDeclaration).ConfigureAwait(false);
 
                         if (MemberDeclarationListSelection.TryCreate(classDeclaration, context.Span, out MemberDeclarationListSelection selectedMembers))
+                            await SelectedMemberDeclarationsRefactoring.ComputeRefactoringAsync(context, selectedMembers).ConfigureAwait(false);
+
+                        break;
+                    }
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var recordDeclaration = (RecordDeclarationSyntax)member;
+                        await RecordDeclarationRefactoring.ComputeRefactoringsAsync(context, recordDeclaration).ConfigureAwait(false);
+
+                        if (MemberDeclarationListSelection.TryCreate(recordDeclaration, context.Span, out MemberDeclarationListSelection selectedMembers))
                             await SelectedMemberDeclarationsRefactoring.ComputeRefactoringAsync(context, selectedMembers).ConfigureAwait(false);
 
                         break;
@@ -186,109 +206,116 @@ namespace Roslynator.CSharp.Refactorings
                     }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.MoveUnsafeContextToContainingDeclaration))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.MoveUnsafeContextToContainingDeclaration))
                 MoveUnsafeContextToContainingDeclarationRefactoring.ComputeRefactoring(context, member);
         }
 
         private static void ComputeRefactorings(RefactoringContext context, OperatorDeclarationSyntax operatorDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseExpressionBodiedMember)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertBlockBodyToExpressionBody)
                 && context.SupportsCSharp6
-                && UseExpressionBodiedMemberRefactoring.CanRefactor(operatorDeclaration, context.Span))
+                && ConvertBlockBodyToExpressionBodyRefactoring.CanRefactor(operatorDeclaration, context.Span))
             {
                 context.RegisterRefactoring(
-                    UseExpressionBodiedMemberRefactoring.Title,
-                    cancellationToken => UseExpressionBodiedMemberRefactoring.RefactorAsync(context.Document, operatorDeclaration, cancellationToken),
-                    RefactoringIdentifiers.UseExpressionBodiedMember);
+                    ConvertBlockBodyToExpressionBodyRefactoring.Title,
+                    ct => ConvertBlockBodyToExpressionBodyRefactoring.RefactorAsync(context.Document, operatorDeclaration, ct),
+                    RefactoringDescriptors.ConvertBlockBodyToExpressionBody);
             }
         }
 
         private static void ComputeRefactorings(RefactoringContext context, ConversionOperatorDeclarationSyntax operatorDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.UseExpressionBodiedMember)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ConvertBlockBodyToExpressionBody)
                 && context.SupportsCSharp6
-                && UseExpressionBodiedMemberRefactoring.CanRefactor(operatorDeclaration, context.Span))
+                && ConvertBlockBodyToExpressionBodyRefactoring.CanRefactor(operatorDeclaration, context.Span))
             {
                 context.RegisterRefactoring(
-                    UseExpressionBodiedMemberRefactoring.Title,
-                    cancellationToken => UseExpressionBodiedMemberRefactoring.RefactorAsync(context.Document, operatorDeclaration, cancellationToken),
-                    RefactoringIdentifiers.UseExpressionBodiedMember);
+                    ConvertBlockBodyToExpressionBodyRefactoring.Title,
+                    ct => ConvertBlockBodyToExpressionBodyRefactoring.RefactorAsync(context.Document, operatorDeclaration, ct),
+                    RefactoringDescriptors.ConvertBlockBodyToExpressionBody);
             }
         }
 
-        private static bool BraceContainsSpan(MemberDeclarationSyntax member, TextSpan span)
+        private static (SyntaxToken openBrace, SyntaxToken closeBrace) GetBraces(MemberDeclarationSyntax member)
         {
             switch (member.Kind())
             {
                 case SyntaxKind.MethodDeclaration:
-                    return ((MethodDeclarationSyntax)member).Body?.BraceContainsSpan(span) == true;
+                    {
+                        return FromBody(((MethodDeclarationSyntax)member).Body);
+                    }
                 case SyntaxKind.IndexerDeclaration:
-                    return ((IndexerDeclarationSyntax)member).AccessorList?.BraceContainsSpan(span) == true;
+                    {
+                        return FromAccessorList(((IndexerDeclarationSyntax)member).AccessorList);
+                    }
                 case SyntaxKind.OperatorDeclaration:
-                    return ((OperatorDeclarationSyntax)member).Body?.BraceContainsSpan(span) == true;
+                    {
+                        return FromBody(((OperatorDeclarationSyntax)member).Body);
+                    }
                 case SyntaxKind.ConversionOperatorDeclaration:
-                    return ((ConversionOperatorDeclarationSyntax)member).Body?.BraceContainsSpan(span) == true;
+                    {
+                        return FromBody(((ConversionOperatorDeclarationSyntax)member).Body);
+                    }
                 case SyntaxKind.ConstructorDeclaration:
-                    return ((ConstructorDeclarationSyntax)member).Body?.BraceContainsSpan(span) == true;
+                    {
+                        return FromBody(((ConstructorDeclarationSyntax)member).Body);
+                    }
                 case SyntaxKind.PropertyDeclaration:
-                    return ((PropertyDeclarationSyntax)member).AccessorList?.BraceContainsSpan(span) == true;
+                    {
+                        return FromAccessorList(((PropertyDeclarationSyntax)member).AccessorList);
+                    }
                 case SyntaxKind.EventDeclaration:
-                    return ((EventDeclarationSyntax)member).AccessorList?.BraceContainsSpan(span) == true;
+                    {
+                        return FromAccessorList(((EventDeclarationSyntax)member).AccessorList);
+                    }
                 case SyntaxKind.NamespaceDeclaration:
-                    return ((NamespaceDeclarationSyntax)member).BraceContainsSpan(span);
+                    {
+                        var member1 = ((NamespaceDeclarationSyntax)member);
+                        return (member1.OpenBraceToken, member1.CloseBraceToken);
+                    }
                 case SyntaxKind.ClassDeclaration:
-                    return ((ClassDeclarationSyntax)member).BraceContainsSpan(span);
+                    {
+                        var member2 = ((ClassDeclarationSyntax)member);
+                        return (member2.OpenBraceToken, member2.CloseBraceToken);
+                    }
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        var member3 = ((RecordDeclarationSyntax)member);
+                        return (member3.OpenBraceToken, member3.CloseBraceToken);
+                    }
                 case SyntaxKind.StructDeclaration:
-                    return ((StructDeclarationSyntax)member).BraceContainsSpan(span);
+                    {
+                        var member4 = ((StructDeclarationSyntax)member);
+                        return (member4.OpenBraceToken, member4.CloseBraceToken);
+                    }
                 case SyntaxKind.InterfaceDeclaration:
-                    return ((InterfaceDeclarationSyntax)member).BraceContainsSpan(span);
+                    {
+                        var member5 = ((InterfaceDeclarationSyntax)member);
+                        return (member5.OpenBraceToken, member5.CloseBraceToken);
+                    }
                 case SyntaxKind.EnumDeclaration:
-                    return ((EnumDeclarationSyntax)member).BraceContainsSpan(span);
+                    {
+                        var member6 = ((EnumDeclarationSyntax)member);
+                        return (member6.OpenBraceToken, member6.CloseBraceToken);
+                    }
             }
 
-            return false;
-        }
+            return default;
 
-        private static bool BraceContainsSpan(this NamespaceDeclarationSyntax declaration, TextSpan span)
-        {
-            return declaration.OpenBraceToken.Span.Contains(span)
-                || declaration.CloseBraceToken.Span.Contains(span);
-        }
+            (SyntaxToken openBrace, SyntaxToken closeBrace) FromBody(BlockSyntax body)
+            {
+                return (body != null)
+                    ? (body.OpenBraceToken, body.CloseBraceToken)
+                    : default;
+            }
 
-        private static bool BraceContainsSpan(this ClassDeclarationSyntax declaration, TextSpan span)
-        {
-            return declaration.OpenBraceToken.Span.Contains(span)
-                || declaration.CloseBraceToken.Span.Contains(span);
-        }
-
-        private static bool BraceContainsSpan(this StructDeclarationSyntax declaration, TextSpan span)
-        {
-            return declaration.OpenBraceToken.Span.Contains(span)
-                || declaration.CloseBraceToken.Span.Contains(span);
-        }
-
-        private static bool BraceContainsSpan(this InterfaceDeclarationSyntax declaration, TextSpan span)
-        {
-            return declaration.OpenBraceToken.Span.Contains(span)
-                || declaration.CloseBraceToken.Span.Contains(span);
-        }
-
-        private static bool BraceContainsSpan(this EnumDeclarationSyntax declaration, TextSpan span)
-        {
-            return declaration.OpenBraceToken.Span.Contains(span)
-                || declaration.CloseBraceToken.Span.Contains(span);
-        }
-
-        private static bool BraceContainsSpan(this BlockSyntax body, TextSpan span)
-        {
-            return body.OpenBraceToken.Span.Contains(span)
-                || body.CloseBraceToken.Span.Contains(span);
-        }
-
-        private static bool BraceContainsSpan(this AccessorListSyntax accessorList, TextSpan span)
-        {
-            return accessorList.OpenBraceToken.Span.Contains(span)
-                || accessorList.CloseBraceToken.Span.Contains(span);
+            (SyntaxToken openBrace, SyntaxToken closeBrace) FromAccessorList(AccessorListSyntax accessorList)
+            {
+                return (accessorList != null)
+                    ? (accessorList.OpenBraceToken, accessorList.CloseBraceToken)
+                    : default;
+            }
         }
     }
 }

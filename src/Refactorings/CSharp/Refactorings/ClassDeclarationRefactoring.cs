@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -13,13 +13,13 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, ClassDeclarationSyntax classDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddTypeParameter))
-                AddTypeParameterRefactoring.ComputeRefactoring(context, classDeclaration);
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddGenericParameterToDeclaration))
+                AddGenericParameterToDeclarationRefactoring.ComputeRefactoring(context, classDeclaration);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ExtractTypeDeclarationToNewFile))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ExtractTypeDeclarationToNewFile))
                 ExtractTypeDeclarationToNewFileRefactoring.ComputeRefactorings(context, classDeclaration);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.GenerateBaseConstructors)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.GenerateBaseConstructors)
                 && classDeclaration.Identifier.Span.Contains(context.Span))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -30,15 +30,15 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         (constructors.Count == 1) ? "Generate base constructor" : "Generate base constructors",
-                        cancellationToken => GenerateBaseConstructorsRefactoring.RefactorAsync(context.Document, classDeclaration, constructors.ToArray(), semanticModel, cancellationToken),
-                        RefactoringIdentifiers.GenerateBaseConstructors);
+                        ct => GenerateBaseConstructorsRefactoring.RefactorAsync(context.Document, classDeclaration, constructors.ToArray(), semanticModel, ct),
+                        RefactoringDescriptors.GenerateBaseConstructors);
                 }
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ImplementIEquatableOfT))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ImplementIEquatableOfT))
                 await ImplementIEquatableOfTRefactoring.ComputeRefactoringAsync(context, classDeclaration).ConfigureAwait(false);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ImplementCustomEnumerator)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ImplementCustomEnumerator)
                 && context.Span.IsEmptyAndContainedInSpan(classDeclaration.Identifier))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -46,7 +46,7 @@ namespace Roslynator.CSharp.Refactorings
                 ImplementCustomEnumeratorRefactoring.ComputeRefactoring(context, classDeclaration, semanticModel);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SortMemberDeclarations)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.SortMemberDeclarations)
                 && classDeclaration.BracesSpan().Contains(context.Span))
             {
                 SortMemberDeclarationsRefactoring.ComputeRefactoring(context, classDeclaration);

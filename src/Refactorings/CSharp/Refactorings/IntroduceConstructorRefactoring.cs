@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,7 +18,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, MemberDeclarationSyntax declaration)
         {
-            if (!context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceConstructor))
+            if (!context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceConstructor))
                 return;
 
             List<MemberDeclarationSyntax> members = null;
@@ -37,7 +37,7 @@ namespace Roslynator.CSharp.Refactorings
                     }
                 }
             }
-            else if (kind.Is(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+            else if (kind.Is(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
             {
                 SemanticModel semanticModel = null;
 
@@ -50,7 +50,7 @@ namespace Roslynator.CSharp.Refactorings
 
                         if (CanBeAssignedFromConstructor(member, context.Span, semanticModel, context.CancellationToken))
                         {
-                            (members ?? (members = new List<MemberDeclarationSyntax>())).Add(member);
+                            (members ??= new List<MemberDeclarationSyntax>()).Add(member);
                         }
                     }
                 }
@@ -62,7 +62,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 "Introduce constructor",
                 ct => RefactorAsync(context.Document, declaration, members, ct),
-                RefactoringIdentifiers.IntroduceConstructor);
+                RefactoringDescriptors.IntroduceConstructor);
         }
 
         private static bool CanBeAssignedFromConstructor(
@@ -95,7 +95,7 @@ namespace Roslynator.CSharp.Refactorings
             if (symbol.IsStatic)
                 return false;
 
-            if (!propertyDeclaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration))
+            if (!propertyDeclaration.IsParentKind(SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration))
                 return false;
 
             ArrowExpressionClauseSyntax expressionBody = propertyDeclaration.ExpressionBody;
@@ -201,7 +201,7 @@ namespace Roslynator.CSharp.Refactorings
                 ExpressionSyntax expression = expressionBody.Expression;
 
                 return expression != null
-                    && symbol.Equals(GetBackingFieldSymbol(expression, semanticModel, cancellationToken));
+                    && SymbolEqualityComparer.Default.Equals(symbol, GetBackingFieldSymbol(expression, semanticModel, cancellationToken));
             }
             else
             {
@@ -223,14 +223,14 @@ namespace Roslynator.CSharp.Refactorings
                 StatementSyntax statement = body.Statements.SingleOrDefault(shouldThrow: false);
 
                 if (statement != null)
-                    return symbol.Equals(GetBackingFieldSymbol(statement, semanticModel, cancellationToken));
+                    return SymbolEqualityComparer.Default.Equals(symbol, GetBackingFieldSymbol(statement, semanticModel, cancellationToken));
             }
             else
             {
                 ExpressionSyntax expression = getter.ExpressionBody?.Expression;
 
                 return expression != null
-                    && symbol.Equals(GetBackingFieldSymbol(expression, semanticModel, cancellationToken));
+                    && SymbolEqualityComparer.Default.Equals(symbol, GetBackingFieldSymbol(expression, semanticModel, cancellationToken));
             }
 
             return false;
@@ -239,7 +239,7 @@ namespace Roslynator.CSharp.Refactorings
         private static ISymbol GetBackingFieldSymbol(
             StatementSyntax statement,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (statement is ReturnStatementSyntax returnStatement)
             {
@@ -255,7 +255,7 @@ namespace Roslynator.CSharp.Refactorings
         private static ISymbol GetBackingFieldSymbol(
             ExpressionSyntax expression,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (IsIdentifierNameOptionallyQualifiedWithThis(expression))
             {
@@ -293,7 +293,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             MemberDeclarationSyntax declaration,
             List<MemberDeclarationSyntax> assignableMembers,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             MemberDeclarationListInfo info = SyntaxInfo.MemberDeclarationListInfo(GetContainingDeclaration(declaration));
 
@@ -310,6 +310,9 @@ namespace Roslynator.CSharp.Refactorings
             {
                 case SyntaxKind.ClassDeclaration:
                     return ((ClassDeclarationSyntax)declaration).Identifier.Text;
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    return ((RecordDeclarationSyntax)declaration).Identifier.Text;
                 case SyntaxKind.StructDeclaration:
                     return ((StructDeclarationSyntax)declaration).Identifier.Text;
             }
@@ -322,7 +325,9 @@ namespace Roslynator.CSharp.Refactorings
             switch (declaration.Kind())
             {
                 case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.RecordDeclaration:
                 case SyntaxKind.StructDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
                     return declaration;
                 default:
                     {
@@ -343,8 +348,8 @@ namespace Roslynator.CSharp.Refactorings
                 string parameterName = StringUtility.ToCamelCase(name);
 
                 statements.Add(SimpleAssignmentStatement(
-                        IdentifierName(name).QualifyWithThis(),
-                        IdentifierName(parameterName)));
+                    IdentifierName(name).QualifyWithThis(),
+                    IdentifierName(parameterName)));
 
                 parameters.Add(Parameter(
                     default(SyntaxList<AttributeListSyntax>),
@@ -386,7 +391,7 @@ namespace Roslynator.CSharp.Refactorings
                     return ((FieldDeclarationSyntax)memberDeclaration).Declaration.Variables[0].Identifier;
             }
 
-            return default(SyntaxToken);
+            return default;
         }
 
         private static SyntaxToken GetPropertyIdentifier(PropertyDeclarationSyntax propertyDeclaration)
@@ -443,9 +448,9 @@ namespace Roslynator.CSharp.Refactorings
                     }
             }
 
-            Debug.Fail(expression.Kind().ToString());
+            SyntaxDebug.Fail(expression);
 
-            return default(SyntaxToken);
+            return default;
         }
     }
 }

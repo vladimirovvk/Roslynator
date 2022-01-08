@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -112,7 +112,7 @@ namespace Roslynator.Documentation
                 {
                     xml = XmlDocumentation.Unindent(xml);
 
-                    XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
+                    var element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
 
                     xmlDocumentation = new SymbolXmlDocumentation(symbol, element);
 
@@ -204,7 +204,7 @@ namespace Roslynator.Documentation
                 {
                     ISymbol assemblyOrModule = compilation.GetAssemblyOrModuleSymbol(externalReference);
 
-                    if (assembly == assemblyOrModule)
+                    if (SymbolEqualityComparer.Default.Equals(assembly, assemblyOrModule))
                         return ImmutableInterlocked.GetOrAdd(ref _assemblyToReferenceMap, assembly, externalReference);
                 }
             }

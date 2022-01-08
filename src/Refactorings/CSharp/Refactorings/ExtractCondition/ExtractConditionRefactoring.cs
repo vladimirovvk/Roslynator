@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -35,8 +35,8 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
 
                             context.RegisterRefactoring(
                                 refactoring.Title,
-                                cancellationToken => refactoring.RefactorAsync(context.Document, (IfStatementSyntax)parent, condition, expressionChain, cancellationToken),
-                                RefactoringIdentifiers.ExtractExpressionFromCondition);
+                                ct => refactoring.RefactorAsync(context.Document, (IfStatementSyntax)parent, condition, expressionChain, ct),
+                                RefactoringDescriptors.ExtractExpressionFromCondition);
                         }
                         else if (kind == SyntaxKind.LogicalOrExpression)
                         {
@@ -48,8 +48,8 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
 
                                 context.RegisterRefactoring(
                                     refactoring.Title,
-                                    cancellationToken => refactoring.RefactorAsync(context.Document, statementsInfo, condition, expressionChain, cancellationToken),
-                                    RefactoringIdentifiers.ExtractExpressionFromCondition);
+                                    ct => refactoring.RefactorAsync(context.Document, statementsInfo, condition, expressionChain, ct),
+                                    RefactoringDescriptors.ExtractExpressionFromCondition);
                             }
                         }
 
@@ -63,8 +63,8 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
 
                             context.RegisterRefactoring(
                                 refactoring.Title,
-                                cancellationToken => refactoring.RefactorAsync(context.Document, (WhileStatementSyntax)parent, condition, expressionChain, cancellationToken),
-                                RefactoringIdentifiers.ExtractExpressionFromCondition);
+                                ct => refactoring.RefactorAsync(context.Document, (WhileStatementSyntax)parent, condition, expressionChain, ct),
+                                RefactoringDescriptors.ExtractExpressionFromCondition);
                         }
 
                         break;
@@ -101,8 +101,8 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
 
                             context.RegisterRefactoring(
                                 refactoring.Title,
-                                cancellationToken => refactoring.RefactorAsync(context.Document, binaryExpression, expression, cancellationToken),
-                                RefactoringIdentifiers.ExtractExpressionFromCondition);
+                                ct => refactoring.RefactorAsync(context.Document, binaryExpression, expression, ct),
+                                RefactoringDescriptors.ExtractExpressionFromCondition);
                         }
                         else if (kind == SyntaxKind.LogicalOrExpression)
                         {
@@ -114,8 +114,8 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
 
                                 context.RegisterRefactoring(
                                     refactoring.Title,
-                                    cancellationToken => refactoring.RefactorAsync(context.Document, statementsInfo, binaryExpression, expression, cancellationToken),
-                                    RefactoringIdentifiers.ExtractExpressionFromCondition);
+                                    ct => refactoring.RefactorAsync(context.Document, statementsInfo, binaryExpression, expression, ct),
+                                    RefactoringDescriptors.ExtractExpressionFromCondition);
                             }
                         }
 
@@ -133,8 +133,8 @@ namespace Roslynator.CSharp.Refactorings.ExtractCondition
 
                                 context.RegisterRefactoring(
                                     refactoring.Title,
-                                    cancellationToken => refactoring.RefactorAsync(context.Document, (WhileStatementSyntax)parent, binaryExpression, expression, cancellationToken),
-                                    RefactoringIdentifiers.ExtractExpressionFromCondition);
+                                    ct => refactoring.RefactorAsync(context.Document, (WhileStatementSyntax)parent, binaryExpression, expression, ct),
+                                    RefactoringDescriptors.ExtractExpressionFromCondition);
                             }
                         }
 

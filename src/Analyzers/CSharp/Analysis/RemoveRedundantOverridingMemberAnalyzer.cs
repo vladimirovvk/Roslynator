@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -15,27 +15,31 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class RemoveRedundantOverridingMemberAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class RemoveRedundantOverridingMemberAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.RemoveRedundantOverridingMember); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.RemoveRedundantOverridingMember);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeIndexerDeclaration, SyntaxKind.IndexerDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeMethodDeclaration(f), SyntaxKind.MethodDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzePropertyDeclaration(f), SyntaxKind.PropertyDeclaration);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIndexerDeclaration(f), SyntaxKind.IndexerDeclaration);
         }
 
-        public static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
@@ -82,7 +86,7 @@ namespace Roslynator.CSharp.Analysis
 
             ISymbol symbol = semanticModel.GetSymbol(invocationInfo.Name, cancellationToken);
 
-            if (!overriddenMethod.Equals(symbol))
+            if (!SymbolEqualityComparer.Default.Equals(overriddenMethod, symbol))
                 return;
 
             if (!CheckParameters(methodDeclaration.ParameterList, invocationInfo.ArgumentList, semanticModel, cancellationToken))
@@ -91,15 +95,16 @@ namespace Roslynator.CSharp.Analysis
             if (!CheckDefaultValues(methodSymbol.Parameters, overriddenMethod.Parameters))
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.RemoveRedundantOverridingMember,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.RemoveRedundantOverridingMember,
                 methodDeclaration,
                 CSharpFacts.GetTitle(methodDeclaration));
         }
 
         private static bool CheckModifiers(SyntaxTokenList modifiers)
         {
-            bool isOverride = false;
+            var isOverride = false;
 
             foreach (SyntaxToken modifier in modifiers)
             {
@@ -135,9 +140,9 @@ namespace Roslynator.CSharp.Analysis
 
             for (int i = 0; i < parameters.Count; i++)
             {
-                if (semanticModel
-                    .GetDeclaredSymbol(parameters[i], cancellationToken)?
-                    .Equals(GetParameterSymbol(arguments[i].Expression, semanticModel, cancellationToken)) != true)
+                if (!SymbolEqualityComparer.Default.Equals(
+                    semanticModel.GetDeclaredSymbol(parameters[i], cancellationToken),
+                    GetParameterSymbol(arguments[i].Expression, semanticModel, cancellationToken)))
                 {
                     return false;
                 }
@@ -237,7 +242,7 @@ namespace Roslynator.CSharp.Analysis
             return null;
         }
 
-        public static void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
         {
             var propertyDeclaration = (PropertyDeclarationSyntax)context.Node;
 
@@ -270,8 +275,9 @@ namespace Roslynator.CSharp.Analysis
                     return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.RemoveRedundantOverridingMember,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.RemoveRedundantOverridingMember,
                 propertyDeclaration,
                 CSharpFacts.GetTitle(propertyDeclaration));
         }
@@ -310,7 +316,7 @@ namespace Roslynator.CSharp.Analysis
 
                         ISymbol symbol = semanticModel.GetSymbol(simpleName, cancellationToken);
 
-                        return overriddenProperty.Equals(symbol);
+                        return SymbolEqualityComparer.Default.Equals(overriddenProperty, symbol);
                     }
                 case SyntaxKind.SetAccessorDeclaration:
                     {
@@ -354,7 +360,7 @@ namespace Roslynator.CSharp.Analysis
 
                         ISymbol symbol = semanticModel.GetSymbol(simpleName, cancellationToken);
 
-                        return overriddenProperty.Equals(symbol);
+                        return SymbolEqualityComparer.Default.Equals(overriddenProperty, symbol);
                     }
                 case SyntaxKind.UnknownAccessorDeclaration:
                     {
@@ -362,13 +368,13 @@ namespace Roslynator.CSharp.Analysis
                     }
                 default:
                     {
-                        Debug.Fail(accessor.Kind().ToString());
+                        SyntaxDebug.Fail(accessor);
                         return false;
                     }
             }
         }
 
-        public static void AnalyzeIndexerDeclaration(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIndexerDeclaration(SyntaxNodeAnalysisContext context)
         {
             var indexerDeclaration = (IndexerDeclarationSyntax)context.Node;
 
@@ -401,8 +407,9 @@ namespace Roslynator.CSharp.Analysis
                     return;
             }
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.RemoveRedundantOverridingMember,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.RemoveRedundantOverridingMember,
                 indexerDeclaration,
                 CSharpFacts.GetTitle(indexerDeclaration));
         }
@@ -419,10 +426,8 @@ namespace Roslynator.CSharp.Analysis
                     {
                         ExpressionSyntax expression = GetGetAccessorExpression(accessor);
 
-                        if (expression?.IsKind(SyntaxKind.ElementAccessExpression) != true)
+                        if (expression is not ElementAccessExpressionSyntax elementAccess)
                             return false;
-
-                        var elementAccess = (ElementAccessExpressionSyntax)expression;
 
                         if (elementAccess.Expression?.IsKind(SyntaxKind.BaseExpression) != true)
                             return false;
@@ -442,7 +447,7 @@ namespace Roslynator.CSharp.Analysis
 
                         ISymbol symbol = semanticModel.GetSymbol(elementAccess, cancellationToken);
 
-                        return overriddenProperty.Equals(symbol)
+                        return SymbolEqualityComparer.Default.Equals(overriddenProperty, symbol)
                             && CheckParameters(indexerDeclaration.ParameterList, elementAccess.ArgumentList, semanticModel, cancellationToken)
                             && CheckDefaultValues(propertySymbol.Parameters, overriddenProperty.Parameters);
                     }
@@ -486,7 +491,7 @@ namespace Roslynator.CSharp.Analysis
 
                         ISymbol symbol = semanticModel.GetSymbol(elementAccess, cancellationToken);
 
-                        return overriddenProperty.Equals(symbol)
+                        return SymbolEqualityComparer.Default.Equals(overriddenProperty, symbol)
                             && CheckParameters(indexerDeclaration.ParameterList, elementAccess.ArgumentList, semanticModel, cancellationToken)
                             && CheckDefaultValues(propertySymbol.Parameters, overriddenProperty.Parameters);
                     }
@@ -496,7 +501,7 @@ namespace Roslynator.CSharp.Analysis
                     }
                 default:
                     {
-                        Debug.Fail(accessor.Kind().ToString());
+                        SyntaxDebug.Fail(accessor);
                         return false;
                     }
             }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -13,30 +13,34 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Roslynator.CodeFixes;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using static Roslynator.CSharp.CSharpFactory;
 
 namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(TokenCodeFixProvider))]
     [Shared]
-    public class TokenCodeFixProvider : BaseCodeFixProvider
+    public sealed class TokenCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.OperatorCannotBeAppliedToOperand,
-                    CompilerDiagnosticIdentifiers.PartialModifierCanOnlyAppearImmediatelyBeforeClassStructInterfaceOrVoid,
-                    CompilerDiagnosticIdentifiers.ValueCannotBeUsedAsDefaultParameter,
-                    CompilerDiagnosticIdentifiers.ObjectOfTypeConvertibleToTypeIsRequired,
-                    CompilerDiagnosticIdentifiers.TypeExpected,
-                    CompilerDiagnosticIdentifiers.SemicolonAfterMethodOrAccessorBlockIsNotValid,
-                    CompilerDiagnosticIdentifiers.CannotConvertType,
-                    CompilerDiagnosticIdentifiers.OptionalParametersMustAppearAfterAllRequiredParameters);
+                    CompilerDiagnosticIdentifiers.CS0023_OperatorCannotBeAppliedToOperand,
+                    CompilerDiagnosticIdentifiers.CS0267_PartialModifierCanOnlyAppearImmediatelyBeforeClassStructInterfaceOrVoid,
+                    CompilerDiagnosticIdentifiers.CS1750_ValueCannotBeUsedAsDefaultParameter,
+                    CompilerDiagnosticIdentifiers.CS0126_ObjectOfTypeConvertibleToTypeIsRequired,
+                    CompilerDiagnosticIdentifiers.CS1031_TypeExpected,
+                    CompilerDiagnosticIdentifiers.CS1597_SemicolonAfterMethodOrAccessorBlockIsNotValid,
+                    CompilerDiagnosticIdentifiers.CS0030_CannotConvertType,
+                    CompilerDiagnosticIdentifiers.CS1737_OptionalParametersMustAppearAfterAllRequiredParameters,
+                    CompilerDiagnosticIdentifiers.CS8632_AnnotationForNullableReferenceTypesShouldOnlyBeUsedWithinNullableAnnotationsContext,
+                    CompilerDiagnosticIdentifiers.CS8618_NonNullableMemberIsUninitialized,
+                    CompilerDiagnosticIdentifiers.CS8403_MethodWithIteratorBlockMustBeAsyncToReturnIAsyncEnumerableOfT);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -44,402 +48,500 @@ namespace Roslynator.CSharp.CodeFixes
                 return;
 
             SyntaxKind kind = token.Kind();
+            Diagnostic diagnostic = context.Diagnostics[0];
+            Document document = context.Document;
 
-            foreach (Diagnostic diagnostic in context.Diagnostics)
+            switch (diagnostic.Id)
             {
-                switch (diagnostic.Id)
-                {
-                    case CompilerDiagnosticIdentifiers.OperatorCannotBeAppliedToOperand:
+                case CompilerDiagnosticIdentifiers.CS0023_OperatorCannotBeAppliedToOperand:
+                    {
+                        if (kind == SyntaxKind.QuestionToken
+                            && token.Parent is ConditionalAccessExpressionSyntax conditionalAccess)
                         {
-                            if (kind == SyntaxKind.QuestionToken
-                                && token.Parent is ConditionalAccessExpressionSyntax conditionalAccess)
+                            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                            ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(conditionalAccess.Expression, context.CancellationToken);
+
+                            if (typeSymbol?.IsErrorType() == false
+                                && !typeSymbol.IsNullableType())
+                            {
+                                if (typeSymbol.IsValueType)
+                                {
+                                    if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConditionalAccess, document, root.SyntaxTree))
+                                    {
+                                        CodeAction codeAction = CodeAction.Create(
+                                            "Remove '?' operator",
+                                            ct => document.WithTextChangeAsync(token.Span, "", ct),
+                                            GetEquivalenceKey(diagnostic));
+
+                                        context.RegisterCodeFix(codeAction, diagnostic);
+                                    }
+                                }
+                                else if (typeSymbol.IsReferenceType)
+                                {
+                                    if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddArgumentList, document, root.SyntaxTree)
+                                        && conditionalAccess.WhenNotNull is MemberBindingExpressionSyntax memberBindingExpression)
+                                    {
+                                        ConditionalAccessExpressionSyntax newNode = conditionalAccess.WithWhenNotNull(
+                                            InvocationExpression(
+                                                memberBindingExpression.WithoutTrailingTrivia(),
+                                                ArgumentList().WithTrailingTrivia(memberBindingExpression.GetTrailingTrivia())));
+
+                                        CodeAction codeAction = CodeAction.Create(
+                                            "Add argument list",
+                                            ct => document.ReplaceNodeAsync(conditionalAccess, newNode, ct),
+                                            GetEquivalenceKey(diagnostic));
+
+                                        context.RegisterCodeFix(codeAction, diagnostic);
+                                    }
+                                }
+                            }
+                        }
+
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS0267_PartialModifierCanOnlyAppearImmediatelyBeforeClassStructInterfaceOrVoid:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.OrderModifiers, document, root.SyntaxTree))
+                            break;
+
+                        ModifiersCodeFixRegistrator.MoveModifier(context, diagnostic, token.Parent, token);
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS1750_ValueCannotBeUsedAsDefaultParameter:
+                    {
+                        if (token.Parent is not ParameterSyntax parameter)
+                            break;
+
+                        ExpressionSyntax value = parameter.Default?.Value;
+
+                        if (value == null)
+                            break;
+
+                        if (value.IsKind(SyntaxKind.NullLiteralExpression))
+                        {
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceNullLiteralExpressionWithDefaultValue, document, root.SyntaxTree))
                             {
                                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                                ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(conditionalAccess.Expression, context.CancellationToken);
+                                CodeFixRegistrator.ReplaceNullWithDefaultValue(context, diagnostic, value, semanticModel);
+                            }
+                        }
+                        else if (!value.IsKind(SyntaxKind.DefaultExpression, SyntaxKind.DefaultLiteralExpression))
+                        {
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeParameterType, document, root.SyntaxTree))
+                            {
+                                SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                                if (typeSymbol?.IsErrorType() == false
-                                    && !typeSymbol.IsNullableType())
+                                ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(value, context.CancellationToken);
+
+                                if (!typeSymbol.IsKind(SymbolKind.ErrorType))
                                 {
-                                    if (typeSymbol.IsValueType)
-                                    {
-                                        if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConditionalAccess))
+                                    CodeFixRegistrator.ChangeType(context, diagnostic, parameter.Type, typeSymbol, semanticModel);
+                                }
+                            }
+                        }
+
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS0126_ObjectOfTypeConvertibleToTypeIsRequired:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReturnDefaultValue, document, root.SyntaxTree))
+                            break;
+
+                        if (!token.IsKind(SyntaxKind.ReturnKeyword))
+                            break;
+
+                        if (!token.IsParentKind(SyntaxKind.ReturnStatement))
+                            break;
+
+                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                        ISymbol symbol = semanticModel.GetEnclosingSymbol(token.SpanStart, context.CancellationToken);
+
+                        if (symbol == null)
+                            break;
+
+                        SymbolKind symbolKind = symbol.Kind;
+
+                        ITypeSymbol typeSymbol = null;
+
+                        if (symbolKind == SymbolKind.Method)
+                        {
+                            var methodSymbol = (IMethodSymbol)symbol;
+
+                            typeSymbol = methodSymbol.ReturnType;
+
+                            if (methodSymbol.IsAsync
+                                && (typeSymbol is INamedTypeSymbol namedTypeSymbol))
+                            {
+                                ImmutableArray<ITypeSymbol> typeArguments = namedTypeSymbol.TypeArguments;
+
+                                if (typeArguments.Any())
+                                    typeSymbol = typeArguments[0];
+                            }
+                        }
+                        else if (symbolKind == SymbolKind.Property)
+                        {
+                            typeSymbol = ((IPropertySymbol)symbol).Type;
+                        }
+                        else
+                        {
+                            Debug.Fail(symbolKind.ToString());
+                        }
+
+                        if (typeSymbol == null)
+                            break;
+
+                        if (typeSymbol.Kind == SymbolKind.ErrorType)
+                            break;
+
+                        if (!typeSymbol.SupportsExplicitDeclaration())
+                            break;
+
+                        var returnStatement = (ReturnStatementSyntax)token.Parent;
+
+                        CodeAction codeAction = CodeAction.Create(
+                            "Return default value",
+                            ct =>
+                            {
+                                ExpressionSyntax expression = typeSymbol.GetDefaultValueSyntax(document.GetDefaultSyntaxOptions());
+
+                                if (expression.IsKind(SyntaxKind.DefaultExpression)
+                                    && document.SupportsLanguageFeature(CSharpLanguageFeature.DefaultLiteral))
+                                {
+                                    expression = CSharpFactory.DefaultLiteralExpression().WithTriviaFrom(expression);
+                                }
+
+                                ReturnStatementSyntax newNode = returnStatement.WithExpression(expression);
+
+                                return document.ReplaceNodeAsync(returnStatement, newNode, ct);
+                            },
+                            GetEquivalenceKey(diagnostic));
+
+                        context.RegisterCodeFix(codeAction, diagnostic);
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS1031_TypeExpected:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddMissingType, document, root.SyntaxTree))
+                            break;
+
+                        if (!token.IsKind(SyntaxKind.CloseParenToken))
+                            break;
+
+                        if (token.Parent is not DefaultExpressionSyntax defaultExpression)
+                            break;
+
+                        if (defaultExpression.Type is not IdentifierNameSyntax identifierName)
+                            break;
+
+                        if (!identifierName.IsMissing)
+                            break;
+
+                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                        TypeInfo typeInfo = semanticModel.GetTypeInfo(defaultExpression, context.CancellationToken);
+
+                        ITypeSymbol convertedType = typeInfo.ConvertedType;
+
+                        if (convertedType?.SupportsExplicitDeclaration() != true)
+                            break;
+
+                        CodeAction codeAction = CodeAction.Create(
+                            $"Add type '{SymbolDisplay.ToMinimalDisplayString(convertedType, semanticModel, defaultExpression.SpanStart, SymbolDisplayFormats.DisplayName)}'",
+                            ct =>
+                            {
+                                TypeSyntax newType = convertedType.ToTypeSyntax()
+                                    .WithTriviaFrom(identifierName)
+                                    .WithFormatterAndSimplifierAnnotation();
+
+                                return document.ReplaceNodeAsync(identifierName, newType, ct);
+                            },
+                            GetEquivalenceKey(diagnostic));
+
+                        context.RegisterCodeFix(codeAction, diagnostic);
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS1597_SemicolonAfterMethodOrAccessorBlockIsNotValid:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveSemicolon, document, root.SyntaxTree))
+                            break;
+
+                        if (!token.IsKind(SyntaxKind.SemicolonToken))
+                            break;
+
+                        switch (token.Parent)
+                        {
+                            case MethodDeclarationSyntax methodDeclaration:
+                                {
+                                    BlockSyntax body = methodDeclaration.Body;
+
+                                    if (body == null)
+                                        break;
+
+                                    CodeAction codeAction = CodeAction.Create(
+                                        "Remove semicolon",
+                                        ct =>
                                         {
-                                            CodeAction codeAction = CodeAction.Create(
-                                                "Remove '?' operator",
-                                                cancellationToken =>
-                                                {
-                                                    var textChange = new TextChange(token.Span, "");
-                                                    return context.Document.WithTextChangeAsync(textChange, cancellationToken);
-                                                },
-                                                GetEquivalenceKey(diagnostic));
+                                            SyntaxTriviaList trivia = body
+                                                .GetTrailingTrivia()
+                                                .EmptyIfWhitespace()
+                                                .AddRange(token.LeadingTrivia.EmptyIfWhitespace())
+                                                .AddRange(token.TrailingTrivia);
 
-                                            context.RegisterCodeFix(codeAction, diagnostic);
-                                        }
-                                    }
-                                    else if (typeSymbol.IsReferenceType)
-                                    {
-                                        if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddArgumentList)
-                                            && conditionalAccess.WhenNotNull is MemberBindingExpressionSyntax memberBindingExpression)
+                                            MethodDeclarationSyntax newNode = methodDeclaration
+                                                .WithBody(body.WithTrailingTrivia(trivia))
+                                                .WithSemicolonToken(default(SyntaxToken));
+
+                                            return document.ReplaceNodeAsync(methodDeclaration, newNode, ct);
+                                        },
+                                        GetEquivalenceKey(diagnostic));
+
+                                    context.RegisterCodeFix(codeAction, diagnostic);
+                                    break;
+                                }
+                            case PropertyDeclarationSyntax propertyDeclaration:
+                                {
+                                    AccessorListSyntax accessorList = propertyDeclaration.AccessorList;
+
+                                    if (accessorList == null)
+                                        break;
+
+                                    CodeAction codeAction = CodeAction.Create(
+                                        "Remove semicolon",
+                                        ct =>
                                         {
-                                            ConditionalAccessExpressionSyntax newNode = conditionalAccess.WithWhenNotNull(
-                                                InvocationExpression(
-                                                    memberBindingExpression.WithoutTrailingTrivia(),
-                                                    ArgumentList().WithTrailingTrivia(memberBindingExpression.GetTrailingTrivia())));
+                                            SyntaxTriviaList trivia = accessorList
+                                                .GetTrailingTrivia()
+                                                .EmptyIfWhitespace()
+                                                .AddRange(token.LeadingTrivia.EmptyIfWhitespace())
+                                                .AddRange(token.TrailingTrivia);
 
-                                            CodeAction codeAction = CodeAction.Create(
-                                                "Add argument list",
-                                                cancellationToken => context.Document.ReplaceNodeAsync(conditionalAccess, newNode, cancellationToken),
-                                                GetEquivalenceKey(diagnostic));
+                                            PropertyDeclarationSyntax newNode = propertyDeclaration
+                                                .WithAccessorList(accessorList.WithTrailingTrivia(trivia))
+                                                .WithSemicolonToken(default(SyntaxToken));
 
-                                            context.RegisterCodeFix(codeAction, diagnostic);
-                                        }
-                                    }
+                                            return document.ReplaceNodeAsync(propertyDeclaration, newNode, ct);
+                                        },
+                                        GetEquivalenceKey(diagnostic));
+
+                                    context.RegisterCodeFix(codeAction, diagnostic);
+                                    break;
                                 }
-                            }
-
-                            break;
-                        }
-                    case CompilerDiagnosticIdentifiers.PartialModifierCanOnlyAppearImmediatelyBeforeClassStructInterfaceOrVoid:
-                        {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.OrderModifiers))
-                                break;
-
-                            ModifiersCodeFixRegistrator.MoveModifier(context, diagnostic, token.Parent, token);
-                            break;
-                        }
-                    case CompilerDiagnosticIdentifiers.ValueCannotBeUsedAsDefaultParameter:
-                        {
-                            if (!(token.Parent is ParameterSyntax parameter))
-                                break;
-
-                            ExpressionSyntax value = parameter.Default?.Value;
-
-                            if (value == null)
-                                break;
-
-                            if (value.IsKind(SyntaxKind.NullLiteralExpression))
-                            {
-                                if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceNullLiteralExpressionWithDefaultValue))
+                            case AccessorDeclarationSyntax accessorDeclaration:
                                 {
-                                    SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+                                    BlockSyntax body = accessorDeclaration.Body;
 
-                                    CodeFixRegistrator.ReplaceNullWithDefaultValue(context, diagnostic, value, semanticModel);
+                                    if (body == null)
+                                        break;
+
+                                    CodeAction codeAction = CodeAction.Create(
+                                        "Remove semicolon",
+                                        ct =>
+                                        {
+                                            SyntaxTriviaList trivia = body
+                                                .GetTrailingTrivia()
+                                                .EmptyIfWhitespace()
+                                                .AddRange(token.LeadingTrivia.EmptyIfWhitespace())
+                                                .AddRange(token.TrailingTrivia);
+
+                                            AccessorDeclarationSyntax newNode = accessorDeclaration
+                                                .WithBody(body.WithTrailingTrivia(trivia))
+                                                .WithSemicolonToken(default(SyntaxToken));
+
+                                            return document.ReplaceNodeAsync(accessorDeclaration, newNode, ct);
+                                        },
+                                        GetEquivalenceKey(diagnostic));
+
+                                    context.RegisterCodeFix(codeAction, diagnostic);
+                                    break;
                                 }
-                            }
-                            else if (!value.IsKind(SyntaxKind.DefaultExpression, SyntaxKind.DefaultLiteralExpression))
-                            {
-                                if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeParameterType))
-                                {
-                                    SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-                                    ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(value, context.CancellationToken);
-
-                                    if (!typeSymbol.IsKind(SymbolKind.ErrorType))
-                                    {
-                                        CodeFixRegistrator.ChangeType(context, diagnostic, parameter.Type, typeSymbol, semanticModel);
-                                    }
-                                }
-                            }
-
-                            break;
                         }
-                    case CompilerDiagnosticIdentifiers.ObjectOfTypeConvertibleToTypeIsRequired:
+
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS0030_CannotConvertType:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeForEachType, document, root.SyntaxTree))
+                            break;
+
+                        if (!token.IsKind(SyntaxKind.ForEachKeyword))
+                            break;
+
+                        if (token.Parent is not ForEachStatementSyntax forEachStatement)
+                            break;
+
+                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                        ForEachStatementInfo info = semanticModel.GetForEachStatementInfo(forEachStatement);
+
+                        ITypeSymbol typeSymbol = info.ElementType;
+
+                        if (typeSymbol.SupportsExplicitDeclaration())
+                            CodeFixRegistrator.ChangeType(context, diagnostic, forEachStatement.Type, typeSymbol, semanticModel, CodeFixIdentifiers.ChangeForEachType);
+
+                        CodeFixRegistrator.ChangeTypeToVar(context, diagnostic, forEachStatement.Type, CodeFixIdentifiers.ChangeTypeToVar);
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS1737_OptionalParametersMustAppearAfterAllRequiredParameters:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddDefaultValueToParameter, document, root.SyntaxTree))
+                            break;
+
+                        if (token.Parent is not BaseParameterListSyntax parameterList)
+                            break;
+
+                        SeparatedSyntaxList<ParameterSyntax> parameters = parameterList.Parameters;
+
+                        ParameterSyntax parameter = null;
+
+                        for (int i = 0; i < parameters.Count; i++)
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReturnDefaultValue))
-                                break;
+                            ParameterSyntax p = parameters[i];
 
-                            if (token.Kind() != SyntaxKind.ReturnKeyword)
-                                break;
-
-                            if (!token.IsParentKind(SyntaxKind.ReturnStatement))
-                                break;
-
-                            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-                            ISymbol symbol = semanticModel.GetEnclosingSymbol(token.SpanStart, context.CancellationToken);
-
-                            if (symbol == null)
-                                break;
-
-                            SymbolKind symbolKind = symbol.Kind;
-
-                            ITypeSymbol typeSymbol = null;
-
-                            if (symbolKind == SymbolKind.Method)
+                            if (p.FullSpan.End <= token.SpanStart)
                             {
-                                var methodSymbol = (IMethodSymbol)symbol;
-
-                                typeSymbol = methodSymbol.ReturnType;
-
-                                if (methodSymbol.IsAsync
-                                    && (typeSymbol is INamedTypeSymbol namedTypeSymbol))
-                                {
-                                    ImmutableArray<ITypeSymbol> typeArguments = namedTypeSymbol.TypeArguments;
-
-                                    if (typeArguments.Any())
-                                        typeSymbol = typeArguments[0];
-                                }
-                            }
-                            else if (symbolKind == SymbolKind.Property)
-                            {
-                                typeSymbol = ((IPropertySymbol)symbol).Type;
+                                parameter = p;
                             }
                             else
                             {
-                                Debug.Fail(symbolKind.ToString());
+                                break;
                             }
-
-                            if (typeSymbol == null)
-                                break;
-
-                            if (typeSymbol.Kind == SymbolKind.ErrorType)
-                                break;
-
-                            if (!typeSymbol.SupportsExplicitDeclaration())
-                                break;
-
-                            var returnStatement = (ReturnStatementSyntax)token.Parent;
-
-                            CodeAction codeAction = CodeAction.Create(
-                                "Return default value",
-                                cancellationToken =>
-                                {
-                                    ExpressionSyntax expression = typeSymbol.GetDefaultValueSyntax(context.Document.GetDefaultSyntaxOptions());
-
-                                    if (expression.IsKind(SyntaxKind.DefaultExpression)
-                                        && context.Document.SupportsLanguageFeature(CSharpLanguageFeature.DefaultLiteral))
-                                    {
-                                        expression = CSharpFactory.DefaultLiteralExpression().WithTriviaFrom(expression);
-                                    }
-
-                                    ReturnStatementSyntax newNode = returnStatement.WithExpression(expression);
-
-                                    return context.Document.ReplaceNodeAsync(returnStatement, newNode, cancellationToken);
-                                },
-                                GetEquivalenceKey(diagnostic));
-
-                            context.RegisterCodeFix(codeAction, diagnostic);
-                            break;
                         }
-                    case CompilerDiagnosticIdentifiers.TypeExpected:
-                        {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddMissingType))
-                                break;
 
-                            if (token.Kind() != SyntaxKind.CloseParenToken)
-                                break;
+                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                            if (!(token.Parent is DefaultExpressionSyntax defaultExpression))
-                                break;
+                        IParameterSymbol parameterSymbol = semanticModel.GetDeclaredSymbol(parameter, context.CancellationToken);
 
-                            if (!(defaultExpression.Type is IdentifierNameSyntax identifierName))
-                                break;
+                        ITypeSymbol typeSymbol = parameterSymbol.Type;
 
-                            if (!identifierName.IsMissing)
-                                break;
-
-                            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-                            TypeInfo typeInfo = semanticModel.GetTypeInfo(defaultExpression, context.CancellationToken);
-
-                            ITypeSymbol convertedType = typeInfo.ConvertedType;
-
-                            if (convertedType?.SupportsExplicitDeclaration() != true)
-                                break;
-
-                            CodeAction codeAction = CodeAction.Create(
-                                $"Add type '{SymbolDisplay.ToMinimalDisplayString(convertedType, semanticModel, defaultExpression.SpanStart, SymbolDisplayFormats.Default)}'",
-                                cancellationToken =>
-                                {
-                                    TypeSyntax newNode = convertedType.ToMinimalTypeSyntax(semanticModel, defaultExpression.SpanStart);
-
-                                    newNode = newNode
-                                        .WithTriviaFrom(identifierName)
-                                        .WithFormatterAnnotation();
-
-                                    return context.Document.ReplaceNodeAsync(identifierName, newNode, cancellationToken);
-                                },
-                                GetEquivalenceKey(diagnostic));
-
-                            context.RegisterCodeFix(codeAction, diagnostic);
+                        if (typeSymbol.Kind == SymbolKind.ErrorType)
                             break;
-                        }
-                    case CompilerDiagnosticIdentifiers.SemicolonAfterMethodOrAccessorBlockIsNotValid:
-                        {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveSemicolon))
-                                break;
 
-                            if (token.Kind() != SyntaxKind.SemicolonToken)
-                                break;
-
-                            switch (token.Parent)
+                        CodeAction codeAction = CodeAction.Create(
+                            "Add default value",
+                            ct =>
                             {
-                                case MethodDeclarationSyntax methodDeclaration:
-                                    {
-                                        BlockSyntax body = methodDeclaration.Body;
+                                ExpressionSyntax defaultValue = typeSymbol.GetDefaultValueSyntax(document.GetDefaultSyntaxOptions());
 
-                                        if (body == null)
-                                            break;
+                                ParameterSyntax newParameter = parameter
+                                    .WithDefault(EqualsValueClause(defaultValue).WithTrailingTrivia(parameter.GetTrailingTrivia()))
+                                    .WithoutTrailingTrivia()
+                                    .WithFormatterAnnotation();
 
-                                        CodeAction codeAction = CodeAction.Create(
-                                            "Remove semicolon",
-                                            cancellationToken =>
-                                            {
-                                                SyntaxTriviaList trivia = body
-                                                    .GetTrailingTrivia()
-                                                    .EmptyIfWhitespace()
-                                                    .AddRange(token.LeadingTrivia.EmptyIfWhitespace())
-                                                    .AddRange(token.TrailingTrivia);
+                                return document.ReplaceNodeAsync(parameter, newParameter, ct);
+                            },
+                            GetEquivalenceKey(diagnostic));
 
-                                                MethodDeclarationSyntax newNode = methodDeclaration
-                                                    .WithBody(body.WithTrailingTrivia(trivia))
-                                                    .WithSemicolonToken(default(SyntaxToken));
-
-                                                return context.Document.ReplaceNodeAsync(methodDeclaration, newNode, cancellationToken);
-                                            },
-                                            GetEquivalenceKey(diagnostic));
-
-                                        context.RegisterCodeFix(codeAction, diagnostic);
-                                        break;
-                                    }
-                                case PropertyDeclarationSyntax propertyDeclaration:
-                                    {
-                                        AccessorListSyntax accessorList = propertyDeclaration.AccessorList;
-
-                                        if (accessorList == null)
-                                            break;
-
-                                        CodeAction codeAction = CodeAction.Create(
-                                            "Remove semicolon",
-                                            cancellationToken =>
-                                            {
-                                                SyntaxTriviaList trivia = accessorList
-                                                    .GetTrailingTrivia()
-                                                    .EmptyIfWhitespace()
-                                                    .AddRange(token.LeadingTrivia.EmptyIfWhitespace())
-                                                    .AddRange(token.TrailingTrivia);
-
-                                                PropertyDeclarationSyntax newNode = propertyDeclaration
-                                                    .WithAccessorList(accessorList.WithTrailingTrivia(trivia))
-                                                    .WithSemicolonToken(default(SyntaxToken));
-
-                                                return context.Document.ReplaceNodeAsync(propertyDeclaration, newNode, cancellationToken);
-                                            },
-                                            GetEquivalenceKey(diagnostic));
-
-                                        context.RegisterCodeFix(codeAction, diagnostic);
-                                        break;
-                                    }
-                                case AccessorDeclarationSyntax accessorDeclaration:
-                                    {
-                                        BlockSyntax body = accessorDeclaration.Body;
-
-                                        if (body == null)
-                                            break;
-
-                                        CodeAction codeAction = CodeAction.Create(
-                                            "Remove semicolon",
-                                            cancellationToken =>
-                                            {
-                                                SyntaxTriviaList trivia = body
-                                                    .GetTrailingTrivia()
-                                                    .EmptyIfWhitespace()
-                                                    .AddRange(token.LeadingTrivia.EmptyIfWhitespace())
-                                                    .AddRange(token.TrailingTrivia);
-
-                                                AccessorDeclarationSyntax newNode = accessorDeclaration
-                                                    .WithBody(body.WithTrailingTrivia(trivia))
-                                                    .WithSemicolonToken(default(SyntaxToken));
-
-                                                return context.Document.ReplaceNodeAsync(accessorDeclaration, newNode, cancellationToken);
-                                            },
-                                            GetEquivalenceKey(diagnostic));
-
-                                        context.RegisterCodeFix(codeAction, diagnostic);
-                                        break;
-                                    }
-                            }
-
+                        context.RegisterCodeFix(codeAction, diagnostic);
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS8632_AnnotationForNullableReferenceTypesShouldOnlyBeUsedWithinNullableAnnotationsContext:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveAnnotationForNullableReferenceTypes, document, root.SyntaxTree))
                             break;
-                        }
-                    case CompilerDiagnosticIdentifiers.CannotConvertType:
-                        {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeForEachType))
-                                break;
 
-                            if (token.Kind() != SyntaxKind.ForEachKeyword)
-                                break;
+                        if (!token.IsKind(SyntaxKind.QuestionToken))
+                            return;
 
-                            if (!(token.Parent is ForEachStatementSyntax forEachStatement))
-                                break;
-
-                            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-                            ForEachStatementInfo info = semanticModel.GetForEachStatementInfo(forEachStatement);
-
-                            ITypeSymbol typeSymbol = info.ElementType;
-
-                            if (typeSymbol.SupportsExplicitDeclaration())
-                                CodeFixRegistrator.ChangeType(context, diagnostic, forEachStatement.Type, typeSymbol, semanticModel, CodeFixIdentifiers.ChangeForEachType);
-
-                            CodeFixRegistrator.ChangeTypeToVar(context, diagnostic, forEachStatement.Type, CodeFixIdentifiers.ChangeTypeToVar);
-                            break;
-                        }
-                    case CompilerDiagnosticIdentifiers.OptionalParametersMustAppearAfterAllRequiredParameters:
-                        {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddDefaultValueToParameter))
-                                break;
-
-                            if (!(token.Parent is BaseParameterListSyntax parameterList))
-                                break;
-
-                            SeparatedSyntaxList<ParameterSyntax> parameters = parameterList.Parameters;
-
-                            ParameterSyntax parameter = null;
-
-                            for (int i = 0; i < parameters.Count; i++)
+                        CodeAction codeAction = CodeAction.Create(
+                            "Remove 'nullable' annotation",
+                            ct =>
                             {
-                                ParameterSyntax p = parameters[i];
+                                var textChange = new TextChange(token.Span, "");
 
-                                if (p.FullSpan.End <= token.SpanStart)
-                                {
-                                    parameter = p;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
+                                return document.WithTextChangeAsync(textChange, ct);
+                            },
+                            GetEquivalenceKey(diagnostic));
 
-                            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+                        context.RegisterCodeFix(codeAction, diagnostic);
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS8618_NonNullableMemberIsUninitialized:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseNullForgivingOperator, document, root.SyntaxTree))
+                            break;
 
-                            IParameterSymbol parameterSymbol = semanticModel.GetDeclaredSymbol(parameter, context.CancellationToken);
+                        Debug.Assert(token.IsKind(SyntaxKind.IdentifierToken), token.Kind().ToString());
 
-                            ITypeSymbol typeSymbol = parameterSymbol.Type;
+                        if (!token.IsKind(SyntaxKind.IdentifierToken))
+                            return;
 
-                            if (typeSymbol.Kind == SymbolKind.ErrorType)
-                                break;
-
+                        if (token.IsParentKind(SyntaxKind.PropertyDeclaration))
+                        {
                             CodeAction codeAction = CodeAction.Create(
-                                "Add default value",
-                                cancellationToken =>
+                                "Use null-forgiving operator",
+                                ct =>
                                 {
-                                    ExpressionSyntax defaultValue = typeSymbol.GetDefaultValueSyntax(context.Document.GetDefaultSyntaxOptions());
+                                    var property = (PropertyDeclarationSyntax)token.Parent;
 
-                                    ParameterSyntax newParameter = parameter
-                                        .WithDefault(EqualsValueClause(defaultValue).WithTrailingTrivia(parameter.GetTrailingTrivia()))
+                                    PropertyDeclarationSyntax newProperty = property
                                         .WithoutTrailingTrivia()
-                                        .WithFormatterAnnotation();
+                                        .WithInitializer(EqualsValueClause(SuppressNullableWarningExpression(NullLiteralExpression())))
+                                        .WithSemicolonToken(SemicolonToken().WithTrailingTrivia(property.GetTrailingTrivia()));
 
-                                    return context.Document.ReplaceNodeAsync(parameter, newParameter, cancellationToken);
+                                    return document.ReplaceNodeAsync(property, newProperty, ct);
                                 },
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
-                            break;
                         }
-                }
+                        else
+                        {
+                            SyntaxDebug.Assert(
+                                (token.IsParentKind(SyntaxKind.VariableDeclarator)
+                                    && token.Parent.IsParentKind(SyntaxKind.VariableDeclaration)
+                                    && token.Parent.Parent.IsParentKind(SyntaxKind.FieldDeclaration, SyntaxKind.EventFieldDeclaration))
+                                    || token.IsParentKind(SyntaxKind.ConstructorDeclaration),
+                                token);
+
+                            if (token.IsParentKind(SyntaxKind.VariableDeclarator)
+                                && token.Parent.IsParentKind(SyntaxKind.VariableDeclaration)
+                                && token.Parent.Parent.IsParentKind(SyntaxKind.FieldDeclaration))
+                            {
+                                CodeAction codeAction = CodeAction.Create(
+                                    "Use null-forgiving operator",
+                                    ct =>
+                                    {
+                                        var declarator = (VariableDeclaratorSyntax)token.Parent;
+
+                                        VariableDeclaratorSyntax newDeclarator = declarator
+                                            .WithoutTrailingTrivia()
+                                            .WithInitializer(
+                                                EqualsValueClause(SuppressNullableWarningExpression(NullLiteralExpression()))
+                                                    .WithTrailingTrivia(declarator.GetTrailingTrivia()));
+
+                                        return document.ReplaceNodeAsync(declarator, newDeclarator, ct);
+                                    },
+                                    GetEquivalenceKey(diagnostic));
+
+                                context.RegisterCodeFix(codeAction, diagnostic);
+                            }
+                        }
+
+                        break;
+                    }
+                case CompilerDiagnosticIdentifiers.CS8403_MethodWithIteratorBlockMustBeAsyncToReturnIAsyncEnumerableOfT:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddAsyncModifier, document, root.SyntaxTree))
+                            break;
+
+                        SyntaxDebug.Assert(token.IsKind(SyntaxKind.IdentifierToken), token);
+                        SyntaxDebug.Assert(token.IsParentKind(SyntaxKind.MethodDeclaration, SyntaxKind.LocalFunctionStatement), token.Parent);
+
+                        if (token.IsParentKind(SyntaxKind.MethodDeclaration, SyntaxKind.LocalFunctionStatement))
+                        {
+                            ModifiersCodeFixRegistrator.AddModifier(
+                                context,
+                                diagnostic,
+                                token.Parent,
+                                SyntaxKind.AsyncKeyword,
+                                additionalKey: CodeFixIdentifiers.AddAsyncModifier);
+                        }
+
+                        break;
+                    }
             }
         }
     }

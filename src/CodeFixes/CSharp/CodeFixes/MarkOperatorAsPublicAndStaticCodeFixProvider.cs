@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -15,28 +15,28 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(MarkOperatorAsPublicAndStaticCodeFixProvider))]
     [Shared]
-    public class MarkOperatorAsPublicAndStaticCodeFixProvider : BaseCodeFixProvider
+    public sealed class MarkOperatorAsPublicAndStaticCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.UserDefinedOperatorMustBeDeclaredStaticAndPublic); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS0558_UserDefinedOperatorMustBeDeclaredStaticAndPublic); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             Diagnostic diagnostic = context.Diagnostics[0];
 
-            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.MarkOperatorAsPublicAndStatic))
-                return;
-
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
+
+            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.MarkOperatorAsPublicAndStatic, context.Document, root.SyntaxTree))
+                return;
 
             if (!TryFindFirstAncestorOrSelf(root, context.Span, out MemberDeclarationSyntax memberDeclaration))
                 return;
 
             ModifierListInfo info = SyntaxInfo.ModifierListInfo(memberDeclaration);
 
-            string title = "Add ";
+            var title = "Add ";
 
             if (info.ExplicitAccessibility == Accessibility.Public)
             {
@@ -53,7 +53,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             CodeAction codeAction = CodeAction.Create(
                 title,
-                cancellationToken =>
+                ct =>
                 {
                     SyntaxNode newNode = memberDeclaration;
 
@@ -66,9 +66,9 @@ namespace Roslynator.CSharp.CodeFixes
                     if (!info.IsStatic)
                         newNode = ModifierList.Insert(newNode, SyntaxKind.StaticKeyword);
 
-                    return context.Document.ReplaceNodeAsync(memberDeclaration, newNode, cancellationToken);
+                    return context.Document.ReplaceNodeAsync(memberDeclaration, newNode, ct);
                 },
-                base.GetEquivalenceKey(diagnostic));
+                GetEquivalenceKey(diagnostic));
 
             context.RegisterCodeFix(codeAction, diagnostic);
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +34,8 @@ namespace Roslynator.CodeGeneration.CSharp
                     "Microsoft.CodeAnalysis",
                     "Microsoft.CodeAnalysis.CSharp",
                     "Microsoft.CodeAnalysis.CSharp.Syntax"),
-                NamespaceDeclaration("Roslynator.CSharp.SyntaxWalkers",
+                NamespaceDeclaration(
+                    "Roslynator.CSharp.SyntaxWalkers",
                     ClassDeclaration(
                         default(SyntaxList<AttributeListSyntax>),
                         Modifiers.Public_Abstract(),
@@ -74,7 +75,7 @@ namespace Roslynator.CodeGeneration.CSharp
         {
             MethodDeclarationSyntax methodDeclaration = base.CreateVisitAbstractSyntaxMethodDeclaration(metadataName);
 
-            if (metadataName != MetadataNames.CodeAnalysis.Microsoft_CodeAnalysis_CSharp_Syntax_BaseTypeSyntax)
+            if (metadataName != RoslynMetadataNames.Microsoft_CodeAnalysis_CSharp_Syntax_BaseTypeSyntax)
             {
                 methodDeclaration = methodDeclaration.WithModifiers(Modifiers.Private());
             }
@@ -95,7 +96,7 @@ namespace Roslynator.CodeGeneration.CSharp
                 ParameterList(Parameter(IdentifierName("SyntaxNode"), "node")),
                 Block(switchStatement));
 
-            IEnumerable<SwitchSectionSyntax> CreateSections()
+            static IEnumerable<SwitchSectionSyntax> CreateSections()
             {
                 foreach (INamedTypeSymbol typeSymbol in SyntaxSymbols.Where(f => !f.IsAbstract))
                 {
@@ -108,14 +109,14 @@ namespace Roslynator.CodeGeneration.CSharp
                     yield return SwitchSection(
                         labels,
                         List(new StatementSyntax[]
-                        {
-                            ExpressionStatement(
-                                InvocationExpression(
-                                    IdentifierName("Visit" + name.Remove(name.Length - 6)),
-                                    ArgumentList(Argument(CastExpression(IdentifierName(name), IdentifierName("node")))))),
+                            {
+                                ExpressionStatement(
+                                    InvocationExpression(
+                                        IdentifierName("Visit" + name.Remove(name.Length - 6)),
+                                        ArgumentList(Argument(CastExpression(IdentifierName(name), IdentifierName("node")))))),
 
-                            BreakStatement()
-                        }));
+                                BreakStatement()
+                            }));
                 }
 
                 yield return DefaultSwitchSection(ThrowNewArgumentException(ParseExpression(@"$""Unrecognized node '{node.Kind()}'."""), "node"));

@@ -1,9 +1,9 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Xunit;
 using static Roslynator.GeneratedCodeUtility;
 
-namespace Roslynator.CSharp.Tests
+namespace Roslynator.Testing.CSharp
 {
     public static class GeneratedCodeUtilityTests
     {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -10,23 +10,27 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AvoidChainOfAssignmentsAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AvoidChainOfAssignmentsAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.AvoidChainOfAssignments); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.AvoidChainOfAssignments);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
-            context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeAssignment, CSharpFacts.AssignmentExpressionKinds);
-            context.RegisterSyntaxNodeAction(AnalyzeEqualsValueClause, SyntaxKind.EqualsValueClause);
+            context.RegisterSyntaxNodeAction(f => AnalyzeAssignment(f), CSharpFacts.AssignmentExpressionKinds);
+            context.RegisterSyntaxNodeAction(f => AnalyzeEqualsValueClause(f), SyntaxKind.EqualsValueClause);
         }
 
         private static void AnalyzeAssignment(SyntaxNodeAnalysisContext context)
@@ -34,9 +38,9 @@ namespace Roslynator.CSharp.Analysis
             var assignment = (AssignmentExpressionSyntax)context.Node;
 
             if (assignment.Right is AssignmentExpressionSyntax
-                && !(assignment.Parent is AssignmentExpressionSyntax))
+                && assignment.Parent is not AssignmentExpressionSyntax)
             {
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AvoidChainOfAssignments, assignment);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AvoidChainOfAssignments, assignment);
             }
         }
 
@@ -45,7 +49,7 @@ namespace Roslynator.CSharp.Analysis
             var equalsValue = (EqualsValueClauseSyntax)context.Node;
 
             if (equalsValue.Value is AssignmentExpressionSyntax)
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AvoidChainOfAssignments, equalsValue);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AvoidChainOfAssignments, equalsValue);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -99,19 +99,22 @@ namespace Roslynator
 
         public bool Equals(OneOrMany<T> other)
         {
-            if (_state == State.Default)
+            switch (_state)
             {
-                return other._state == State.Default;
-            }
-            else if (_state == State.One)
-            {
-                return other._state == State.One
-                    && EqualityComparer<T>.Default.Equals(_value, other._value);
-            }
-            else if (_state == State.Many)
-            {
-                return other._state == State.Many
-                    && _values.Equals(other._values);
+                case State.Default:
+                    {
+                        return other._state == State.Default;
+                    }
+                case State.One:
+                    {
+                        return other._state == State.One
+                            && EqualityComparer<T>.Default.Equals(_value, other._value);
+                    }
+                case State.Many:
+                    {
+                        return other._state == State.Many
+                            && _values.Equals(other._values);
+                    }
             }
 
             throw new InvalidOperationException();
@@ -125,7 +128,7 @@ namespace Roslynator
                 return Hash.Combine(EqualityComparer<T>.Default.GetHashCode(_value), hashCode);
 
             if (_state == State.Many)
-                return Hash.Combine(Hash.CombineValues(_values), hashCode);
+                return Hash.Combine(_values.GetHashCode(), hashCode);
 
             return hashCode;
         }

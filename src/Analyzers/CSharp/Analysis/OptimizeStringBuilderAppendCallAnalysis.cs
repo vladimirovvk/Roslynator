@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
@@ -78,7 +78,8 @@ namespace Roslynator.CSharp.Analysis
                             BinaryExpressionInfo binaryExpressionInfo = SyntaxInfo.BinaryExpressionInfo((BinaryExpressionSyntax)expression);
 
                             if (binaryExpressionInfo.Success
-                                && binaryExpressionInfo.AsChain().Reverse().IsStringConcatenation(context.SemanticModel, context.CancellationToken))
+                                && binaryExpressionInfo.AsChain().Reverse().IsStringConcatenation(context.SemanticModel, context.CancellationToken)
+                                && !context.SemanticModel.GetConstantValue(expression, context.CancellationToken).HasValue)
                             {
                                 ReportDiagnostic(argument);
                             }
@@ -153,12 +154,19 @@ namespace Roslynator.CSharp.Analysis
                             ReportDiagnostic(argument);
                             break;
                         }
+                    case "Join":
+                        {
+                            if (methodSymbol.ContainingType.ContainsMember<IMethodSymbol>("AppendJoin"))
+                                ReportDiagnostic(argument);
+
+                            break;
+                        }
                 }
             }
 
             void ReportDiagnostic(SyntaxNode node)
             {
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.OptimizeStringBuilderAppendCall, node, methodSymbol.Name);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.OptimizeStringBuilderAppendCall, node, methodSymbol.Name);
             }
         }
     }

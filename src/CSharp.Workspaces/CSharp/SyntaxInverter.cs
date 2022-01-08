@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -11,6 +11,7 @@ using static Roslynator.CSharp.CSharpFactory;
 
 namespace Roslynator.CSharp
 {
+    [Obsolete("SyntaxInverter is obsolete, use SyntaxLogicalInverter instead.")]
     /// <summary>
     /// Provides static methods for syntax inversion.
     /// </summary>
@@ -21,10 +22,9 @@ namespace Roslynator.CSharp
         /// </summary>
         /// <param name="expression"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static ExpressionSyntax LogicallyInvert(
             ExpressionSyntax expression,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             return LogicallyInvert(expression, semanticModel: null, cancellationToken);
         }
@@ -35,11 +35,10 @@ namespace Roslynator.CSharp
         /// <param name="expression"></param>
         /// <param name="semanticModel"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public static ExpressionSyntax LogicallyInvert(
             ExpressionSyntax expression,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             if (expression == null)
                 throw new ArgumentNullException(nameof(expression));
@@ -238,7 +237,7 @@ namespace Roslynator.CSharp
                     InvertBinaryExpression(binaryExpression));
             }
 
-            if (!(expression is ConditionalAccessExpressionSyntax conditionalAccess))
+            if (expression is not ConditionalAccessExpressionSyntax conditionalAccess)
                 return DefaultInvert(binaryExpression);
 
             if (conditionalAccess.Expression.Kind() != SyntaxKind.IdentifierName)
@@ -271,7 +270,7 @@ namespace Roslynator.CSharp
                     }
                 case InvocationExpressionSyntax invocation:
                     {
-                        if (!(invocation.Expression is MemberBindingExpressionSyntax memberBinding))
+                        if (invocation.Expression is not MemberBindingExpressionSyntax memberBinding)
                             return null;
 
                         return InvocationExpression(SimpleMemberAccessExpression(conditionalAccess.Expression, memberBinding.Name), invocation.ArgumentList);
@@ -281,7 +280,7 @@ namespace Roslynator.CSharp
             return null;
         }
 
-        private static BinaryExpressionSyntax InvertBinaryExpression(BinaryExpressionSyntax binaryExpression)
+        internal static BinaryExpressionSyntax InvertBinaryExpression(BinaryExpressionSyntax binaryExpression)
         {
             SyntaxToken operatorToken = InvertBinaryOperatorToken(binaryExpression.OperatorToken);
 
@@ -295,7 +294,7 @@ namespace Roslynator.CSharp
                 InvertBinaryOperator(operatorToken.Kind()),
                 operatorToken.TrailingTrivia);
 
-            SyntaxKind InvertBinaryOperator(SyntaxKind kind)
+            static SyntaxKind InvertBinaryOperator(SyntaxKind kind)
             {
                 switch (kind)
                 {
@@ -410,7 +409,7 @@ namespace Roslynator.CSharp
 
         private static PrefixUnaryExpressionSyntax DefaultInvert(ExpressionSyntax expression)
         {
-            Debug.Assert(expression.Kind() != SyntaxKind.ParenthesizedExpression, expression.Kind().ToString());
+            SyntaxDebug.Assert(expression.Kind() != SyntaxKind.ParenthesizedExpression, expression);
 
             SyntaxTriviaList leadingTrivia = expression.GetLeadingTrivia();
 

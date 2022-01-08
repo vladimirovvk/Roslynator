@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -17,7 +17,7 @@ namespace Roslynator.CSharp.Refactorings
 {
     internal static class IfRefactoring
     {
-        public static Task<Document> RefactorAsync(Document document, IfAnalysis ifAnalysis, CancellationToken cancellationToken = default(CancellationToken))
+        public static Task<Document> RefactorAsync(Document document, IfAnalysis ifAnalysis, CancellationToken cancellationToken = default)
         {
             switch (ifAnalysis.Kind)
             {
@@ -111,7 +111,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToAssignmentWithCoalesceExpressionAsync(
             Document document,
             IfElseToAssignmentWithCoalesceExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
 
@@ -132,7 +132,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToAssignmentWithConditionalExpressionAsync(
             Document document,
             IfElseToAssignmentWithConditionalExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
 
@@ -149,7 +149,7 @@ namespace Roslynator.CSharp.Refactorings
             Document document,
             ToAssignmentWithConditionalExpressionAnalysis analysis,
             StatementSyntax newStatement,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             StatementListInfo statementsInfo = SyntaxInfo.StatementListInfo(analysis.IfStatement);
 
@@ -167,7 +167,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToAssignmentWithExpressionAsync(
             Document document,
             IfElseToAssignmentWithExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ExpressionStatementSyntax newNode = analysis.ExpressionStatement
                 .WithTriviaFrom(analysis.IfStatement)
@@ -179,12 +179,12 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToAssignmentWithConditionAsync(
             Document document,
             IfElseToAssignmentWithConditionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ExpressionSyntax right = analysis.Right;
 
             if (analysis.Invert)
-                right = SyntaxInverter.LogicallyInvert(right, analysis.SemanticModel, cancellationToken);
+                right = SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(right, analysis.SemanticModel, cancellationToken);
 
             ExpressionStatementSyntax newNode = SimpleAssignmentStatement(analysis.Left.WithoutTrivia(), right.WithoutTrivia())
                 .WithTriviaFrom(analysis.IfStatement)
@@ -196,7 +196,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfToReturnWithCoalesceExpressionAsync(
             Document document,
             IfToReturnWithCoalesceExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
             int position = ifStatement.SpanStart;
@@ -287,7 +287,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToReturnWithConditionalExpressionAsync(
             Document document,
             IfElseToReturnWithConditionalExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
 
@@ -303,11 +303,11 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToReturnWithBooleanExpressionAsync(
             Document document,
             IfToReturnWithBooleanExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
 
-            ExpressionSyntax expression = GetBooleanExpression(ifStatement.Condition, analysis.Expression1, analysis.Expression2, analysis.SemanticModel, cancellationToken);
+            ExpressionSyntax expression = GetBooleanExpression(ifStatement.Condition, analysis.Expression1, analysis.Expression2, document, analysis.SemanticModel, cancellationToken);
 
             StatementSyntax newNode = ReturnStatement(expression)
                 .WithTriviaFrom(ifStatement)
@@ -319,12 +319,12 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfToReturnWithExpressionAsync(
             Document document,
             IfToReturnWithExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ExpressionSyntax expression = analysis.Expression;
 
             if (analysis.Invert)
-                expression = SyntaxInverter.LogicallyInvert(expression, analysis.SemanticModel, cancellationToken);
+                expression = SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(expression, analysis.SemanticModel, cancellationToken);
 
             StatementSyntax statement;
             if (analysis.IsYield)
@@ -370,7 +370,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToYieldReturnWithConditionalExpressionAsync(
             Document document,
             IfElseToYieldReturnWithConditionalExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
             ConditionalExpressionSyntax conditionalExpression = CreateConditionalExpression(ifStatement.Condition, analysis.Expression1, analysis.Expression2);
@@ -385,11 +385,11 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfElseToYieldReturnWithBooleanExpressionAsync(
             Document document,
             IfToReturnWithBooleanExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
 
-            ExpressionSyntax expression = GetBooleanExpression(ifStatement.Condition, analysis.Expression1, analysis.Expression2, analysis.SemanticModel, cancellationToken);
+            ExpressionSyntax expression = GetBooleanExpression(ifStatement.Condition, analysis.Expression1, analysis.Expression2, document, analysis.SemanticModel, cancellationToken);
 
             StatementSyntax newNode = YieldReturnStatement(expression)
                 .WithTriviaFrom(ifStatement)
@@ -401,7 +401,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfReturnToReturnWithConditionalExpressionAsync(
             Document document,
             IfReturnToReturnWithConditionalExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             IfStatementSyntax ifStatement = analysis.IfStatement;
 
@@ -428,7 +428,7 @@ namespace Roslynator.CSharp.Refactorings
         private static Task<Document> IfReturnToReturnWithBooleanExpressionAsync(
             Document document,
             IfReturnToReturnWithBooleanExpressionAnalysis analysis,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             StatementListInfo statementsInfo = SyntaxInfo.StatementListInfo(analysis.IfStatement);
 
@@ -440,6 +440,7 @@ namespace Roslynator.CSharp.Refactorings
                 analysis.IfStatement.Condition,
                 analysis.Expression1,
                 analysis.Expression2,
+                document,
                 analysis.SemanticModel,
                 cancellationToken);
 
@@ -470,8 +471,9 @@ namespace Roslynator.CSharp.Refactorings
             ExpressionSyntax condition,
             ExpressionSyntax expression1,
             ExpressionSyntax expression2,
+            Document document,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             switch (expression1.Kind())
             {
@@ -492,11 +494,11 @@ namespace Roslynator.CSharp.Refactorings
                         switch (expression2.Kind())
                         {
                             case SyntaxKind.TrueLiteralExpression:
-                                return SyntaxInverter.LogicallyInvert(condition, semanticModel, cancellationToken);
+                                return SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(condition, semanticModel, cancellationToken);
                             case SyntaxKind.FalseLiteralExpression:
                                 return expression2;
                             default:
-                                return LogicalAndExpression(SyntaxInverter.LogicallyInvert(condition, semanticModel, cancellationToken), expression2);
+                                return LogicalAndExpression(SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(condition, semanticModel, cancellationToken), expression2);
                         }
                     }
                 default:
@@ -504,7 +506,7 @@ namespace Roslynator.CSharp.Refactorings
                         switch (expression2.Kind())
                         {
                             case SyntaxKind.TrueLiteralExpression:
-                                return LogicalOrExpression(SyntaxInverter.LogicallyInvert(condition, semanticModel, cancellationToken), expression1);
+                                return LogicalOrExpression(SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(condition, semanticModel, cancellationToken), expression1);
                             case SyntaxKind.FalseLiteralExpression:
                                 return LogicalAndExpression(condition, expression1);
                             default:
@@ -513,14 +515,14 @@ namespace Roslynator.CSharp.Refactorings
                     }
             }
 
-            BinaryExpressionSyntax LogicalAndExpression(ExpressionSyntax left, ExpressionSyntax right)
+            static BinaryExpressionSyntax LogicalAndExpression(ExpressionSyntax left, ExpressionSyntax right)
             {
                 return CSharpFactory.LogicalAndExpression(
                     left.Parenthesize(),
                     right.Parenthesize());
             }
 
-            BinaryExpressionSyntax LogicalOrExpression(ExpressionSyntax left, ExpressionSyntax right)
+            static BinaryExpressionSyntax LogicalOrExpression(ExpressionSyntax left, ExpressionSyntax right)
             {
                 return CSharpFactory.LogicalOrExpression(
                     left.Parenthesize(),
@@ -539,7 +541,8 @@ namespace Roslynator.CSharp.Refactorings
             {
                 right = CastExpression(
                     targetType.ToMinimalTypeSyntax(semanticModel, position),
-                    right.Parenthesize()).WithSimplifierAnnotation();
+                    right.Parenthesize())
+                    .WithSimplifierAnnotation();
             }
 
             return CoalesceExpression(left.Parenthesize(), right.Parenthesize());

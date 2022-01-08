@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -18,15 +18,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(InvocationExpressionCodeFixProvider))]
     [Shared]
-    public class InvocationExpressionCodeFixProvider : BaseCodeFixProvider
+    public sealed class InvocationExpressionCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
                     DiagnosticIdentifiers.UseCountOrLengthPropertyInsteadOfAnyMethod,
-                    DiagnosticIdentifiers.UseBitwiseOperationInsteadOfCallingHasFlag,
                     DiagnosticIdentifiers.RemoveRedundantToStringCall,
                     DiagnosticIdentifiers.RemoveRedundantStringToCharArrayCall,
                     DiagnosticIdentifiers.CombineEnumerableWhereMethodChain,
@@ -35,7 +34,7 @@ namespace Roslynator.CSharp.CodeFixes
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -50,7 +49,7 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Combine 'Where' method chain",
-                                cancellationToken => CombineEnumerableWhereMethodChainRefactoring.RefactorAsync(context.Document, invocation, cancellationToken),
+                                ct => CombineEnumerableWhereMethodChainRefactoring.RefactorAsync(context.Document, invocation, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -62,17 +61,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                             CodeAction codeAction = CodeAction.Create(
                                 $"Use '{propertyName}' property instead of calling 'Any'",
-                                cancellationToken => UseCountOrLengthPropertyInsteadOfAnyMethodRefactoring.RefactorAsync(context.Document, invocation, propertyName, cancellationToken),
-                                GetEquivalenceKey(diagnostic));
-
-                            context.RegisterCodeFix(codeAction, diagnostic);
-                            break;
-                        }
-                    case DiagnosticIdentifiers.UseBitwiseOperationInsteadOfCallingHasFlag:
-                        {
-                            CodeAction codeAction = CodeAction.Create(
-                                UseBitwiseOperationInsteadOfCallingHasFlagRefactoring.Title,
-                                cancellationToken => UseBitwiseOperationInsteadOfCallingHasFlagRefactoring.RefactorAsync(context.Document, invocation, cancellationToken),
+                                ct => UseCountOrLengthPropertyInsteadOfAnyMethodRefactoring.RefactorAsync(context.Document, invocation, propertyName, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -82,7 +71,7 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Remove redundant 'ToString' call",
-                                cancellationToken => context.Document.ReplaceNodeAsync(invocation, RemoveInvocation(invocation).WithFormatterAnnotation(), cancellationToken),
+                                ct => context.Document.ReplaceNodeAsync(invocation, RemoveInvocation(invocation).WithFormatterAnnotation(), ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -92,7 +81,7 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Remove redundant 'ToCharArray' call",
-                                cancellationToken => context.Document.ReplaceNodeAsync(invocation, RemoveInvocation(invocation).WithFormatterAnnotation(), cancellationToken),
+                                ct => context.Document.ReplaceNodeAsync(invocation, RemoveInvocation(invocation).WithFormatterAnnotation(), ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -102,7 +91,7 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 CallExtensionMethodAsInstanceMethodRefactoring.Title,
-                                cancellationToken => CallExtensionMethodAsInstanceMethodRefactoring.RefactorAsync(context.Document, invocation, cancellationToken),
+                                ct => CallExtensionMethodAsInstanceMethodRefactoring.RefactorAsync(context.Document, invocation, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -120,7 +109,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                             CodeAction codeAction = CodeAction.Create(
                                 $"Call '{newName}' instead of '{oldName}'",
-                                cancellationToken => CallThenByInsteadOfOrderByRefactoring.RefactorAsync(context.Document, invocation, newName, cancellationToken),
+                                ct => CallThenByInsteadOfOrderByRefactoring.RefactorAsync(context.Document, invocation, newName, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);

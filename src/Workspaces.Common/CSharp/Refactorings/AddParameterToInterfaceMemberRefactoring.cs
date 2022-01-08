@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -107,7 +107,7 @@ namespace Roslynator.CSharp.Refactorings
             if (interfaceSymbol?.TypeKind != TypeKind.Interface)
                 return default;
 
-            if (!(interfaceSymbol.GetSyntaxOrDefault(context.CancellationToken) is InterfaceDeclarationSyntax interfaceDeclaration))
+            if (interfaceSymbol.GetSyntaxOrDefault(context.CancellationToken) is not InterfaceDeclarationSyntax _)
                 return default;
 
             ISymbol memberSymbol = context.SemanticModel.GetDeclaredSymbol(memberDeclaration, context.CancellationToken);
@@ -165,7 +165,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (interfaceSymbol?.TypeKind != TypeKind.Interface)
                     continue;
 
-                if (!(interfaceSymbol.GetSyntaxOrDefault(context.CancellationToken) is InterfaceDeclarationSyntax interfaceDeclaration))
+                if (interfaceSymbol.GetSyntaxOrDefault(context.CancellationToken) is not InterfaceDeclarationSyntax _)
                     continue;
 
                 ISymbol interfaceMemberSymbol = FindInterfaceMember(memberSymbol, interfaceSymbol);
@@ -180,7 +180,7 @@ namespace Roslynator.CSharp.Refactorings
                     }
                     else
                     {
-                        (codeActions ?? (codeActions = new List<CodeAction>() { singleCodeAction })).Add(codeAction);
+                        (codeActions ??= new List<CodeAction>() { singleCodeAction }).Add(codeAction);
                     }
 
                     count++;
@@ -192,12 +192,14 @@ namespace Roslynator.CSharp.Refactorings
 
             if (codeActions != null)
             {
-                return new OneOrMany<CodeAction>(codeActions.ToImmutableArray());
+                return OneOrMany.Create(codeActions.ToImmutableArray());
             }
-            else
+            else if (singleCodeAction != null)
             {
-                return new OneOrMany<CodeAction>(singleCodeAction);
+                return OneOrMany.Create(singleCodeAction);
             }
+
+            return default;
         }
 
         private static ISymbol FindInterfaceMember(
@@ -231,7 +233,7 @@ namespace Roslynator.CSharp.Refactorings
             ImmutableArray<ISymbol> members = interfaceSymbol.GetMembers();
 
             for (int i = 0; i < members.Length; i++)
-                    {
+            {
                 ISymbol memberSymbol = members[i];
 
                 if (memberSymbol.Kind != SymbolKind.Method)
@@ -263,7 +265,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (parameters.Length != parameters2.Length + 1)
                     continue;
 
-                if (!methodSymbol.ReturnType.Equals(methodSymbol2.ReturnType))
+                if (!SymbolEqualityComparer.Default.Equals(methodSymbol.ReturnType, methodSymbol2.ReturnType))
                     continue;
 
                 if (!ParametersEqual(parameters, parameters2))
@@ -282,7 +284,7 @@ namespace Roslynator.CSharp.Refactorings
             ImmutableArray<ISymbol> members = interfaceSymbol.GetMembers();
 
             for (int i = 0; i < members.Length; i++)
-                    {
+            {
                 ISymbol memberSymbol = members[i];
 
                 if (memberSymbol.Kind != SymbolKind.Property)
@@ -299,7 +301,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (parameters.Length != parameters2.Length + 1)
                     continue;
 
-                if (!propertySymbol.Type.Equals(propertySymbol2.Type))
+                if (!SymbolEqualityComparer.Default.Equals(propertySymbol.Type, propertySymbol2.Type))
                     continue;
 
                 if (!ParametersEqual(parameters, parameters2))
@@ -318,7 +320,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (parameters[j].RefKind != parameters2[j].RefKind)
                     return false;
 
-                if (!parameters[j].Type.Equals(parameters2[j].Type))
+                if (!SymbolEqualityComparer.Default.Equals(parameters[j].Type, parameters2[j].Type))
                     return false;
             }
 
@@ -369,22 +371,14 @@ namespace Roslynator.CSharp.Refactorings
         {
             ParameterSyntax parameter = CreateParameter(parameterSymbol);
 
-            switch (memberDeclaration.Kind())
+            switch (memberDeclaration)
             {
-                case SyntaxKind.MethodDeclaration:
-                    {
-                        var methodDeclaration = (MethodDeclarationSyntax)memberDeclaration;
-                        return methodDeclaration.AddParameterListParameters(parameter);
-                    }
-                case SyntaxKind.IndexerDeclaration:
-                    {
-                        var indexerDeclaration = (IndexerDeclarationSyntax)memberDeclaration;
-                        return indexerDeclaration.AddParameterListParameters(parameter);
-                    }
+                case MethodDeclarationSyntax methodDeclaration:
+                    return methodDeclaration.AddParameterListParameters(parameter);
+                case IndexerDeclarationSyntax indexerDeclaration:
+                    return indexerDeclaration.AddParameterListParameters(parameter);
                 default:
-                    {
-                        throw new InvalidOperationException();
-                    }
+                    throw new InvalidOperationException();
             }
         }
 
@@ -394,6 +388,8 @@ namespace Roslynator.CSharp.Refactorings
             {
                 case SyntaxKind.ClassDeclaration:
                     return ((ClassDeclarationSyntax)node).BaseList;
+                case SyntaxKind.RecordDeclaration:
+                    return ((RecordDeclarationSyntax)node).BaseList;
                 case SyntaxKind.InterfaceDeclaration:
                     return ((InterfaceDeclarationSyntax)node).BaseList;
                 default:

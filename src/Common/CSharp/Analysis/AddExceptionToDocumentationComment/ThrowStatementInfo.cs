@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -26,10 +26,8 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
             if (parent.Kind() == SyntaxKind.Block)
                 parent = parent.Parent;
 
-            if (parent?.Kind() != SyntaxKind.IfStatement)
+            if (parent is not IfStatementSyntax ifStatement)
                 return null;
-
-            var ifStatement = (IfStatementSyntax)parent;
 
             ExpressionSyntax condition = ifStatement.Condition;
 
@@ -48,7 +46,7 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
             if (leftSymbol?.Kind != SymbolKind.Parameter)
                 return null;
 
-            if (leftSymbol.ContainingSymbol?.Equals(DeclarationSymbol) != true)
+            if (!SymbolEqualityComparer.Default.Equals(leftSymbol.ContainingSymbol, DeclarationSymbol))
                 return null;
 
             return (IParameterSymbol)leftSymbol;

@@ -1,21 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.CSharp.CodeFixes;
+using Roslynator.Testing.CSharp;
 using Xunit;
 
 namespace Roslynator.CSharp.Analysis.Tests
 {
-    public class RCS1161EnumShouldDeclareExplicitValuesTests : AbstractCSharpFixVerifier
+    public class RCS1161EnumShouldDeclareExplicitValuesTests : AbstractCSharpDiagnosticVerifier<EnumShouldDeclareExplicitValuesAnalyzer, EnumDeclarationCodeFixProvider>
     {
-        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticDescriptors.EnumShouldDeclareExplicitValues;
-
-        public override DiagnosticAnalyzer Analyzer { get; } = new EnumShouldDeclareExplicitValuesAnalyzer();
-
-        public override CodeFixProvider FixProvider { get; } = new EnumDeclarationCodeFixProvider();
+        public override DiagnosticDescriptor Descriptor { get; } = DiagnosticRules.EnumShouldDeclareExplicitValues;
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.EnumShouldDeclareExplicitValues)]
         public async Task Test_AllValues()
@@ -37,6 +32,28 @@ enum Foo
     D = 3,
 }
 ");
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.EnumShouldDeclareExplicitValues)]
+        public async Task Test_AllValues_MissingComma()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+enum [|Foo|]
+{
+    A,
+    B,
+    C
+    D,
+}
+", @"
+enum Foo
+{
+    A = 0,
+    B = 1,
+    C = 2
+    D = 3,
+}
+", options: Options.AddAllowedCompilerDiagnosticId("CS1003"));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.EnumShouldDeclareExplicitValues)]
@@ -110,7 +127,35 @@ enum Foo
     C = 2,
     D = 4,
 }
-");
+", equivalenceKey: EquivalenceKey.Create(Descriptor.Id));
+        }
+
+        [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.EnumShouldDeclareExplicitValues)]
+        public async Task Test_Flags_BitShift()
+        {
+            await VerifyDiagnosticAndFixAsync(@"
+using System;
+
+[Flags]
+enum [|Foo|]
+{
+    A,
+    B,
+    C,
+    D,
+}
+", @"
+using System;
+
+[Flags]
+enum Foo
+{
+    A = 0,
+    B = 1,
+    C = 1 << 1,
+    D = 1 << 2,
+}
+", equivalenceKey: EquivalenceKey.Create(Descriptor.Id, "BitShift"));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.EnumShouldDeclareExplicitValues)]
@@ -142,7 +187,7 @@ enum Foo
     E = 16,
     F = 32
 }
-");
+", equivalenceKey: EquivalenceKey.Create(Descriptor.Id));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.EnumShouldDeclareExplicitValues)]
@@ -178,17 +223,17 @@ enum Foo : sbyte
     G = 32,
     H = 64
 }
-");
+", equivalenceKey: EquivalenceKey.Create(Descriptor.Id));
         }
 
         [Fact, Trait(Traits.Analyzer, DiagnosticIdentifiers.EnumShouldDeclareExplicitValues)]
         public async Task Test_Flags_SByte_MaxValue()
         {
-            await VerifyNoFixAsync(@"
+            await VerifyDiagnosticAndNoFixAsync(@"
 using System;
 
 [Flags]
-enum Foo : sbyte
+enum [|Foo|] : sbyte
 {
     A = 0,
     B = 1,

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -19,27 +19,27 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ExpressionCodeFixProvider))]
     [Shared]
-    public class ExpressionCodeFixProvider : BaseCodeFixProvider
+    public sealed class ExpressionCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    CompilerDiagnosticIdentifiers.CannotImplicitlyConvertTypeExplicitConversionExists,
-                    CompilerDiagnosticIdentifiers.ConstantValueCannotBeConverted,
-                    CompilerDiagnosticIdentifiers.ExpressionBeingAssignedMustBeConstant,
-                    CompilerDiagnosticIdentifiers.CannotConvertNullToTypeBecauseItIsNonNullableValueType,
-                    CompilerDiagnosticIdentifiers.ResultOfExpressionIsAlwaysConstantSinceValueIsNeverEqualToNull,
-                    CompilerDiagnosticIdentifiers.CannotConvertNullToTypeParameterBecauseItCouldBeNonNullableValueType,
-                    CompilerDiagnosticIdentifiers.OnlyAssignmentCallIncrementDecrementAndNewObjectExpressionsCanBeUsedAsStatement,
-                    CompilerDiagnosticIdentifiers.CannotImplicitlyConvertType,
-                    CompilerDiagnosticIdentifiers.LeftHandSideOfAssignmentMustBeVariablePropertyOrIndexer,
-                    CompilerDiagnosticIdentifiers.ReadOnlyFieldCannotBeAssignedTo);
+                    CompilerDiagnosticIdentifiers.CS0266_CannotImplicitlyConvertTypeExplicitConversionExists,
+                    CompilerDiagnosticIdentifiers.CS0221_ConstantValueCannotBeConverted,
+                    CompilerDiagnosticIdentifiers.CS0133_ExpressionBeingAssignedMustBeConstant,
+                    CompilerDiagnosticIdentifiers.CS0037_CannotConvertNullToTypeBecauseItIsNonNullableValueType,
+                    CompilerDiagnosticIdentifiers.CS0472_ResultOfExpressionIsAlwaysConstantSinceValueIsNeverEqualToNull,
+                    CompilerDiagnosticIdentifiers.CS0403_CannotConvertNullToTypeParameterBecauseItCouldBeNonNullableValueType,
+                    CompilerDiagnosticIdentifiers.CS0201_OnlyAssignmentCallIncrementDecrementAndNewObjectExpressionsCanBeUsedAsStatement,
+                    CompilerDiagnosticIdentifiers.CS0029_CannotImplicitlyConvertType,
+                    CompilerDiagnosticIdentifiers.CS0131_LeftHandSideOfAssignmentMustBeVariablePropertyOrIndexer,
+                    CompilerDiagnosticIdentifiers.CS0191_ReadOnlyFieldCannotBeAssignedTo);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -50,7 +50,7 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case CompilerDiagnosticIdentifiers.CannotImplicitlyConvertTypeExplicitConversionExists:
+                    case CompilerDiagnosticIdentifiers.CS0266_CannotImplicitlyConvertTypeExplicitConversionExists:
                         {
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
@@ -65,23 +65,32 @@ namespace Roslynator.CSharp.CodeFixes
                                 if (convertedType?.SpecialType == SpecialType.System_Boolean
                                     || AddComparisonWithBooleanLiteralRefactoring.IsCondition(expression))
                                 {
-                                    if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddComparisonWithBooleanLiteral))
+                                    if (!IsRightExpressionOfAssignment(expression)
+                                        && IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddComparisonWithBooleanLiteral, context.Document, root.SyntaxTree))
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             AddComparisonWithBooleanLiteralRefactoring.GetTitle(expression),
-                                            cancellationToken => AddComparisonWithBooleanLiteralRefactoring.RefactorAsync(context.Document, expression, cancellationToken),
-                                            GetEquivalenceKey(diagnostic, CodeFixIdentifiers.AddComparisonWithBooleanLiteral));
+                                            ct => AddComparisonWithBooleanLiteralRefactoring.RefactorAsync(context.Document, expression, ct),
+                                            GetEquivalenceKey(
+                                                diagnostic,
+                                                CodeFixIdentifiers.AddComparisonWithBooleanLiteral));
 
                                         context.RegisterCodeFix(codeAction, diagnostic);
                                     }
+
+                                    static bool IsRightExpressionOfAssignment(ExpressionSyntax expression)
+                                    {
+                                        return expression.IsParentKind(SyntaxKind.SimpleAssignmentExpression)
+                                            && ((AssignmentExpressionSyntax)expression.Parent).Right == expression;
+                                    }
                                 }
-                                else if (namedType.TypeArguments[0].Equals(convertedType))
+                                else if (SymbolEqualityComparer.Default.Equals(namedType.TypeArguments[0], convertedType))
                                 {
-                                    if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseCoalesceExpression))
+                                    if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseCoalesceExpression, context.Document, root.SyntaxTree))
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Use coalesce expression",
-                                            cancellationToken =>
+                                            ct =>
                                             {
                                                 ExpressionSyntax defaultValue = convertedType.GetDefaultValueSyntax(context.Document.GetDefaultSyntaxOptions());
 
@@ -90,7 +99,7 @@ namespace Roslynator.CSharp.CodeFixes
                                                     .Parenthesize()
                                                     .WithFormatterAnnotation();
 
-                                                return context.Document.ReplaceNodeAsync(expression, newNode, cancellationToken);
+                                                return context.Document.ReplaceNodeAsync(expression, newNode, ct);
                                             },
                                             GetEquivalenceKey(diagnostic, CodeFixIdentifiers.UseCoalesceExpression));
 
@@ -99,27 +108,27 @@ namespace Roslynator.CSharp.CodeFixes
                                 }
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression, context.Document, root.SyntaxTree)
                                 && expression.IsParentKind(SyntaxKind.ReturnStatement, SyntaxKind.YieldReturnStatement))
                             {
                                 ChangeMemberTypeRefactoring.ComputeCodeFix(context, diagnostic, expression, semanticModel);
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddCastExpression))
-                                CodeFixRegistrator.AddCastExpression(context, diagnostic, expression, convertedType, semanticModel);
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddExplicitCast, context.Document, root.SyntaxTree))
+                                CodeFixRegistrator.AddExplicitCast(context, diagnostic, expression, convertedType, semanticModel);
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeTypeAccordingToInitializer))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeTypeAccordingToInitializer, context.Document, root.SyntaxTree))
                                 ChangeTypeAccordingToInitializerRefactoring.ComputeCodeFix(context, diagnostic, expression, semanticModel);
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.CreateSingletonArray)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.CreateSingletonArray, context.Document, root.SyntaxTree)
                                 && type?.IsErrorType() == false
-                                && !type.Equals(convertedType)
+                                && !SymbolEqualityComparer.Default.Equals(type, convertedType)
                                 && (convertedType is IArrayTypeSymbol arrayType)
                                 && semanticModel.IsImplicitConversion(expression, arrayType.ElementType))
                             {
                                 CodeAction codeAction = CodeAction.Create(
                                     "Create singleton array",
-                                    cancellationToken => CreateSingletonArrayRefactoring.RefactorAsync(context.Document, expression, arrayType.ElementType, semanticModel, cancellationToken),
+                                    ct => CreateSingletonArrayRefactoring.RefactorAsync(context.Document, expression, arrayType.ElementType, semanticModel, ct),
                                     GetEquivalenceKey(diagnostic, CodeFixIdentifiers.CreateSingletonArray));
 
                                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -127,27 +136,27 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.ConstantValueCannotBeConverted:
+                    case CompilerDiagnosticIdentifiers.CS0221_ConstantValueCannotBeConverted:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseUncheckedExpression))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseUncheckedExpression, context.Document, root.SyntaxTree))
                                 break;
 
                             CodeAction codeAction = CodeAction.Create(
                                 "Use 'unchecked'",
-                                cancellationToken =>
+                                ct =>
                                 {
                                     CheckedExpressionSyntax newNode = CSharpFactory.UncheckedExpression(expression.WithoutTrivia());
 
                                     newNode = newNode.WithTriviaFrom(expression);
 
-                                    return context.Document.ReplaceNodeAsync(expression, newNode, cancellationToken);
+                                    return context.Document.ReplaceNodeAsync(expression, newNode, ct);
                                 },
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.ExpressionBeingAssignedMustBeConstant:
+                    case CompilerDiagnosticIdentifiers.CS0133_ExpressionBeingAssignedMustBeConstant:
                         {
                             SyntaxNode parent = expression.Parent;
 
@@ -161,10 +170,10 @@ namespace Roslynator.CSharp.CodeFixes
 
                             parent = parent.Parent;
 
-                            if (!(parent is VariableDeclarationSyntax variableDeclaration))
+                            if (parent is not VariableDeclarationSyntax variableDeclaration)
                                 break;
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConstModifier)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConstModifier, context.Document, root.SyntaxTree)
                                 && variableDeclaration.Parent is LocalDeclarationStatementSyntax localDeclarationStatement)
                             {
                                 SyntaxTokenList modifiers = localDeclarationStatement.Modifiers;
@@ -174,14 +183,14 @@ namespace Roslynator.CSharp.CodeFixes
 
                                 ModifiersCodeFixRegistrator.RemoveModifier(context, diagnostic, localDeclarationStatement, SyntaxKind.ConstKeyword);
                             }
-                            else if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceConstantWithField)
+                            else if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceConstantWithField, context.Document, root.SyntaxTree)
                                 && variableDeclaration.Variables.Count == 1
                                 && (variableDeclaration.Parent is FieldDeclarationSyntax fieldDeclaration)
                                 && fieldDeclaration.Modifiers.Contains(SyntaxKind.ConstKeyword))
                             {
                                 CodeAction codeAction = CodeAction.Create(
-                                    ReplaceConstantWithFieldRefactoring.Title,
-                                    cancellationToken => ReplaceConstantWithFieldRefactoring.RefactorAsync(context.Document, fieldDeclaration, cancellationToken),
+                                    UseReadOnlyFieldInsteadOfConstantRefactoring.Title,
+                                    ct => UseReadOnlyFieldInsteadOfConstantRefactoring.RefactorAsync(context.Document, fieldDeclaration, ct),
                                     GetEquivalenceKey(diagnostic));
 
                                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -190,10 +199,10 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.CannotConvertNullToTypeBecauseItIsNonNullableValueType:
-                    case CompilerDiagnosticIdentifiers.CannotConvertNullToTypeParameterBecauseItCouldBeNonNullableValueType:
+                    case CompilerDiagnosticIdentifiers.CS0037_CannotConvertNullToTypeBecauseItIsNonNullableValueType:
+                    case CompilerDiagnosticIdentifiers.CS0403_CannotConvertNullToTypeParameterBecauseItCouldBeNonNullableValueType:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceNullLiteralExpressionWithDefaultValue))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceNullLiteralExpressionWithDefaultValue, context.Document, root.SyntaxTree))
                                 break;
 
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -201,9 +210,9 @@ namespace Roslynator.CSharp.CodeFixes
                             CodeFixRegistrator.ReplaceNullWithDefaultValue(context, diagnostic, expression, semanticModel);
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.ResultOfExpressionIsAlwaysConstantSinceValueIsNeverEqualToNull:
+                    case CompilerDiagnosticIdentifiers.CS0472_ResultOfExpressionIsAlwaysConstantSinceValueIsNeverEqualToNull:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConditionThatIsAlwaysEqualToTrueOrFalse))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConditionThatIsAlwaysEqualToTrueOrFalse, context.Document, root.SyntaxTree))
                                 break;
 
                             NullCheckExpressionInfo nullCheck = SyntaxInfo.NullCheckExpressionInfo(expression, allowedStyles: NullCheckStyles.ComparisonToNull);
@@ -213,13 +222,13 @@ namespace Roslynator.CSharp.CodeFixes
 
                             CodeAction codeAction = CodeAction.Create(
                                 "Remove condition",
-                                cancellationToken =>
+                                ct =>
                                 {
-                                    cancellationToken.ThrowIfCancellationRequested();
+                                    ct.ThrowIfCancellationRequested();
 
                                     SyntaxNode newRoot = RemoveCondition(root, expression, nullCheck.Style == NullCheckStyles.NotEqualsToNull);
 
-                                    cancellationToken.ThrowIfCancellationRequested();
+                                    ct.ThrowIfCancellationRequested();
 
                                     return Task.FromResult(context.Document.WithSyntaxRoot(newRoot));
                                 },
@@ -229,16 +238,13 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.OnlyAssignmentCallIncrementDecrementAndNewObjectExpressionsCanBeUsedAsStatement:
+                    case CompilerDiagnosticIdentifiers.CS0201_OnlyAssignmentCallIncrementDecrementAndNewObjectExpressionsCanBeUsedAsStatement:
                         {
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveParentheses)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveParentheses, context.Document, root.SyntaxTree)
                                 && expression is ParenthesizedExpressionSyntax parenthesizedExpression
                                 && parenthesizedExpression?.IsMissing == false)
                             {
-                                CodeAction codeAction = CodeAction.Create(
-                                    "Remove parentheses",
-                                    cancellationToken => RemoveRedundantParenthesesRefactoring.RefactorAsync(context.Document, parenthesizedExpression, cancellationToken),
-                                    GetEquivalenceKey(diagnostic));
+                                CodeAction codeAction = CodeActionFactory.RemoveParentheses(context.Document, parenthesizedExpression, equivalenceKey: GetEquivalenceKey(diagnostic));
 
                                 context.RegisterCodeFix(codeAction, diagnostic);
                                 break;
@@ -246,16 +252,16 @@ namespace Roslynator.CSharp.CodeFixes
 
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-                            if (expression.Parent is ArrowExpressionClauseSyntax arrowExpresssionClause)
+                            if (expression.Parent.IsKind(SyntaxKind.ArrowExpressionClause))
                             {
-                                if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression))
+                                if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression, context.Document, root.SyntaxTree))
                                     break;
 
                                 ChangeMemberTypeRefactoring.ComputeCodeFix(context, diagnostic, expression, semanticModel);
                             }
                             else if (expression.Parent is ExpressionStatementSyntax expressionStatement)
                             {
-                                if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddArgumentList)
+                                if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.AddArgumentList, context.Document, root.SyntaxTree)
                                     && expression.IsKind(
                                         SyntaxKind.IdentifierName,
                                         SyntaxKind.SimpleMemberAccessExpression))
@@ -266,14 +272,14 @@ namespace Roslynator.CSharp.CodeFixes
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Add argument list",
-                                            cancellationToken => context.Document.ReplaceNodeAsync(expression, invocationExpression, cancellationToken),
+                                            ct => context.Document.ReplaceNodeAsync(expression, invocationExpression, ct),
                                             GetEquivalenceKey(diagnostic, CodeFixIdentifiers.AddArgumentList));
 
                                         context.RegisterCodeFix(codeAction, diagnostic);
                                     }
                                 }
 
-                                if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceComparisonWithAssignment)
+                                if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceComparisonWithAssignment, context.Document, root.SyntaxTree)
                                     && expression.IsKind(SyntaxKind.EqualsExpression))
                                 {
                                     BinaryExpressionInfo info = SyntaxInfo.BinaryExpressionInfo(expression);
@@ -291,17 +297,17 @@ namespace Roslynator.CSharp.CodeFixes
 
                                     CodeAction codeAction = CodeAction.Create(
                                         "Replace comparison with assignment",
-                                        cancellationToken =>
+                                        ct =>
                                         {
                                             AssignmentExpressionSyntax simpleAssignment = SimpleAssignmentExpression(info.Left, info.Right).WithTriviaFrom(expression);
-                                            return context.Document.ReplaceNodeAsync(expression, simpleAssignment, cancellationToken);
+                                            return context.Document.ReplaceNodeAsync(expression, simpleAssignment, ct);
                                         },
                                         GetEquivalenceKey(diagnostic, CodeFixIdentifiers.ReplaceComparisonWithAssignment));
 
                                     context.RegisterCodeFix(codeAction, diagnostic);
                                 }
 
-                                if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceConditionalExpressionWithIfElse)
+                                if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceConditionalExpressionWithIfElse, context.Document, root.SyntaxTree)
                                     && (expression is ConditionalExpressionSyntax conditionalExpression)
                                     && conditionalExpression.Condition != null)
                                 {
@@ -315,7 +321,7 @@ namespace Roslynator.CSharp.CodeFixes
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Replace ?: with if-else",
-                                            cancellationToken =>
+                                            ct =>
                                             {
                                                 IfStatementSyntax newNode = IfStatement(
                                                     conditionalExpression.Condition.WalkDownParentheses(),
@@ -326,7 +332,7 @@ namespace Roslynator.CSharp.CodeFixes
                                                     .WithTriviaFrom(expressionStatement)
                                                     .WithFormatterAnnotation();
 
-                                                return context.Document.ReplaceNodeAsync(expressionStatement, newNode, cancellationToken);
+                                                return context.Document.ReplaceNodeAsync(expressionStatement, newNode, ct);
                                             },
                                             GetEquivalenceKey(diagnostic, CodeFixIdentifiers.ReplaceConditionalExpressionWithIfElse));
 
@@ -342,7 +348,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 if (typeSymbol?.IsErrorType() != false)
                                     break;
 
-                                if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.IntroduceLocalVariable)
+                                if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.IntroduceLocalVariable, context.Document, root.SyntaxTree)
                                     && !expressionStatement.IsEmbedded())
                                 {
                                     bool addAwait = typeSymbol.OriginalDefinition.EqualsOrInheritsFromTaskOfT()
@@ -350,17 +356,17 @@ namespace Roslynator.CSharp.CodeFixes
 
                                     CodeAction codeAction = CodeAction.Create(
                                         IntroduceLocalVariableRefactoring.GetTitle(expression),
-                                        cancellationToken => IntroduceLocalVariableRefactoring.RefactorAsync(context.Document, expressionStatement, typeSymbol, addAwait, semanticModel, cancellationToken),
+                                        ct => IntroduceLocalVariableRefactoring.RefactorAsync(context.Document, expressionStatement, typeSymbol, addAwait, semanticModel, ct),
                                         GetEquivalenceKey(diagnostic, CodeFixIdentifiers.IntroduceLocalVariable));
 
                                     context.RegisterCodeFix(codeAction, diagnostic);
                                 }
 
-                                if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.IntroduceField))
+                                if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.IntroduceField, context.Document, root.SyntaxTree))
                                 {
                                     CodeAction codeAction = CodeAction.Create(
                                         $"Introduce field for '{expression}'",
-                                        cancellationToken => IntroduceFieldRefactoring.RefactorAsync(context.Document, expressionStatement, typeSymbol, semanticModel, cancellationToken),
+                                        ct => IntroduceFieldRefactoring.RefactorAsync(context.Document, expressionStatement, typeSymbol, semanticModel, ct),
                                         GetEquivalenceKey(diagnostic, CodeFixIdentifiers.IntroduceField));
 
                                     context.RegisterCodeFix(codeAction, diagnostic);
@@ -369,9 +375,9 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.CannotImplicitlyConvertType:
+                    case CompilerDiagnosticIdentifiers.CS0029_CannotImplicitlyConvertType:
                         {
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceYieldReturnWithForEach)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceYieldReturnWithForEach, context.Document, root.SyntaxTree)
                                 && expression.IsParentKind(SyntaxKind.YieldReturnStatement))
                             {
                                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
@@ -379,8 +385,8 @@ namespace Roslynator.CSharp.CodeFixes
                                 break;
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression)
-                                && expression.IsParentKind(SyntaxKind.ReturnStatement, SyntaxKind.YieldReturnStatement))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeMemberTypeAccordingToReturnExpression, context.Document, root.SyntaxTree)
+                                && expression.IsParentKind(SyntaxKind.ReturnStatement, SyntaxKind.YieldReturnStatement, SyntaxKind.ArrowExpressionClause))
                             {
                                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
@@ -388,7 +394,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 break;
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeTypeAccordingToInitializer))
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ChangeTypeAccordingToInitializer, context.Document, root.SyntaxTree))
                             {
                                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
@@ -400,7 +406,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 break;
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceStringLiteralWithCharacterLiteral)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceStringLiteralWithCharacterLiteral, context.Document, root.SyntaxTree)
                                 && expression?.Kind() == SyntaxKind.StringLiteralExpression)
                             {
                                 var literalExpression = (LiteralExpressionSyntax)expression;
@@ -413,7 +419,7 @@ namespace Roslynator.CSharp.CodeFixes
                                     {
                                         CodeAction codeAction = CodeAction.Create(
                                             "Replace string literal with character literal",
-                                            cancellationToken => ReplaceStringLiteralWithCharacterLiteralRefactoring.RefactorAsync(context.Document, literalExpression, cancellationToken),
+                                            ct => ReplaceStringLiteralWithCharacterLiteralRefactoring.RefactorAsync(context.Document, literalExpression, ct),
                                             GetEquivalenceKey(diagnostic, CodeFixIdentifiers.ReplaceStringLiteralWithCharacterLiteral));
 
                                         context.RegisterCodeFix(codeAction, diagnostic);
@@ -421,7 +427,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 }
                             }
 
-                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseYieldReturnInsteadOfReturn)
+                            if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.UseYieldReturnInsteadOfReturn, context.Document, root.SyntaxTree)
                                 && expression.IsParentKind(SyntaxKind.ReturnStatement))
                             {
                                 var returnStatement = (ReturnStatementSyntax)expression.Parent;
@@ -435,7 +441,7 @@ namespace Roslynator.CSharp.CodeFixes
                                 {
                                     CodeAction codeAction = CodeAction.Create(
                                         "Use yield return instead of return",
-                                        cancellationToken => UseYieldReturnInsteadOfReturnRefactoring.RefactorAsync(context.Document, returnStatement, SyntaxKind.YieldReturnStatement, semanticModel, cancellationToken),
+                                        ct => UseYieldReturnInsteadOfReturnRefactoring.RefactorAsync(context.Document, returnStatement, SyntaxKind.YieldReturnStatement, semanticModel, ct),
                                         GetEquivalenceKey(diagnostic, CodeFixIdentifiers.UseYieldReturnInsteadOfReturn));
 
                                     context.RegisterCodeFix(codeAction, diagnostic);
@@ -444,9 +450,9 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.LeftHandSideOfAssignmentMustBeVariablePropertyOrIndexer:
+                    case CompilerDiagnosticIdentifiers.CS0131_LeftHandSideOfAssignmentMustBeVariablePropertyOrIndexer:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConstModifier))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveConstModifier, context.Document, root.SyntaxTree))
                                 return;
 
                             if (!expression.IsKind(SyntaxKind.IdentifierName))
@@ -462,7 +468,7 @@ namespace Roslynator.CSharp.CodeFixes
                             if (symbolInfo.CandidateReason != CandidateReason.NotAVariable)
                                 return;
 
-                            if (!(symbolInfo.CandidateSymbols.SingleOrDefault(shouldThrow: false) is ILocalSymbol localSymbol))
+                            if (symbolInfo.CandidateSymbols.SingleOrDefault(shouldThrow: false) is not ILocalSymbol localSymbol)
                                 return;
 
                             if (!localSymbol.IsConst)
@@ -480,10 +486,8 @@ namespace Roslynator.CSharp.CodeFixes
 
                             node = node.Parent;
 
-                            if (!node.IsKind(SyntaxKind.LocalDeclarationStatement))
+                            if (node is not LocalDeclarationStatementSyntax localDeclaration)
                                 return;
-
-                            var localDeclaration = (LocalDeclarationStatementSyntax)node;
 
                             SyntaxToken constModifier = localDeclaration.Modifiers.Find(SyntaxKind.ConstKeyword);
 
@@ -494,9 +498,9 @@ namespace Roslynator.CSharp.CodeFixes
 
                             break;
                         }
-                    case CompilerDiagnosticIdentifiers.ReadOnlyFieldCannotBeAssignedTo:
+                    case CompilerDiagnosticIdentifiers.CS0191_ReadOnlyFieldCannotBeAssignedTo:
                         {
-                            if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeFieldWritable))
+                            if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.MakeFieldWritable, context.Document, root.SyntaxTree))
                                 break;
 
                             SimpleAssignmentExpressionInfo simpleAssignment = SyntaxInfo.SimpleAssignmentExpressionInfo(expression.Parent);
@@ -514,13 +518,13 @@ namespace Roslynator.CSharp.CodeFixes
                             if (symbolInfo.CandidateReason != CandidateReason.NotAVariable)
                                 return;
 
-                            if (!(symbolInfo.CandidateSymbols.SingleOrDefault(shouldThrow: false) is IFieldSymbol fieldSymbol))
+                            if (symbolInfo.CandidateSymbols.SingleOrDefault(shouldThrow: false) is not IFieldSymbol fieldSymbol)
                                 return;
 
                             if (fieldSymbol.DeclaredAccessibility != Accessibility.Private)
                                 return;
 
-                            if (!(fieldSymbol.GetSyntax().Parent.Parent is FieldDeclarationSyntax fieldDeclaration))
+                            if (fieldSymbol.GetSyntax().Parent.Parent is not FieldDeclarationSyntax fieldDeclaration)
                                 return;
 
                             TypeDeclarationSyntax containingTypeDeclaration = fieldDeclaration.FirstAncestor<TypeDeclarationSyntax>();
@@ -670,7 +674,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             return node.ReplaceNode(expression, BooleanLiteralExpression(isTrue));
 
-            TRoot RemoveOrReplaceNode<TRoot>(
+            static TRoot RemoveOrReplaceNode<TRoot>(
                 TRoot root,
                 SyntaxNode nodeToRemove,
                 SyntaxNode newNode) where TRoot : SyntaxNode
@@ -699,13 +703,13 @@ namespace Roslynator.CSharp.CodeFixes
             ExpressionSyntax expression,
             SemanticModel semanticModel)
         {
-            if (!(expression.Parent is AssignmentExpressionSyntax assignmentExpression))
+            if (expression.Parent is not AssignmentExpressionSyntax assignmentExpression)
                 return;
 
             if (expression != assignmentExpression.Right)
                 return;
 
-            if (!(assignmentExpression.Parent is ExpressionStatementSyntax expressionStatement))
+            if (assignmentExpression.Parent is not ExpressionStatementSyntax expressionStatement)
                 return;
 
             ITypeSymbol typeSymbol = semanticModel.GetTypeSymbol(expression, context.CancellationToken);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -8,7 +8,7 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
 {
     internal sealed class RemoveRedundantReturnStatementAnalysis : RemoveRedundantStatementAnalysis<ReturnStatementSyntax>
     {
-        public static RemoveRedundantReturnStatementAnalysis Instance { get; } = new RemoveRedundantReturnStatementAnalysis();
+        public static RemoveRedundantReturnStatementAnalysis Instance { get; } = new();
 
         private RemoveRedundantReturnStatementAnalysis()
         {
@@ -29,24 +29,16 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
             {
                 SyntaxNode parent = statement.Parent;
 
-                if (parent.IsKind(SyntaxKind.Block))
+                if (parent.IsKind(SyntaxKind.Block)
+                    && parent.Parent is IfStatementSyntax ifStatement
+                    && ifStatement.IsSimpleIf())
                 {
-                    parent = parent.Parent;
+                    StatementSyntax nextStatement = ifStatement.NextStatement();
 
-                    if (parent.IsKind(SyntaxKind.IfStatement))
+                    if (nextStatement.IsKind(SyntaxKind.ReturnStatement)
+                        && ((ReturnStatementSyntax)nextStatement).Expression?.RawKind == expression.RawKind)
                     {
-                        var ifStatement = (IfStatementSyntax)parent;
-
-                        if (ifStatement.IsSimpleIf())
-                        {
-                            StatementSyntax nextStatement = ifStatement.NextStatement();
-
-                            if (nextStatement.IsKind(SyntaxKind.ReturnStatement)
-                                && ((ReturnStatementSyntax)nextStatement).Expression?.RawKind == expression.RawKind)
-                            {
-                                return true;
-                            }
-                        }
+                        return true;
                     }
                 }
             }
@@ -54,25 +46,36 @@ namespace Roslynator.CSharp.Analysis.RemoveRedundantStatement
             return false;
         }
 
-        protected override bool IsFixable(StatementSyntax statement, BlockSyntax block, SyntaxKind parentKind)
+        protected override bool IsFixable(StatementSyntax statement, StatementSyntax containingStatement, BlockSyntax block, SyntaxKind parentKind)
         {
-            if (!parentKind.Is(
-                SyntaxKind.ConstructorDeclaration,
-                SyntaxKind.DestructorDeclaration,
-                SyntaxKind.MethodDeclaration,
-                SyntaxKind.SetAccessorDeclaration,
-                SyntaxKind.LocalFunctionStatement))
+            switch (parentKind)
             {
-                return false;
+                case SyntaxKind.ConstructorDeclaration:
+                case SyntaxKind.DestructorDeclaration:
+                case SyntaxKind.SetAccessorDeclaration:
+                    {
+                        return true;
+                    }
+                case SyntaxKind.MethodDeclaration:
+                    {
+                        return ((MethodDeclarationSyntax)block.Parent).ReturnType?.IsVoid() == true;
+                    }
+                case SyntaxKind.LocalFunctionStatement:
+                    {
+                        return ((LocalFunctionStatementSyntax)block.Parent).ReturnType?.IsVoid() == true;
+                    }
+                case SyntaxKind.SimpleLambdaExpression:
+                case SyntaxKind.ParenthesizedLambdaExpression:
+                case SyntaxKind.AnonymousMethodExpression:
+                    {
+                        return statement is ReturnStatementSyntax returnStatement
+                            && returnStatement.Expression == null;
+                    }
+                default:
+                    {
+                        return false;
+                    }
             }
-
-            if (parentKind == SyntaxKind.MethodDeclaration)
-                return ((MethodDeclarationSyntax)block.Parent).ReturnType?.IsVoid() == true;
-
-            if (parentKind == SyntaxKind.LocalFunctionStatement)
-                return ((LocalFunctionStatementSyntax)block.Parent).ReturnType?.IsVoid() == true;
-
-            return true;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -21,7 +21,7 @@ namespace Roslynator.CSharp.Refactorings
 
             for (int i = 0; i < selectedStatements.Count - 1; i++)
             {
-                if (!(selectedStatements[i] is IfStatementSyntax ifStatement))
+                if (selectedStatements[i] is not IfStatementSyntax ifStatement)
                     break;
 
                 foreach (IfStatementOrElseClause ifOrElse in ifStatement.AsCascade())
@@ -58,7 +58,7 @@ namespace Roslynator.CSharp.Refactorings
             context.RegisterRefactoring(
                 "Convert to if-else",
                 ct => RefactorAsync(document, selectedStatements, ifStatementCount, ct),
-                RefactoringIdentifiers.ConvertStatementsToIfElse);
+                RefactoringDescriptors.ConvertStatementsToIfElse);
         }
 
         private static Task<Document> RefactorAsync(

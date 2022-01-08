@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslynator.CSharp.Syntax;
@@ -9,19 +9,19 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveAllRegionDirectives)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveAllRegionDirectives)
                 && context.IsRootCompilationUnit)
             {
                 context.RegisterRefactoring(
                     "Remove all region directives",
-                    cancellationToken => context.Document.RemovePreprocessorDirectivesAsync(PreprocessorDirectiveFilter.Region | PreprocessorDirectiveFilter.EndRegion, cancellationToken),
-                    RefactoringIdentifiers.RemoveAllRegionDirectives);
+                    ct => context.Document.RemovePreprocessorDirectivesAsync(PreprocessorDirectiveFilter.Region | PreprocessorDirectiveFilter.EndRegion, ct),
+                    RefactoringDescriptors.RemoveAllRegionDirectives);
             }
         }
 
         public static void ComputeRefactorings(RefactoringContext context, RegionDirectiveTriviaSyntax regionDirective)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveRegion)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveRegion)
                 && context.IsRootCompilationUnit)
             {
                 RegionInfo region = SyntaxInfo.RegionInfo(regionDirective);
@@ -30,15 +30,15 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         "Remove region",
-                        cancellationToken => context.Document.RemoveRegionAsync(region, cancellationToken),
-                        RefactoringIdentifiers.RemoveRegion);
+                        ct => context.Document.RemoveRegionAsync(region, ct),
+                        RefactoringDescriptors.RemoveRegion);
                 }
             }
         }
 
         public static void ComputeRefactorings(RefactoringContext context, EndRegionDirectiveTriviaSyntax endRegionDirective)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RemoveRegion)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveRegion)
                 && context.IsRootCompilationUnit)
             {
                 RegionInfo region = SyntaxInfo.RegionInfo(endRegionDirective);
@@ -47,8 +47,8 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         "Remove region",
-                        cancellationToken => context.Document.RemoveRegionAsync(region, cancellationToken),
-                        RefactoringIdentifiers.RemoveRegion);
+                        ct => context.Document.RemoveRegionAsync(region, ct),
+                        RefactoringDescriptors.RemoveRegion);
                 }
             }
         }

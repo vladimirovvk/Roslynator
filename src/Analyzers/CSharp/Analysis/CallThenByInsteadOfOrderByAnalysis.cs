@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -29,8 +29,9 @@ namespace Roslynator.CSharp.Analysis
             if (IsOrderByOrOrderByDescending(invocationInfo.InvocationExpression, context.SemanticModel, context.CancellationToken)
                 && IsOrderByOrOrderByDescending(invocationInfo2.InvocationExpression, context.SemanticModel, context.CancellationToken))
             {
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.CallThenByInsteadOfOrderBy,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.CallThenByInsteadOfOrderBy,
                     invocationInfo.Name,
                     (invocationInfo.NameText == "OrderByDescending") ? "Descending" : null);
             }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -12,18 +12,23 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis.UsePatternMatching
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UsePatternMatchingInsteadOfIsAndCastAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UsePatternMatchingInsteadOfIsAndCastAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.UsePatternMatchingInsteadOfIsAndCast); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.UsePatternMatchingInsteadOfIsAndCast);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
             context.RegisterCompilationStartAction(startContext =>
@@ -31,11 +36,11 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
                 if (((CSharpCompilation)startContext.Compilation).LanguageVersion < LanguageVersion.CSharp7)
                     return;
 
-                startContext.RegisterSyntaxNodeAction(AnalyzeIsExpression, SyntaxKind.IsExpression);
+                startContext.RegisterSyntaxNodeAction(f => AnalyzeIsExpression(f), SyntaxKind.IsExpression);
             });
         }
 
-        public static void AnalyzeIsExpression(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIsExpression(SyntaxNodeAnalysisContext context)
         {
             var isExpression = (BinaryExpressionSyntax)context.Node;
 
@@ -95,7 +100,7 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
                         if (!IsFixable(right, identifierName, semanticModel, cancellationToken))
                             return;
 
-                        DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UsePatternMatchingInsteadOfIsAndCast, logicalAnd);
+                        DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UsePatternMatchingInsteadOfIsAndCast, logicalAnd);
                         break;
                     }
                 case SyntaxKind.IfStatement:
@@ -119,7 +124,7 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
                         if (!IsFixable(statement, identifierName, semanticModel, cancellationToken))
                             return;
 
-                        DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UsePatternMatchingInsteadOfIsAndCast, ifStatement.Condition);
+                        DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UsePatternMatchingInsteadOfIsAndCast, ifStatement.Condition);
                         break;
                     }
             }
@@ -131,13 +136,26 @@ namespace Roslynator.CSharp.Analysis.UsePatternMatching
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            UsePatternMatchingWalker walker = UsePatternMatchingWalkerCache.GetInstance();
+            bool isFixable;
+            UsePatternMatchingWalker walker = null;
 
-            walker.SetValues(identifierName, semanticModel, cancellationToken);
+            try
+            {
+                walker = UsePatternMatchingWalker.GetInstance();
 
-            walker.Visit(node);
+                walker.SetValues(identifierName, semanticModel, cancellationToken);
 
-            return UsePatternMatchingWalkerCache.GetIsFixableAndFree(walker);
+                walker.Visit(node);
+
+                isFixable = walker.IsFixable.GetValueOrDefault();
+            }
+            finally
+            {
+                if (walker != null)
+                    UsePatternMatchingWalker.Free(walker);
+            }
+
+            return isFixable;
         }
     }
 }

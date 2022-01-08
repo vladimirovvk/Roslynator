@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,9 +11,9 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class FormatSummaryOnSingleLineAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class FormatSummaryOnSingleLineAnalyzer : BaseDiagnosticAnalyzer
     {
-        private static readonly Regex _regex = new Regex(
+        private static readonly Regex _regex = new(
             @"
             ^
             (
@@ -32,24 +32,30 @@ namespace Roslynator.CSharp.Analysis
                 [\s-[\r\n]]*
             )?
             $
-            ", RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
+            ",
+            RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
+
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.FormatDocumentationSummaryOnSingleLine); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.FormatDocumentationSummaryOnSingleLine);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeSingleLineDocumentationCommentTrivia, SyntaxKind.SingleLineDocumentationCommentTrivia);
+            context.RegisterSyntaxNodeAction(f => AnalyzeSingleLineDocumentationCommentTrivia(f), SyntaxKind.SingleLineDocumentationCommentTrivia);
         }
 
-        public static void AnalyzeSingleLineDocumentationCommentTrivia(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeSingleLineDocumentationCommentTrivia(SyntaxNodeAnalysisContext context)
         {
             var documentationComment = (DocumentationCommentTriviaSyntax)context.Node;
 
@@ -73,8 +79,9 @@ namespace Roslynator.CSharp.Analysis
 
                         if (match.Success)
                         {
-                            DiagnosticHelpers.ReportDiagnostic(context,
-                                DiagnosticDescriptors.FormatDocumentationSummaryOnSingleLine,
+                            DiagnosticHelpers.ReportDiagnostic(
+                                context,
+                                DiagnosticRules.FormatDocumentationSummaryOnSingleLine,
                                 summaryElement);
                         }
                     }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Roslynator.Comparers;
-using Roslynator.CSharp.Comparers;
 
 namespace Roslynator.CSharp.Refactorings.SortMemberDeclarations
 {
@@ -23,8 +21,8 @@ namespace Roslynator.CSharp.Refactorings.SortMemberDeclarations
             {
                 context.RegisterRefactoring(
                     "Sort enum members by name",
-                    cancellationToken => SortByNameAsync(context.Document, enumDeclaration, selectedMembers, cancellationToken),
-                    RefactoringIdentifiers.SortMemberDeclarations);
+                    ct => SortByNameAsync(context.Document, enumDeclaration, selectedMembers, ct),
+                    RefactoringDescriptors.SortMemberDeclarations);
             }
 
             if (selectedMembers.Any(f => f.EqualsValue?.Value != null))
@@ -35,8 +33,8 @@ namespace Roslynator.CSharp.Refactorings.SortMemberDeclarations
                 {
                     context.RegisterRefactoring(
                         "Sort enum members by value",
-                        cancellationToken => SortByValueAsync(context.Document, enumDeclaration, selectedMembers, cancellationToken),
-                        RefactoringIdentifiers.SortMemberDeclarations);
+                        ct => SortByValueAsync(context.Document, enumDeclaration, selectedMembers, ct),
+                        RefactoringDescriptors.SortMemberDeclarations);
                 }
             }
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -12,21 +12,26 @@ using Roslynator.CSharp.Analysis.ReduceIfNesting;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class ReduceIfNestingAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class ReduceIfNestingAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.ReduceIfNesting); }
+            get
+            {
+                if (_supportedDiagnostics.IsDefault)
+                    Immutable.InterlockedInitialize(ref _supportedDiagnostics, DiagnosticRules.ReduceIfNesting);
+
+                return _supportedDiagnostics;
+            }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeIfStatement, SyntaxKind.IfStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIfStatement(f), SyntaxKind.IfStatement);
         }
 
         private static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
@@ -42,10 +47,11 @@ namespace Roslynator.CSharp.Analysis
             if (!analysis.Success)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.ReduceIfNesting,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.ReduceIfNesting,
                 ifStatement.IfKeyword.GetLocation(),
-                ImmutableDictionary.CreateRange(new KeyValuePair<string, string>[] { new KeyValuePair<string, string>("JumpKind", analysis.JumpKind.ToString()) }));
+                ImmutableDictionary.CreateRange(new[] { new KeyValuePair<string, string>("JumpKind", analysis.JumpKind.ToString()) }));
         }
     }
 }

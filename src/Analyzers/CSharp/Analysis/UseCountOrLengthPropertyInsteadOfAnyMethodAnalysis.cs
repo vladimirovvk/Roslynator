@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -44,10 +44,11 @@ namespace Roslynator.CSharp.Analysis
             if (propertyName == null)
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context,
-                DiagnosticDescriptors.UseCountOrLengthPropertyInsteadOfAnyMethod,
+            DiagnosticHelpers.ReportDiagnostic(
+                context,
+                DiagnosticRules.UseCountOrLengthPropertyInsteadOfAnyMethod,
                 Location.Create(context.Node.SyntaxTree, TextSpan.FromBounds(invocationInfo.Name.SpanStart, invocationExpression.Span.End)),
-                ImmutableDictionary.CreateRange(new KeyValuePair<string, string>[] { new KeyValuePair<string, string>("PropertyName", propertyName) }),
+                ImmutableDictionary.CreateRange(new[] { new KeyValuePair<string, string>("PropertyName", propertyName) }),
                 propertyName);
         }
     }

@@ -1,16 +1,16 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
-using System.Security;
+using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Events;
-using Microsoft.VisualStudio.Shell.Interop;
 using Roslynator.CodeFixes;
 using Roslynator.Configuration;
+using Roslynator.CSharp;
+using Roslynator.CSharp.Refactorings;
 
 #pragma warning disable RCS1090
 
@@ -19,13 +19,7 @@ namespace Roslynator.VisualStudio
     [ComVisible(true)]
     public class AbstractPackage : AsyncPackage
     {
-        private FileSystemWatcher _watcher;
-
         internal static AbstractPackage Instance { get; private set; }
-
-        private string SolutionDirectoryPath { get; set; }
-
-        private string ConfigFilePath { get; set; }
 
         public GeneralOptionsPage GeneralOptionsPage
         {
@@ -42,9 +36,9 @@ namespace Roslynator.VisualStudio
             get { return (CodeFixesOptionsPage)GetDialogPage(typeof(CodeFixesOptionsPage)); }
         }
 
-        public GlobalSuppressionsOptionsPage GlobalSuppressionsOptionsPage
+        public AnalyzersOptionsPage AnalyzersOptionsPage
         {
-            get { return (GlobalSuppressionsOptionsPage)GetDialogPage(typeof(GlobalSuppressionsOptionsPage)); }
+            get { return (AnalyzersOptionsPage)GetDialogPage(typeof(AnalyzersOptionsPage)); }
         }
 
         protected override async System.Threading.Tasks.Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
@@ -54,29 +48,17 @@ namespace Roslynator.VisualStudio
             await base.InitializeAsync(cancellationToken, progress);
 
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-            InitializeSettings();
+
+            InitializeConfig();
 
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-            var solution = await GetServiceAsync(typeof(SVsSolution)) as IVsSolution;
-
-            ErrorHandler.ThrowOnFailure(solution.GetProperty((int)__VSPROPID.VSPROPID_IsSolutionOpen, out object isSolutionOpenValue));
-
-            if (isSolutionOpenValue is bool isSolutionOpen
-                && isSolutionOpen)
-            {
-                AfterOpenSolution();
-            }
-
-            SolutionEvents.OnAfterOpenSolution += AfterOpenSolution;
-            SolutionEvents.OnAfterCloseSolution += AfterCloseSolution;
         }
 
-        public void InitializeSettings()
+        public void InitializeConfig()
         {
             GeneralOptionsPage generalOptionsPage = GeneralOptionsPage;
             RefactoringsOptionsPage refactoringsOptionsPage = RefactoringsOptionsPage;
             CodeFixesOptionsPage codeFixesOptionsPage = CodeFixesOptionsPage;
-            GlobalSuppressionsOptionsPage globalSuppressionsOptionsPage = GlobalSuppressionsOptionsPage;
 
             Version currentVersion = typeof(GeneralOptionsPage).Assembly.GetName().Version;
 
@@ -87,89 +69,50 @@ namespace Roslynator.VisualStudio
                 generalOptionsPage.SaveSettingsToStorage();
             }
 
-            codeFixesOptionsPage.CheckNewItemsDisabledByDefault();
-            refactoringsOptionsPage.CheckNewItemsDisabledByDefault();
-            globalSuppressionsOptionsPage.CheckNewItemsDisabledByDefault();
+            string disabledRefactorings = refactoringsOptionsPage.DisabledRefactorings;
 
-            SettingsManager.Instance.UpdateVisualStudioSettings(generalOptionsPage);
-            SettingsManager.Instance.UpdateVisualStudioSettings(refactoringsOptionsPage);
-            SettingsManager.Instance.UpdateVisualStudioSettings(codeFixesOptionsPage);
-            SettingsManager.Instance.UpdateVisualStudioSettings(globalSuppressionsOptionsPage);
-        }
-
-        private void AfterOpenSolution(object sender = null, OpenSolutionEventArgs e = null)
-        {
-            var solution = GetService(typeof(SVsSolution)) as IVsSolution;
-
-            if (solution.GetProperty((int)__VSPROPID.VSPROPID_SolutionFileName, out object solutionFileNameValue) == VSConstants.S_OK
-                && solutionFileNameValue is string solutionFileName
-                && !string.IsNullOrEmpty(solutionFileName))
+            if (!string.IsNullOrEmpty(disabledRefactorings))
             {
-                SolutionDirectoryPath = Path.GetDirectoryName(solutionFileName);
-                ConfigFilePath = Path.Combine(SolutionDirectoryPath, Settings.ConfigFileName);
+                disabledRefactorings = string.Join(",", disabledRefactorings.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Where(f => Regex.IsMatch(f, @"\ARR\d{4}\z")).Select(f => f + "!"));
+
+                disabledRefactorings = "RR0001!,RR0002!";
+
+                if (!string.IsNullOrEmpty(disabledRefactorings))
+                {
+                    string refactorings = refactoringsOptionsPage.Refactorings;
+
+                    if (!string.IsNullOrEmpty(refactorings))
+                        disabledRefactorings = "," + disabledRefactorings;
+
+                    refactoringsOptionsPage.Refactorings = disabledRefactorings;
+                }
+
+                refactoringsOptionsPage.DisabledRefactorings = "";
             }
 
-            UpdateSettings();
+            string disabledCodeFixes = codeFixesOptionsPage.DisabledCodeFixes;
 
-            WatchConfigFile();
-        }
-
-        private void AfterCloseSolution(object sender = null, EventArgs e = null)
-        {
-            SolutionDirectoryPath = null;
-            ConfigFilePath = null;
-
-            if (_watcher != null)
+            if (!string.IsNullOrEmpty(disabledCodeFixes))
             {
-                _watcher.Dispose();
-                _watcher = null;
+                disabledCodeFixes = string.Join(",", disabledCodeFixes.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(f => f + "!"));
+
+                if (!string.IsNullOrEmpty(disabledCodeFixes))
+                {
+                    string codeFixes = codeFixesOptionsPage.CodeFixes;
+
+                    if (!string.IsNullOrEmpty(codeFixes))
+                        disabledCodeFixes = "," + disabledCodeFixes;
+
+                    codeFixesOptionsPage.CodeFixes = disabledCodeFixes;
+                }
+
+                codeFixesOptionsPage.DisabledCodeFixes = "";
             }
-        }
 
-        private void UpdateSettings()
-        {
-            SettingsManager.Instance.ConfigFileSettings = LoadConfigFileSettings();
-            SettingsManager.Instance.ApplyTo(RefactoringSettings.Current);
-            SettingsManager.Instance.ApplyTo(CodeFixSettings.Current);
-            SettingsManager.Instance.ApplyTo(AnalyzerSettings.Current);
+            ConfigMigrator.MigrateToEditorConfig();
 
-            Settings LoadConfigFileSettings()
-            {
-                if (!File.Exists(ConfigFilePath))
-                    return null;
-
-                try
-                {
-                    return Settings.Load(ConfigFilePath);
-                }
-                catch (IOException)
-                {
-                }
-                catch (UnauthorizedAccessException)
-                {
-                }
-                catch (SecurityException)
-                {
-                }
-
-                return null;
-            }
-        }
-
-        public void WatchConfigFile()
-        {
-            if (!Directory.Exists(SolutionDirectoryPath))
-                return;
-
-            _watcher = new FileSystemWatcher(SolutionDirectoryPath, Settings.ConfigFileName)
-            {
-                EnableRaisingEvents = true,
-                IncludeSubdirectories = false,
-            };
-
-            _watcher.Changed += (object sender, FileSystemEventArgs e) => UpdateSettings();
-            _watcher.Created += (object sender, FileSystemEventArgs e) => UpdateSettings();
-            _watcher.Deleted += (object sender, FileSystemEventArgs e) => UpdateSettings();
+            refactoringsOptionsPage.UpdateConfig();
+            codeFixesOptionsPage.UpdateConfig();
         }
 
         protected override void Dispose(bool disposing)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 
@@ -14,8 +14,8 @@ namespace Roslynator.Documentation
         IncludeAccessorAttributes = 8,
         IncludeAttributeArguments = 16,
         FormatAttributes = 32,
-        FormatBaseList = 64,
-        FormatConstraints = 128,
+        WrapBaseTypes = 64,
+        WrapConstraints = 128,
         FormatParameters = 256,
         OmitIEnumerable = 512,
         IncludeTrailingSemicolon = 1024,

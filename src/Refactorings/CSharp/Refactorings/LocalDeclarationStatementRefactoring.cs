@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -10,23 +10,17 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, LocalDeclarationStatementSyntax localDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddIdentifierToVariableDeclaration))
-                await AddIdentifierToLocalDeclarationRefactoring.ComputeRefactoringAsync(context, localDeclaration).ConfigureAwait(false);
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.InitializeLocalVariableWithDefaultValue))
+                await InitializeLocalVariableWithDefaultValueRefactoring.ComputeRefactoringAsync(context, localDeclaration).ConfigureAwait(false);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.InitializeLocalWithDefaultValue))
-                await InitializeLocalWithDefaultValueRefactoring.ComputeRefactoringAsync(context, localDeclaration).ConfigureAwait(false);
-
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.PromoteLocalToParameter))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.PromoteLocalVariableToParameter))
             {
                 SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
                 PromoteLocalToParameterRefactoring.ComputeRefactoring(context, localDeclaration, semanticModel);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ReplaceObjectCreationWithDefaultValue))
-                await ReplaceObjectCreationWithDefaultValueRefactoring.ComputeRefactoringAsync(context, localDeclaration).ConfigureAwait(false);
-
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SplitDeclarationAndInitialization))
-                await SplitDeclarationAndInitializationRefactoring.ComputeRefactoringAsync(context, localDeclaration).ConfigureAwait(false);
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RemoveInstantiationOfLocalVariable))
+                await RemoveInstantiationOfLocalVariableRefactoring.ComputeRefactoringAsync(context, localDeclaration).ConfigureAwait(false);
         }
     }
 }

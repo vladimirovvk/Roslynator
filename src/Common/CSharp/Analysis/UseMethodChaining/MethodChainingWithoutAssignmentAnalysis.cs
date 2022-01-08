@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -19,7 +19,7 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
             if (statement.SpanOrLeadingTriviaContainsDirectives())
                 return false;
 
-            if (!(statement is ExpressionStatementSyntax expressionStatement))
+            if (statement is not ExpressionStatementSyntax expressionStatement)
                 return false;
 
             SimpleMemberInvocationExpressionInfo invocationInfo = SyntaxInfo.SimpleMemberInvocationExpressionInfo(expressionStatement.Expression);
@@ -27,17 +27,19 @@ namespace Roslynator.CSharp.Analysis.UseMethodChaining
             if (!invocationInfo.Success)
                 return false;
 
-            if (!(WalkDownMethodChain(invocationInfo).Expression is IdentifierNameSyntax identifierName))
+            SimpleMemberInvocationExpressionInfo topInvocationInfo = WalkDownMethodChain(invocationInfo);
+
+            if (topInvocationInfo.Expression is not IdentifierNameSyntax identifierName)
                 return false;
 
             if (name != identifierName.Identifier.ValueText)
                 return false;
 
-            IMethodSymbol methodSymbol = semanticModel.GetMethodSymbol(invocationInfo.InvocationExpression, cancellationToken);
+            IMethodSymbol methodSymbol = semanticModel.GetMethodSymbol(topInvocationInfo.InvocationExpression, cancellationToken);
 
             return methodSymbol?.IsStatic == false
-                && methodSymbol.ContainingType?.Equals(typeSymbol) == true
-                && methodSymbol.ReturnType.Equals(typeSymbol);
+                && SymbolEqualityComparer.Default.Equals(methodSymbol.ContainingType, typeSymbol)
+                && SymbolEqualityComparer.Default.Equals(methodSymbol.ReturnType, typeSymbol);
         }
     }
 }

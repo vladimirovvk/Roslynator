@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -8,7 +8,7 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static void ComputeRefactorings(RefactoringContext context, UsingStatementSyntax usingStatement)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.IntroduceLocalVariable))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.IntroduceLocalVariable))
             {
                 ExpressionSyntax expression = usingStatement.Expression;
 
@@ -16,8 +16,8 @@ namespace Roslynator.CSharp.Refactorings
                 {
                     context.RegisterRefactoring(
                         IntroduceLocalVariableRefactoring.GetTitle(expression),
-                        cancellationToken => IntroduceLocalVariableRefactoring.RefactorAsync(context.Document, usingStatement, expression, cancellationToken),
-                        RefactoringIdentifiers.IntroduceLocalVariable);
+                        ct => IntroduceLocalVariableRefactoring.RefactorAsync(context.Document, usingStatement, expression, ct),
+                        RefactoringDescriptors.IntroduceLocalVariable);
                 }
             }
         }

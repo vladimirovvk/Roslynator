@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,29 +11,34 @@ using Roslynator.CSharp.Syntax;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class UseCoalesceExpressionAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class UseCoalesceExpressionAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.UseCoalesceExpression,
-                    DiagnosticDescriptors.InlineLazyInitialization);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.UseCoalesceExpression,
+                        DiagnosticRules.InlineLazyInitialization);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
-            context.RegisterSyntaxNodeAction(AnalyzeIfStatement, SyntaxKind.IfStatement);
+            context.RegisterSyntaxNodeAction(f => AnalyzeIfStatement(f), SyntaxKind.IfStatement);
         }
 
-        public static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeIfStatement(SyntaxNodeAnalysisContext context)
         {
             var ifStatement = (IfStatementSyntax)context.Node;
 
@@ -77,7 +82,7 @@ namespace Roslynator.CSharp.Analysis
             int index = statements.IndexOf(ifStatement);
 
             if (index > 0
-                && !context.IsAnalyzerSuppressed(DiagnosticDescriptors.UseCoalesceExpression))
+                && DiagnosticRules.UseCoalesceExpression.IsEffective(context))
             {
                 StatementSyntax previousStatement = statements[index - 1];
 
@@ -86,11 +91,11 @@ namespace Roslynator.CSharp.Analysis
                     && !ifStatement.GetLeadingTrivia().Any(f => f.IsDirective)
                     && CanUseCoalesceExpression(previousStatement, nullCheck.Expression))
                 {
-                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.UseCoalesceExpression, previousStatement);
+                    DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.UseCoalesceExpression, previousStatement);
                 }
             }
 
-            if (context.IsAnalyzerSuppressed(DiagnosticDescriptors.InlineLazyInitialization))
+            if (!DiagnosticRules.InlineLazyInitialization.IsEffective(context))
                 return;
 
             if (index == statements.Count - 1)
@@ -115,7 +120,7 @@ namespace Roslynator.CSharp.Analysis
             if (nextStatement.SpanOrLeadingTriviaContainsDirectives())
                 return;
 
-            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.InlineLazyInitialization, ifStatement);
+            DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.InlineLazyInitialization, ifStatement);
 
             bool IsPartOfLazyInitialization()
             {

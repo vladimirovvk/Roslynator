@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -21,23 +21,23 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(IfStatementCodeFixProvider))]
     [Shared]
-    public class IfStatementCodeFixProvider : BaseCodeFixProvider
+    public sealed class IfStatementCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    DiagnosticIdentifiers.MergeIfStatementWithNestedIfStatement,
+                    DiagnosticIdentifiers.MergeIfWithNestedIf,
                     DiagnosticIdentifiers.UseCoalesceExpressionInsteadOfIf,
-                    DiagnosticIdentifiers.ReplaceIfStatementWithReturnStatement,
-                    DiagnosticIdentifiers.ReplaceIfStatementWithAssignment,
+                    DiagnosticIdentifiers.ConvertIfToReturnStatement,
+                    DiagnosticIdentifiers.ConvertIfToAssignment,
                     DiagnosticIdentifiers.ReduceIfNesting,
                     DiagnosticIdentifiers.UseExceptionFilter);
             }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -48,25 +48,19 @@ namespace Roslynator.CSharp.CodeFixes
             {
                 switch (diagnostic.Id)
                 {
-                    case DiagnosticIdentifiers.MergeIfStatementWithNestedIfStatement:
+                    case DiagnosticIdentifiers.MergeIfWithNestedIf:
                         {
                             CodeAction codeAction = CodeAction.Create(
-                                "Merge if with nested if",
-                                cancellationToken =>
-                                {
-                                    return MergeIfStatementWithNestedIfStatementRefactoring.RefactorAsync(
-                                        context.Document,
-                                        ifStatement,
-                                        cancellationToken);
-                                },
+                                "Merge 'if' with nested 'if'",
+                                ct => MergeIfWithNestedIfAsync(context.Document, ifStatement, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
                             break;
                         }
                     case DiagnosticIdentifiers.UseCoalesceExpressionInsteadOfIf:
-                    case DiagnosticIdentifiers.ReplaceIfStatementWithReturnStatement:
-                    case DiagnosticIdentifiers.ReplaceIfStatementWithAssignment:
+                    case DiagnosticIdentifiers.ConvertIfToReturnStatement:
+                    case DiagnosticIdentifiers.ConvertIfToAssignment:
                         {
                             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
@@ -74,11 +68,12 @@ namespace Roslynator.CSharp.CodeFixes
                                 ifStatement,
                                 IfStatementAnalyzer.AnalysisOptions,
                                 semanticModel,
-                                context.CancellationToken).First();
+                                context.CancellationToken)
+                                .First();
 
                             CodeAction codeAction = CodeAction.Create(
                                 analysis.Title,
-                                cancellationToken => IfRefactoring.RefactorAsync(context.Document, analysis, cancellationToken),
+                                ct => IfRefactoring.RefactorAsync(context.Document, analysis, ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);
@@ -88,14 +83,14 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Invert if",
-                                cancellationToken =>
+                                ct =>
                                 {
                                     return ReduceIfNestingRefactoring.RefactorAsync(
                                         context.Document,
                                         ifStatement,
                                         (SyntaxKind)Enum.Parse(typeof(SyntaxKind), diagnostic.Properties["JumpKind"]),
                                         recursive: true,
-                                        cancellationToken: cancellationToken);
+                                        cancellationToken: ct);
                                 },
                                 GetEquivalenceKey(diagnostic));
 
@@ -106,12 +101,12 @@ namespace Roslynator.CSharp.CodeFixes
                         {
                             CodeAction codeAction = CodeAction.Create(
                                 "Use exception filter",
-                                cancellationToken =>
+                                ct =>
                                 {
                                     return UseExceptionFilterAsync(
                                         context.Document,
                                         ifStatement,
-                                        cancellationToken: cancellationToken);
+                                        cancellationToken: ct);
                                 },
                                 GetEquivalenceKey(diagnostic));
 
@@ -135,7 +130,7 @@ namespace Roslynator.CSharp.CodeFixes
 
             ExpressionSyntax filterExpression = ifStatement.Condition;
 
-            SyntaxList<StatementSyntax> newStatements = statements;
+            SyntaxList<StatementSyntax> newStatements;
 
             if (ifStatement.Statement.SingleNonBlockStatementOrDefault() is ThrowStatementSyntax throwStatement
                 && throwStatement.Expression == null)
@@ -151,7 +146,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                 SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-                filterExpression = SyntaxInverter.LogicallyInvert(filterExpression, semanticModel, cancellationToken);
+                filterExpression = SyntaxLogicalInverter.GetInstance(document).LogicallyInvert(filterExpression, semanticModel, cancellationToken);
             }
             else
             {
@@ -178,6 +173,47 @@ namespace Roslynator.CSharp.CodeFixes
                 {
                     return statements.Replace(ifStatement, statement);
                 }
+            }
+        }
+
+        public static Task<Document> MergeIfWithNestedIfAsync(
+            Document document,
+            IfStatementSyntax ifStatement,
+            CancellationToken cancellationToken = default)
+        {
+            IfStatementSyntax nestedIf = MergeIfWithNestedIfAnalyzer.GetNestedIfStatement(ifStatement);
+
+            ExpressionSyntax left = ifStatement.Condition.Parenthesize();
+            ExpressionSyntax right = nestedIf.Condition;
+
+            if (!right.IsKind(SyntaxKind.LogicalAndExpression))
+                right = right.Parenthesize();
+
+            BinaryExpressionSyntax newCondition = CSharpFactory.LogicalAndExpression(left, right);
+
+            IfStatementSyntax newNode = GetNewIfStatement(ifStatement, nestedIf)
+                .WithCondition(newCondition)
+                .WithFormatterAnnotation();
+
+            return document.ReplaceNodeAsync(ifStatement, newNode, cancellationToken);
+        }
+
+        private static IfStatementSyntax GetNewIfStatement(IfStatementSyntax ifStatement, IfStatementSyntax ifStatement2)
+        {
+            if (ifStatement.Statement.IsKind(SyntaxKind.Block))
+            {
+                if (ifStatement2.Statement.IsKind(SyntaxKind.Block))
+                {
+                    return ifStatement.ReplaceNode(ifStatement2, ((BlockSyntax)ifStatement2.Statement).Statements);
+                }
+                else
+                {
+                    return ifStatement.ReplaceNode(ifStatement2, ifStatement2.Statement);
+                }
+            }
+            else
+            {
+                return ifStatement.ReplaceNode(ifStatement.Statement, ifStatement2.Statement);
             }
         }
     }

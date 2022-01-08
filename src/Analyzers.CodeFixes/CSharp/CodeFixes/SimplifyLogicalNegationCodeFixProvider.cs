@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -18,14 +18,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SimplifyLogicalNegationCodeFixProvider))]
     [Shared]
-    public class SimplifyLogicalNegationCodeFixProvider : BaseCodeFixProvider
+    public sealed class SimplifyLogicalNegationCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.SimplifyLogicalNegation); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -47,16 +47,16 @@ namespace Roslynator.CSharp.CodeFixes
         private static Task<Document> SimplifyLogicalNegationAsync(
             Document document,
             PrefixUnaryExpressionSyntax logicalNot,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
-            ExpressionSyntax newNode = GetNewNode(logicalNot)
+            ExpressionSyntax newNode = GetNewNode(logicalNot, document)
                 .WithTriviaFrom(logicalNot)
                 .WithSimplifierAnnotation();
 
             return document.ReplaceNodeAsync(logicalNot, newNode, cancellationToken);
         }
 
-        private static ExpressionSyntax GetNewNode(PrefixUnaryExpressionSyntax logicalNot)
+        private static ExpressionSyntax GetNewNode(PrefixUnaryExpressionSyntax logicalNot, Document document)
         {
             ExpressionSyntax operand = logicalNot.Operand;
             ExpressionSyntax expression = operand.WalkDownParentheses();
@@ -77,26 +77,15 @@ namespace Roslynator.CSharp.CodeFixes
                         return ((PrefixUnaryExpressionSyntax)expression).Operand;
                     }
                 case SyntaxKind.EqualsExpression:
-                    {
-                        var equalsExpression = (BinaryExpressionSyntax)expression;
-
-                        BinaryExpressionSyntax notEqualsExpression = NotEqualsExpression(
-                            equalsExpression.Left,
-                            SyntaxFactory.Token(SyntaxKind.ExclamationEqualsToken).WithTriviaFrom(equalsExpression.OperatorToken),
-                            equalsExpression.Right);
-
-                        return operand.ReplaceNode(equalsExpression, notEqualsExpression);
-                    }
                 case SyntaxKind.NotEqualsExpression:
+                case SyntaxKind.LessThanExpression:
+                case SyntaxKind.LessThanOrEqualExpression:
+                case SyntaxKind.GreaterThanExpression:
+                case SyntaxKind.GreaterThanOrEqualExpression:
                     {
-                        var notEqualsExpression = (BinaryExpressionSyntax)expression;
+                        BinaryExpressionSyntax newExpression = SyntaxLogicalInverter.GetInstance(document).InvertBinaryExpression((BinaryExpressionSyntax)expression);
 
-                        BinaryExpressionSyntax equalsExpression = NotEqualsExpression(
-                            notEqualsExpression.Left,
-                            SyntaxFactory.Token(SyntaxKind.EqualsEqualsToken).WithTriviaFrom(notEqualsExpression.OperatorToken),
-                            notEqualsExpression.Right);
-
-                        return operand.ReplaceNode(notEqualsExpression, equalsExpression);
+                        return operand.ReplaceNode(expression, newExpression);
                     }
                 case SyntaxKind.InvocationExpression:
                     {
@@ -104,7 +93,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                         var memberAccessExpression = (MemberAccessExpressionSyntax)invocationExpression.Expression;
 
-                        ExpressionSyntax lambdaExpression = invocationExpression.ArgumentList.Arguments.First().Expression.WalkDownParentheses();
+                        ExpressionSyntax lambdaExpression = invocationExpression.ArgumentList.Arguments[0].Expression.WalkDownParentheses();
 
                         SingleParameterLambdaExpressionInfo lambdaInfo = SyntaxInfo.SingleParameterLambdaExpressionInfo(lambdaExpression);
 
@@ -113,6 +102,18 @@ namespace Roslynator.CSharp.CodeFixes
                         InvocationExpressionSyntax newNode = invocationExpression.ReplaceNode(logicalNot2, logicalNot2.Operand.WithTriviaFrom(logicalNot2));
 
                         return SyntaxRefactorings.ChangeInvokedMethodName(newNode, (memberAccessExpression.Name.Identifier.ValueText == "All") ? "Any" : "All");
+                    }
+                case SyntaxKind.IsPatternExpression:
+                    {
+                        var isPatternExpression = (IsPatternExpressionSyntax)expression;
+
+                        var pattern = (ConstantPatternSyntax)isPatternExpression.Pattern;
+
+                        UnaryPatternSyntax newPattern = NotPattern(pattern.WithoutTrivia()).WithTriviaFrom(pattern);
+
+                        return isPatternExpression.WithPattern(newPattern)
+                            .PrependToLeadingTrivia(logicalNot.GetLeadingTrivia())
+                            .AppendToTrailingTrivia(logicalNot.GetTrailingTrivia());
                     }
             }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,7 +27,7 @@ namespace Roslynator.CSharp.Refactorings.Documentation
         public async Task<Document> RefactorAsync(
             Document document,
             DocumentationCommentTriviaSyntax comment,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -43,7 +43,7 @@ namespace Roslynator.CSharp.Refactorings.Documentation
 
             if (triviaList.Any())
             {
-                SyntaxTrivia firstTrivia = triviaList.First();
+                SyntaxTrivia firstTrivia = triviaList[0];
 
                 if (firstTrivia.HasStructure
                     && (firstTrivia.GetStructure() is DocumentationCommentTriviaSyntax newComment))
@@ -205,10 +205,8 @@ namespace Roslynator.CSharp.Refactorings.Documentation
 
             for (int i = content.Count - 1; i >= 0; i--)
             {
-                if (content[i].IsKind(SyntaxKind.XmlElement))
+                if (content[i] is XmlElementSyntax xmlElement)
                 {
-                    var xmlElement = (XmlElementSyntax)content[i];
-
                     XmlTag tag = xmlElement.GetTag();
 
                     if (tag == Tag

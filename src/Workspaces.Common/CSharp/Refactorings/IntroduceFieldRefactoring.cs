@@ -1,9 +1,10 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Roslynator.Configuration;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using static Roslynator.CSharp.CSharpFactory;
 
@@ -24,7 +25,7 @@ namespace Roslynator.CSharp.Refactorings
 
             string name = NameGenerator.CreateName(typeSymbol, firstCharToLower: true) ?? DefaultNames.Variable;
 
-            if (RefactoringSettings.Current.PrefixFieldIdentifierWithUnderscore)
+            if (document.GetConfigOptions(expressionStatement.SyntaxTree).GetPrefixFieldIdentifierWithUnderscore())
                 name = "_" + name;
 
             name = NameGenerator.Default.EnsureUniqueLocalName(
@@ -43,7 +44,8 @@ namespace Roslynator.CSharp.Refactorings
             ExpressionStatementSyntax newExpressionStatement = ExpressionStatement(
                 SimpleAssignmentExpression(
                     IdentifierName(Identifier(name).WithRenameAnnotation()),
-                    expression.WithoutTrivia()).WithTriviaFrom(expression));
+                    expression.WithoutTrivia())
+                    .WithTriviaFrom(expression));
 
             newExpressionStatement = newExpressionStatement
                 .WithTriviaFrom(expressionStatement)

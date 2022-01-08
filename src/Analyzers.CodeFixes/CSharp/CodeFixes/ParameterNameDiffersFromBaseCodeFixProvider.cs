@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -16,9 +16,9 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ParameterNameDiffersFromBaseCodeFixProvider))]
     [Shared]
-    public class ParameterNameDiffersFromBaseCodeFixProvider : BaseCodeFixProvider
+    public sealed class ParameterNameDiffersFromBaseCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.ParameterNameDiffersFromBase); }
         }
@@ -28,7 +28,7 @@ namespace Roslynator.CSharp.CodeFixes
             return null;
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -83,8 +83,8 @@ namespace Roslynator.CSharp.CodeFixes
                                 break;
 
                             CodeAction codeAction = CodeAction.Create(
-                                    $"Rename '{oldName}' to '{newName}'",
-                                cancellationToken => Renamer.RenameSymbolAsync(context.Document.Solution(), parameterSymbol, newName, default(OptionSet), cancellationToken),
+                                $"Rename '{oldName}' to '{newName}'",
+                                ct => Renamer.RenameSymbolAsync(context.Document.Solution(), parameterSymbol, newName, default(OptionSet), ct),
                                 GetEquivalenceKey(diagnostic));
 
                             context.RegisterCodeFix(codeAction, diagnostic);

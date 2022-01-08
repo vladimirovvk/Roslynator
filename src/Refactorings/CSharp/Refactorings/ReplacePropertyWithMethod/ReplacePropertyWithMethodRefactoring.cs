@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
 using System.Linq;
@@ -13,7 +13,7 @@ namespace Roslynator.CSharp.Refactorings.ReplacePropertyWithMethod
 {
     internal static class ReplacePropertyWithMethodRefactoring
     {
-        private static readonly string[] _prefixes = new string[]
+        private static readonly string[] _prefixes = new[]
         {
             "Is",
             "Has",
@@ -32,8 +32,8 @@ namespace Roslynator.CSharp.Refactorings.ReplacePropertyWithMethod
             {
                 context.RegisterRefactoring(
                     $"Replace '{propertyDeclaration.Identifier.ValueText}' with method",
-                    cancellationToken => RefactorAsync(context.Document, propertyDeclaration, cancellationToken),
-                    RefactoringIdentifiers.ReplacePropertyWithMethod);
+                    ct => RefactorAsync(context.Document, propertyDeclaration, ct),
+                    RefactoringDescriptors.ReplacePropertyWithMethod);
             }
         }
 
@@ -55,7 +55,7 @@ namespace Roslynator.CSharp.Refactorings.ReplacePropertyWithMethod
         public static async Task<Solution> RefactorAsync(
             Document document,
             PropertyDeclarationSyntax property,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             Solution solution = document.Solution();
 

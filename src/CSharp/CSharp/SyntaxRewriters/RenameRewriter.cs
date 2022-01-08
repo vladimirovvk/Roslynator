@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
@@ -36,24 +36,25 @@ namespace Roslynator.CSharp.SyntaxRewriters
 
         public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
         {
-            SyntaxToken identifier = node.Identifier;
-
-            if (string.Equals(identifier.ValueText, _name, StringComparison.Ordinal))
+            if (string.Equals(node.Identifier.ValueText, _name, StringComparison.Ordinal))
             {
                 ISymbol symbol = SemanticModel.GetSymbol(node, CancellationToken);
 
-                if (Symbol.Equals(symbol))
-                {
-                    SyntaxToken newIdentifier = SyntaxFactory.Identifier(
-                        identifier.LeadingTrivia,
-                        NewName,
-                        identifier.TrailingTrivia);
-
-                    return node.WithIdentifier(newIdentifier);
-                }
+                if (SymbolEqualityComparer.Default.Equals(Symbol, symbol))
+                    return Rename(node);
             }
 
             return base.VisitIdentifierName(node);
+        }
+
+        protected virtual SyntaxNode Rename(IdentifierNameSyntax node)
+        {
+            SyntaxToken newIdentifier = SyntaxFactory.Identifier(
+                node.Identifier.LeadingTrivia,
+                NewName,
+                node.Identifier.TrailingTrivia);
+
+            return node.WithIdentifier(newIdentifier);
         }
     }
 }

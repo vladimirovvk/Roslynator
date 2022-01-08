@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -10,20 +10,20 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, EventFieldDeclarationSyntax eventFieldDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.GenerateEventInvokingMethod))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.GenerateEventInvokingMethod))
                 await GenerateOnEventMethodRefactoring.ComputeRefactoringAsync(context, eventFieldDeclaration).ConfigureAwait(false);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.ExpandEvent)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.ExpandEventDeclaration)
                 && eventFieldDeclaration.Span.Contains(context.Span)
-                && ExpandEventRefactoring.CanRefactor(eventFieldDeclaration))
+                && ExpandEventDeclarationRefactoring.CanRefactor(eventFieldDeclaration))
             {
                 context.RegisterRefactoring(
                     "Expand event",
-                    ct => ExpandEventRefactoring.RefactorAsync(context.Document, eventFieldDeclaration, ct),
-                    RefactoringIdentifiers.ExpandEvent);
+                    ct => ExpandEventDeclarationRefactoring.RefactorAsync(context.Document, eventFieldDeclaration, ct),
+                    RefactoringDescriptors.ExpandEventDeclaration);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.CopyDocumentationCommentFromBaseMember)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.CopyDocumentationCommentFromBaseMember)
                 && eventFieldDeclaration.Span.Contains(context.Span)
                 && !eventFieldDeclaration.HasDocumentationComment())
             {
@@ -31,7 +31,7 @@ namespace Roslynator.CSharp.Refactorings
                 CopyDocumentationCommentFromBaseMemberRefactoring.ComputeRefactoring(context, eventFieldDeclaration, semanticModel);
             }
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.AddMemberToInterface))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.AddMemberToInterface))
             {
                 VariableDeclaratorSyntax variableDeclarator = eventFieldDeclaration.Declaration?.Variables.SingleOrDefault(shouldThrow: false);
 

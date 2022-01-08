@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -11,40 +11,53 @@ using Microsoft.CodeAnalysis.Text;
 namespace Roslynator.CSharp.Analysis
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AsyncSuffixAnalyzer : BaseDiagnosticAnalyzer
+    public sealed class AsyncSuffixAnalyzer : BaseDiagnosticAnalyzer
     {
+        private static ImmutableArray<DiagnosticDescriptor> _supportedDiagnostics;
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
             get
             {
-                return ImmutableArray.Create(
-                    DiagnosticDescriptors.AsynchronousMethodNameShouldEndWithAsync,
-                    DiagnosticDescriptors.NonAsynchronousMethodNameShouldNotEndWithAsync,
-                    DiagnosticDescriptors.NonAsynchronousMethodNameShouldNotEndWithAsyncFadeOut);
+                if (_supportedDiagnostics.IsDefault)
+                {
+                    Immutable.InterlockedInitialize(
+                        ref _supportedDiagnostics,
+                        DiagnosticRules.AsynchronousMethodNameShouldEndWithAsync,
+                        DiagnosticRules.NonAsynchronousMethodNameShouldNotEndWithAsync,
+                        DiagnosticRules.NonAsynchronousMethodNameShouldNotEndWithAsyncFadeOut);
+                }
+
+                return _supportedDiagnostics;
             }
         }
 
         public override void Initialize(AnalysisContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
             base.Initialize(context);
 
             context.RegisterCompilationStartAction(startContext =>
             {
-                if (startContext.AreAnalyzersSuppressed(DiagnosticDescriptors.AsynchronousMethodNameShouldEndWithAsync, DiagnosticDescriptors.NonAsynchronousMethodNameShouldNotEndWithAsync))
-                    return;
-
                 INamedTypeSymbol asyncAction = startContext.Compilation.GetTypeByMetadataName("Windows.Foundation.IAsyncAction");
 
                 bool shouldCheckWindowsRuntimeTypes = asyncAction != null;
 
-                startContext.RegisterSyntaxNodeAction(nodeContext => AnalyzeMethodDeclaration(nodeContext, shouldCheckWindowsRuntimeTypes), SyntaxKind.MethodDeclaration);
+                startContext.RegisterSyntaxNodeAction(
+                    c =>
+                    {
+                        if (DiagnosticHelpers.IsAnyEffective(
+                            c,
+                            DiagnosticRules.AsynchronousMethodNameShouldEndWithAsync,
+                            DiagnosticRules.NonAsynchronousMethodNameShouldNotEndWithAsync))
+                        {
+                            AnalyzeMethodDeclaration(c, shouldCheckWindowsRuntimeTypes);
+                        }
+                    },
+                    SyntaxKind.MethodDeclaration);
             });
         }
 
-        public static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context, bool shouldCheckWindowsRuntimeTypes)
+        private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context, bool shouldCheckWindowsRuntimeTypes)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
@@ -66,12 +79,14 @@ namespace Roslynator.CSharp.Analysis
 
                 SyntaxToken identifier = methodDeclaration.Identifier;
 
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.NonAsynchronousMethodNameShouldNotEndWithAsync,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.NonAsynchronousMethodNameShouldNotEndWithAsync,
                     identifier);
 
-                DiagnosticHelpers.ReportDiagnostic(context,
-                    DiagnosticDescriptors.NonAsynchronousMethodNameShouldNotEndWithAsyncFadeOut,
+                DiagnosticHelpers.ReportDiagnostic(
+                    context,
+                    DiagnosticRules.NonAsynchronousMethodNameShouldNotEndWithAsyncFadeOut,
                     Location.Create(identifier.SyntaxTree, TextSpan.FromBounds(identifier.Span.End - 5, identifier.Span.End)));
             }
             else
@@ -87,7 +102,7 @@ namespace Roslynator.CSharp.Analysis
                 if (!SymbolUtility.IsAwaitable(methodSymbol.ReturnType, shouldCheckWindowsRuntimeTypes))
                     return;
 
-                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticDescriptors.AsynchronousMethodNameShouldEndWithAsync, methodDeclaration.Identifier);
+                DiagnosticHelpers.ReportDiagnostic(context, DiagnosticRules.AsynchronousMethodNameShouldEndWithAsync, methodDeclaration.Identifier);
             }
         }
     }

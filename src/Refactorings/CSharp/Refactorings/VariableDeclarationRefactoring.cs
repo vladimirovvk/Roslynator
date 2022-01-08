@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,27 +15,21 @@ namespace Roslynator.CSharp.Refactorings
     {
         public static async Task ComputeRefactoringsAsync(RefactoringContext context, VariableDeclarationSyntax variableDeclaration)
         {
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.RenameIdentifierAccordingToTypeName))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.RenameIdentifierAccordingToTypeName))
                 await RenameVariableAccordingToTypeNameAsync(context, variableDeclaration).ConfigureAwait(false);
 
             await ChangeVariableDeclarationTypeRefactoring.ComputeRefactoringsAsync(context, variableDeclaration).ConfigureAwait(false);
 
-            if (context.IsAnyRefactoringEnabled(RefactoringIdentifiers.AddCastExpression, RefactoringIdentifiers.CallToMethod))
-                await AddCastExpressionAsync(context, variableDeclaration).ConfigureAwait(false);
-
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.WrapInUsingStatement))
-                await WrapInUsingStatementRefactoring.ComputeRefactoringAsync(context, variableDeclaration).ConfigureAwait(false);
-
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.CheckExpressionForNull))
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.CheckExpressionForNull))
                 await CheckExpressionForNullRefactoring.ComputeRefactoringAsync(context, variableDeclaration).ConfigureAwait(false);
 
-            if (context.IsRefactoringEnabled(RefactoringIdentifiers.SplitVariableDeclaration)
+            if (context.IsRefactoringEnabled(RefactoringDescriptors.SplitVariableDeclaration)
                 && SplitVariableDeclarationAnalysis.IsFixable(variableDeclaration))
             {
                 context.RegisterRefactoring(
                     SplitVariableDeclarationRefactoring.GetTitle(variableDeclaration),
-                    cancellationToken => SplitVariableDeclarationRefactoring.RefactorAsync(context.Document, variableDeclaration, cancellationToken),
-                    RefactoringIdentifiers.SplitVariableDeclaration);
+                    ct => SplitVariableDeclarationRefactoring.RefactorAsync(context.Document, variableDeclaration, ct),
+                    RefactoringDescriptors.SplitVariableDeclaration);
             }
         }
 
@@ -63,7 +57,7 @@ namespace Roslynator.CSharp.Refactorings
 
             SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
 
-            if (!(semanticModel.GetDeclaredSymbol(variable, context.CancellationToken) is ILocalSymbol localSymbol))
+            if (semanticModel.GetDeclaredSymbol(variable, context.CancellationToken) is not ILocalSymbol localSymbol)
                 return;
 
             string oldName = identifier.ValueText;
@@ -80,40 +74,8 @@ namespace Roslynator.CSharp.Refactorings
 
             context.RegisterRefactoring(
                 $"Rename '{oldName}' to '{newName}'",
-                cancellationToken => Renamer.RenameSymbolAsync(context.Solution, localSymbol, newName, default(OptionSet), cancellationToken),
-                RefactoringIdentifiers.RenameIdentifierAccordingToTypeName);
-        }
-
-        private static async Task AddCastExpressionAsync(
-            RefactoringContext context,
-            VariableDeclarationSyntax variableDeclaration)
-        {
-            if (variableDeclaration.Type?.IsVar != false)
-                return;
-
-            VariableDeclaratorSyntax declarator = variableDeclaration
-                .Variables
-                .FirstOrDefault(f => f.Initializer?.Value?.Span.Contains(context.Span) == true);
-
-            if (declarator == null)
-                return;
-
-            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-            ITypeSymbol declarationType = semanticModel.GetTypeSymbol(variableDeclaration.Type, context.CancellationToken);
-
-            if (declarationType?.IsErrorType() != false)
-                return;
-
-            ITypeSymbol expressionType = semanticModel.GetTypeSymbol(declarator.Initializer.Value, context.CancellationToken);
-
-            if (expressionType?.IsErrorType() != false)
-                return;
-
-            if (declarationType.Equals(expressionType))
-                return;
-
-            ModifyExpressionRefactoring.ComputeRefactoring(context, declarator.Initializer.Value, declarationType, semanticModel);
+                ct => Renamer.RenameSymbolAsync(context.Solution, localSymbol, newName, default(OptionSet), ct),
+                RefactoringDescriptors.RenameIdentifierAccordingToTypeName);
         }
     }
 }

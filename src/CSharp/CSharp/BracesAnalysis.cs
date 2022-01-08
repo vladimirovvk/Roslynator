@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -47,9 +47,9 @@ namespace Roslynator.CSharp
 
         public static BracesAnalysis AnalyzeBraces(IfStatementSyntax ifStatement)
         {
-            bool anyHasEmbedded = false;
-            bool anyHasBlock = false;
-            bool allSupportsEmbedded = true;
+            var anyHasEmbedded = false;
+            var anyHasBlock = false;
+            var allSupportsEmbedded = true;
 
             int cnt = 0;
 
@@ -101,7 +101,7 @@ namespace Roslynator.CSharp
 
             return BracesAnalysisFlags.None;
 
-            bool SupportsEmbedded(StatementSyntax statement)
+            static bool SupportsEmbedded(StatementSyntax statement)
             {
                 if (statement.IsParentKind(SyntaxKind.IfStatement)
                     && ((IfStatementSyntax)statement.Parent).Condition?.IsMultiLine() == true)

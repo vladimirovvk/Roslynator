@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ using System.Composition;
 using System.Composition.Hosting;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 
@@ -76,14 +77,16 @@ namespace Roslynator.Host.Mef
                 .Where(f => f != null)
                 .ToImmutableArray();
 
-            IEnumerable<string> GetAssemblyNames()
+            static IEnumerable<string> GetAssemblyNames()
             {
                 AssemblyName assemblyName = typeof(MefHostServices).GetTypeInfo().Assembly.GetName();
                 Version assemblyVersion = assemblyName.Version;
                 string publicKeyToken = assemblyName.GetPublicKeyToken().Aggregate("", (s, b) => s + b.ToString("x2"));
 
-                yield return $"Roslynator.CSharp.Workspaces, Version={assemblyVersion}, Culture=neutral, PublicKeyToken={publicKeyToken}";
-                yield return $"Roslynator.VisualBasic.Workspaces, Version={assemblyVersion}, Culture=neutral, PublicKeyToken={publicKeyToken}";
+                string prefix = Regex.Match(assemblyName.Name, @"\A.*Roslynator(?=\..*\z)", RegexOptions.RightToLeft).Value;
+
+                yield return $"{prefix}.CSharp.Workspaces, Version={assemblyVersion}, Culture=neutral, PublicKeyToken={publicKeyToken}";
+                yield return $"{prefix}.VisualBasic.Workspaces, Version={assemblyVersion}, Culture=neutral, PublicKeyToken={publicKeyToken}";
             }
         }
 
@@ -118,4 +121,3 @@ namespace Roslynator.Host.Mef
         }
     }
 }
-

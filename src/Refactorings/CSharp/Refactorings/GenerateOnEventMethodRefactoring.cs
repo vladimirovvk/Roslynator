@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -32,7 +32,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (!context.Span.IsContainedInSpanOrBetweenSpans(variableDeclarator.Identifier))
                     continue;
 
-                semanticModel = semanticModel ?? await context.GetSemanticModelAsync().ConfigureAwait(false);
+                semanticModel ??= await context.GetSemanticModelAsync().ConfigureAwait(false);
 
                 var eventSymbol = semanticModel.GetDeclaredSymbol(variableDeclarator, context.CancellationToken) as IEventSymbol;
 
@@ -44,7 +44,7 @@ namespace Roslynator.CSharp.Refactorings
                 if (containingType == null)
                     return;
 
-                if (!(eventSymbol.Type is INamedTypeSymbol eventHandlerType))
+                if (eventSymbol.Type is not INamedTypeSymbol eventHandlerType)
                     continue;
 
                 ITypeSymbol eventArgsSymbol = GetEventArgsSymbol(eventHandlerType, semanticModel);
@@ -56,7 +56,7 @@ namespace Roslynator.CSharp.Refactorings
 
                 if (containingType.ContainsMember<IMethodSymbol>(
                     $"On{eventSymbol.Name}",
-                    methodSymbol => eventArgsSymbol.Equals(methodSymbol.Parameters.SingleOrDefault(shouldThrow: false)?.Type)))
+                    methodSymbol => SymbolEqualityComparer.Default.Equals(eventArgsSymbol, methodSymbol.Parameters.SingleOrDefault(shouldThrow: false)?.Type)))
                 {
                     continue;
                 }
@@ -65,7 +65,7 @@ namespace Roslynator.CSharp.Refactorings
 
                 context.RegisterRefactoring(
                     $"Generate '{methodName}' method",
-                    cancellationToken =>
+                    ct =>
                     {
                         return RefactorAsync(
                             context.Document,
@@ -73,9 +73,9 @@ namespace Roslynator.CSharp.Refactorings
                             eventSymbol,
                             eventArgsSymbol,
                             context.SupportsCSharp6,
-                            cancellationToken);
+                            ct);
                     },
-                    RefactoringIdentifiers.GenerateEventInvokingMethod);
+                    RefactoringDescriptors.GenerateEventInvokingMethod);
             }
         }
 
@@ -98,7 +98,7 @@ namespace Roslynator.CSharp.Refactorings
             IEventSymbol eventSymbol,
             ITypeSymbol eventArgsSymbol,
             bool supportsCSharp6,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             MemberDeclarationListInfo info = SyntaxInfo.MemberDeclarationListInfo(eventFieldDeclaration.Parent);
 

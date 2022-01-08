@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -17,14 +17,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(TypeDoesNotContainDefinitionCodeFixProvider))]
     [Shared]
-    public class TypeDoesNotContainDefinitionCodeFixProvider : BaseCodeFixProvider
+    public sealed class TypeDoesNotContainDefinitionCodeFixProvider : CompilerDiagnosticCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.TypeDoesNotContainDefinitionAndNoExtensionMethodCouldBeFound); }
+            get { return ImmutableArray.Create(CompilerDiagnosticIdentifiers.CS1061_TypeDoesNotContainDefinitionAndNoExtensionMethodCouldBeFound); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -34,94 +34,88 @@ namespace Roslynator.CSharp.CodeFixes
             Diagnostic diagnostic = context.Diagnostics[0];
             Document document = context.Document;
 
-            switch (diagnostic.Id)
+            switch (expression)
             {
-                case CompilerDiagnosticIdentifiers.TypeDoesNotContainDefinitionAndNoExtensionMethodCouldBeFound:
+                case SimpleNameSyntax simpleName:
                     {
-                        switch (expression)
+                        SyntaxDebug.Assert(expression.IsKind(SyntaxKind.IdentifierName, SyntaxKind.GenericName), expression);
+
+                        if (simpleName.IsParentKind(SyntaxKind.SimpleMemberAccessExpression))
                         {
-                            case SimpleNameSyntax simpleName:
-                                {
-                                    Debug.Assert(expression.IsKind(SyntaxKind.IdentifierName, SyntaxKind.GenericName), expression.Kind().ToString());
+                            var memberAccessExpression = (MemberAccessExpressionSyntax)simpleName.Parent;
 
-                                    if (simpleName.IsParentKind(SyntaxKind.SimpleMemberAccessExpression))
+                            SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                            if (memberAccessExpression.IsParentKind(SyntaxKind.InvocationExpression))
+                            {
+                                if (!memberAccessExpression.Parent.IsParentKind(SyntaxKind.ConditionalAccessExpression)
+                                    && IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceInvocationWithMemberAccessOrViceVersa, context.Document, root.SyntaxTree))
+                                {
+                                    var invocationExpression = (InvocationExpressionSyntax)memberAccessExpression.Parent;
+
+                                    if (!invocationExpression.ArgumentList.Arguments.Any())
                                     {
-                                        var memberAccessExpression = (MemberAccessExpressionSyntax)simpleName.Parent;
-
-                                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-                                        if (memberAccessExpression.IsParentKind(SyntaxKind.InvocationExpression))
-                                        {
-                                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceInvocationWithMemberAccessOrViceVersa))
-                                            {
-                                                var invocationExpression = (InvocationExpressionSyntax)memberAccessExpression.Parent;
-
-                                                if (!invocationExpression.ArgumentList.Arguments.Any())
-                                                {
-                                                    ReplaceInvocationWithMemberAccess(context, diagnostic, memberAccessExpression, invocationExpression, semanticModel);
-                                                }
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.FixMemberAccessName))
-                                            {
-                                                CodeFixRegistrationResult result = ReplaceCountWithLengthOrViceVersa(context, diagnostic, memberAccessExpression.Expression, simpleName, semanticModel);
-
-                                                if (result.Success)
-                                                    break;
-                                            }
-
-                                            if (Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceInvocationWithMemberAccessOrViceVersa))
-                                            {
-                                                ReplaceMemberAccessWithInvocation(context, diagnostic, memberAccessExpression, semanticModel);
-                                            }
-                                        }
+                                        ReplaceInvocationWithMemberAccess(context, diagnostic, memberAccessExpression, invocationExpression, semanticModel);
                                     }
-
-                                    break;
                                 }
-                            case MemberBindingExpressionSyntax memberBindingExpression:
+                            }
+                            else
+                            {
+                                if (IsEnabled(diagnostic.Id, CodeFixIdentifiers.FixMemberAccessName, context.Document, root.SyntaxTree))
                                 {
-                                    if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.FixMemberAccessName))
+                                    CodeFixRegistrationResult result = ReplaceCountWithLengthOrViceVersa(context, diagnostic, memberAccessExpression.Expression, simpleName, semanticModel);
+
+                                    if (result.Success)
                                         break;
-
-                                    if (!(memberBindingExpression.Parent is ConditionalAccessExpressionSyntax conditionalAccessExpression))
-                                        break;
-
-                                    SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
-
-                                    CodeFixRegistrationResult result = ReplaceCountWithLengthOrViceVersa(context, diagnostic, conditionalAccessExpression.Expression, memberBindingExpression.Name, semanticModel);
-
-                                    break;
                                 }
-                            case AwaitExpressionSyntax awaitExpression:
+
+                                if (!memberAccessExpression.IsParentKind(SyntaxKind.ConditionalAccessExpression)
+                                    && IsEnabled(diagnostic.Id, CodeFixIdentifiers.ReplaceInvocationWithMemberAccessOrViceVersa, context.Document, root.SyntaxTree))
                                 {
-                                    if (!Settings.IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveAwaitKeyword))
-                                        break;
-
-                                    CodeAction codeAction = CodeAction.Create(
-                                        "Remove 'await'",
-                                        cancellationToken =>
-                                        {
-                                            ExpressionSyntax expression2 = awaitExpression.Expression;
-
-                                            SyntaxTriviaList leadingTrivia = awaitExpression
-                                                .GetLeadingTrivia()
-                                                .AddRange(awaitExpression.AwaitKeyword.TrailingTrivia.EmptyIfWhitespace())
-                                                .AddRange(expression2.GetLeadingTrivia().EmptyIfWhitespace());
-
-                                            ExpressionSyntax newNode = expression2.WithLeadingTrivia(leadingTrivia);
-
-                                            return document.ReplaceNodeAsync(awaitExpression, newNode, cancellationToken);
-                                        },
-                                        GetEquivalenceKey(diagnostic));
-
-                                    context.RegisterCodeFix(codeAction, diagnostic);
-                                    break;
+                                    ReplaceMemberAccessWithInvocation(context, diagnostic, memberAccessExpression, semanticModel);
                                 }
+                            }
                         }
 
+                        break;
+                    }
+                case MemberBindingExpressionSyntax memberBindingExpression:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.FixMemberAccessName, context.Document, root.SyntaxTree))
+                            break;
+
+                        if (memberBindingExpression.Parent is not ConditionalAccessExpressionSyntax conditionalAccessExpression)
+                            break;
+
+                        SemanticModel semanticModel = await context.GetSemanticModelAsync().ConfigureAwait(false);
+
+                        CodeFixRegistrationResult result = ReplaceCountWithLengthOrViceVersa(context, diagnostic, conditionalAccessExpression.Expression, memberBindingExpression.Name, semanticModel);
+
+                        break;
+                    }
+                case AwaitExpressionSyntax awaitExpression:
+                    {
+                        if (!IsEnabled(diagnostic.Id, CodeFixIdentifiers.RemoveAwaitKeyword, context.Document, root.SyntaxTree))
+                            break;
+
+                        CodeAction codeAction = CodeAction.Create(
+                            "Remove 'await'",
+                            ct =>
+                            {
+                                ExpressionSyntax expression2 = awaitExpression.Expression;
+
+                                SyntaxTriviaList leadingTrivia = awaitExpression
+                                    .GetLeadingTrivia()
+                                    .AddRange(awaitExpression.AwaitKeyword.TrailingTrivia.EmptyIfWhitespace())
+                                    .AddRange(expression2.GetLeadingTrivia().EmptyIfWhitespace());
+
+                                ExpressionSyntax newNode = expression2.WithLeadingTrivia(leadingTrivia);
+
+                                return document.ReplaceNodeAsync(awaitExpression, newNode, ct);
+                            },
+                            GetEquivalenceKey(diagnostic));
+
+                        context.RegisterCodeFix(codeAction, diagnostic);
                         break;
                     }
             }

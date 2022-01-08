@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -10,7 +10,7 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
 {
     internal static class AddExceptionToDocumentationCommentAnalysis
     {
-        private static AddExceptionToDocumentationCommentAnalysisResult Fail { get; } = new AddExceptionToDocumentationCommentAnalysisResult();
+        private static AddExceptionToDocumentationCommentAnalysisResult Fail { get; } = new();
 
         public static AddExceptionToDocumentationCommentAnalysisResult Analyze(
             ThrowStatementSyntax throwStatement,
@@ -55,7 +55,7 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            if (!(semanticModel.GetTypeSymbol(expression, cancellationToken) is INamedTypeSymbol typeSymbol))
+            if (semanticModel.GetTypeSymbol(expression, cancellationToken) is not INamedTypeSymbol typeSymbol)
                 return Fail;
 
             if (!InheritsFromException(typeSymbol, exceptionSymbol))
@@ -63,7 +63,7 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
 
             ISymbol declarationSymbol = GetDeclarationSymbol(node.SpanStart, semanticModel, cancellationToken);
 
-            if (!(declarationSymbol?.GetSyntax(cancellationToken) is MemberDeclarationSyntax containingMember))
+            if (declarationSymbol?.GetSyntax(cancellationToken) is not MemberDeclarationSyntax containingMember)
                 return Fail;
 
             DocumentationCommentTriviaSyntax comment = containingMember.GetSingleLineDocumentationComment();
@@ -85,9 +85,9 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
             SemanticModel semanticModel,
             CancellationToken cancellationToken)
         {
-            bool containsException = false;
-            bool containsIncludeOrExclude = false;
-            bool isFirst = true;
+            var containsException = false;
+            var containsIncludeOrExclude = false;
+            var isFirst = true;
 
             foreach (XmlNodeSyntax node in comment.Content)
             {
@@ -167,13 +167,13 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
                     if (cref != null
                         && (semanticModel.GetSymbol(cref, cancellationToken) is INamedTypeSymbol symbol))
                     {
-                        if (exceptionSymbol.Equals(symbol))
+                        if (SymbolEqualityComparer.Default.Equals(exceptionSymbol, symbol))
                             return true;
 
                         // http://github.com/dotnet/roslyn/issues/22923
                         if (exceptionSymbol.IsGenericType
                             && symbol.IsGenericType
-                            && exceptionSymbol.ConstructedFrom.Equals(symbol.ConstructedFrom))
+                            && SymbolEqualityComparer.Default.Equals(exceptionSymbol.ConstructedFrom, symbol.ConstructedFrom))
                         {
                             return true;
                         }
@@ -187,7 +187,7 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
         internal static ISymbol GetDeclarationSymbol(
             int position,
             SemanticModel semanticModel,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             ISymbol symbol = semanticModel.GetEnclosingSymbol(position, cancellationToken);
 
@@ -196,7 +196,7 @@ namespace Roslynator.CSharp.Analysis.AddExceptionToDocumentationComment
 
         private static ISymbol GetDeclarationSymbol(ISymbol symbol)
         {
-            if (!(symbol is IMethodSymbol methodSymbol))
+            if (symbol is not IMethodSymbol methodSymbol)
                 return null;
 
             MethodKind methodKind = methodSymbol.MethodKind;

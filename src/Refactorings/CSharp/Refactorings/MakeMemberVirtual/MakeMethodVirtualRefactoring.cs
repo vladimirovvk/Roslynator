@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +17,7 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberVirtual
             if (!methodDeclaration.Modifiers.Contains(SyntaxKind.AbstractKeyword))
                 return;
 
-            if (!(methodDeclaration.Parent is ClassDeclarationSyntax classDeclaration))
+            if (methodDeclaration.Parent is not ClassDeclarationSyntax classDeclaration)
                 return;
 
             if (classDeclaration.Modifiers.Contains(SyntaxKind.SealedKeyword))
@@ -25,8 +25,8 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberVirtual
 
             context.RegisterRefactoring(
                 "Make method virtual",
-                cancellationToken => RefactorAsync(context.Document, methodDeclaration, cancellationToken),
-                RefactoringIdentifiers.MakeMemberVirtual);
+                ct => RefactorAsync(context.Document, methodDeclaration, ct),
+                RefactoringDescriptors.MakeMemberVirtual);
         }
 
         private static async Task<Document> RefactorAsync(
@@ -44,7 +44,7 @@ namespace Roslynator.CSharp.Refactorings.MakeMemberVirtual
 
                 IMethodSymbol methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken);
 
-                ExpressionSyntax expression = methodSymbol.ReturnType.GetDefaultValueSyntax(document.GetDefaultSyntaxOptions(), returnType);
+                ExpressionSyntax expression = methodSymbol.ReturnType.GetDefaultValueSyntax(returnType, document.GetDefaultSyntaxOptions());
 
                 body = body.AddStatements(ReturnStatement(expression));
             }

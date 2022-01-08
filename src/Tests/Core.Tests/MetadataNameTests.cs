@@ -1,8 +1,8 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Xunit;
 
-namespace Roslynator.CSharp.Tests
+namespace Roslynator.Testing.CSharp
 {
     public static class MetadataNameTests
     {
@@ -11,7 +11,7 @@ namespace Roslynator.CSharp.Tests
         {
             const string x = "a";
 
-            MetadataName name = MetadataName.Parse(x);
+            var name = MetadataName.Parse(x);
 
             Assert.Equal(x, name.ToString());
         }
@@ -21,7 +21,7 @@ namespace Roslynator.CSharp.Tests
         {
             const string x = "a.b";
 
-            MetadataName name = MetadataName.Parse(x);
+            var name = MetadataName.Parse(x);
 
             Assert.Equal(x, name.ToString());
         }
@@ -31,7 +31,7 @@ namespace Roslynator.CSharp.Tests
         {
             const string x = "a.b.c";
 
-            MetadataName name = MetadataName.Parse(x);
+            var name = MetadataName.Parse(x);
 
             Assert.Equal(x, name.ToString());
         }
@@ -41,7 +41,7 @@ namespace Roslynator.CSharp.Tests
         {
             const string x = "a+b";
 
-            MetadataName name = MetadataName.Parse(x);
+            var name = MetadataName.Parse(x);
 
             Assert.Equal(x, name.ToString());
         }
@@ -51,7 +51,7 @@ namespace Roslynator.CSharp.Tests
         {
             const string x = "a.b+c+d";
 
-            MetadataName name = MetadataName.Parse(x);
+            var name = MetadataName.Parse(x);
 
             Assert.Equal(x, name.ToString());
         }
@@ -61,7 +61,7 @@ namespace Roslynator.CSharp.Tests
         {
             const string x = "a.b.c+d+e+f";
 
-            MetadataName name = MetadataName.Parse(x);
+            var name = MetadataName.Parse(x);
 
             Assert.Equal(x, name.ToString());
         }

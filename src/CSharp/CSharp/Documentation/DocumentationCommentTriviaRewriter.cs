@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using Microsoft.CodeAnalysis;
@@ -28,7 +28,7 @@ namespace Roslynator.CSharp.Documentation
 
                 if (tokens.Count == 1)
                 {
-                    SyntaxToken token = tokens.First();
+                    SyntaxToken token = tokens[0];
 
                     string text = token.Text;
 
@@ -60,7 +60,7 @@ namespace Roslynator.CSharp.Documentation
 
             if (typeSymbol != null)
             {
-                return SymbolDisplay.ToMinimalDisplayString(typeSymbol, _semanticModel, _position, SymbolDisplayFormats.Default)
+                return SymbolDisplay.ToMinimalDisplayString(typeSymbol, _semanticModel, _position, SymbolDisplayFormats.DisplayName)
                     .Replace('<', '{')
                     .Replace('>', '}');
             }

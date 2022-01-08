@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -51,7 +51,7 @@ namespace Roslynator.CSharp.Refactorings
             }
             else
             {
-                Debug.Fail(binaryExpression.ToString());
+                SyntaxDebug.Fail(binaryExpression);
             }
 
             return document.ReplaceNodeAsync(binaryExpression, newNode.WithFormatterAnnotation(), cancellationToken);

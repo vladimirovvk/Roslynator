@@ -1,4 +1,4 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -21,14 +21,14 @@ namespace Roslynator.CSharp.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(OptimizeStringBuilderAppendCallCodeFixProvider))]
     [Shared]
-    public class OptimizeStringBuilderAppendCallCodeFixProvider : BaseCodeFixProvider
+    public sealed class OptimizeStringBuilderAppendCallCodeFixProvider : BaseCodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
+        public override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create(DiagnosticIdentifiers.OptimizeStringBuilderAppendCall); }
         }
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             SyntaxNode root = await context.GetSyntaxRootAsync().ConfigureAwait(false);
 
@@ -43,6 +43,7 @@ namespace Roslynator.CSharp.CodeFixes
             }
 
             Diagnostic diagnostic = context.Diagnostics[0];
+            Document document = context.Document;
 
             if (node is ArgumentSyntax argument)
             {
@@ -50,7 +51,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                 CodeAction codeAction = CodeAction.Create(
                     $"Optimize '{invocationInfo.NameText}' call",
-                    cancellationToken => RefactorAsync(context.Document, argument, invocationInfo, cancellationToken),
+                    ct => RefactorAsync(document, argument, invocationInfo, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -61,7 +62,7 @@ namespace Roslynator.CSharp.CodeFixes
 
                 CodeAction codeAction = CodeAction.Create(
                     $"Optimize '{invocationInfo.NameText}' call",
-                    cancellationToken => RefactorAsync(context.Document, invocationInfo, cancellationToken),
+                    ct => RefactorAsync(document, invocationInfo, ct),
                     GetEquivalenceKey(diagnostic));
 
                 context.RegisterCodeFix(codeAction, diagnostic);
@@ -97,7 +98,7 @@ namespace Roslynator.CSharp.CodeFixes
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
             InvocationExpressionSyntax invocation = invocationInfo.InvocationExpression;
-            InvocationExpressionSyntax newInvocation = null;
+            InvocationExpressionSyntax newInvocation;
 
             bool isAppendLine = string.Equals(invocationInfo.NameText, "AppendLine", StringComparison.Ordinal);
 
@@ -299,9 +300,13 @@ namespace Roslynator.CSharp.CodeFixes
                     {
                         return CreateNewInvocationExpression(outerInvocationExpression, "AppendFormat", invocationInfo.ArgumentList);
                     }
+                case "Join":
+                    {
+                        return CreateNewInvocationExpression(outerInvocationExpression, "AppendJoin", invocationInfo.ArgumentList);
+                    }
             }
 
-            Debug.Fail(innerInvocationExpression.ToString());
+            SyntaxDebug.Fail(innerInvocationExpression);
             return outerInvocationExpression;
         }
 

@@ -1,9 +1,10 @@
-﻿// Copyright (c) Josef Pihrt. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Roslynator.Metadata;
 
 namespace Roslynator.CodeGeneration
@@ -18,9 +19,19 @@ namespace Roslynator.CodeGeneration
         public string RootDirectoryPath { get; }
 
         private ImmutableArray<AnalyzerMetadata> _analyzers;
+        private ImmutableArray<AnalyzerMetadata> _codeAnalysisAnalyzers;
+        private ImmutableArray<AnalyzerMetadata> _formattingAnalyzers;
         private ImmutableArray<RefactoringMetadata> _refactorings;
         private ImmutableArray<CodeFixMetadata> _codeFixes;
         private ImmutableArray<CompilerDiagnosticMetadata> _compilerDiagnostics;
+        private ImmutableArray<ConfigOptionMetadata> _configOptions;
+
+        private static readonly Regex _analyzersFileNameRegex = new(@"\A(\w+\.)?Analyzers(?!\.Template)(\.\w+)?\z");
+
+        public IEnumerable<AnalyzerMetadata> GetAllAnalyzers()
+        {
+            return Analyzers.Concat(FormattingAnalyzers).Concat(CodeAnalysisAnalyzers);
+        }
 
         public ImmutableArray<AnalyzerMetadata> Analyzers
         {
@@ -30,6 +41,28 @@ namespace Roslynator.CodeGeneration
                     _analyzers = LoadAnalyzers(GetPath("Analyzers"));
 
                 return _analyzers;
+            }
+        }
+
+        public ImmutableArray<AnalyzerMetadata> CodeAnalysisAnalyzers
+        {
+            get
+            {
+                if (_codeAnalysisAnalyzers.IsDefault)
+                    _codeAnalysisAnalyzers = LoadAnalyzers(GetPath("CodeAnalysis.Analyzers"));
+
+                return _codeAnalysisAnalyzers;
+            }
+        }
+
+        public ImmutableArray<AnalyzerMetadata> FormattingAnalyzers
+        {
+            get
+            {
+                if (_formattingAnalyzers.IsDefault)
+                    _formattingAnalyzers = LoadAnalyzers(GetPath("Formatting.Analyzers"));
+
+                return _formattingAnalyzers;
             }
         }
 
@@ -49,7 +82,7 @@ namespace Roslynator.CodeGeneration
             get
             {
                 if (_codeFixes.IsDefault)
-                    _codeFixes = MetadataFile.ReadAllCodeFixes(GetPath(@"CodeFixes\CodeFixes.xml"));
+                    _codeFixes = MetadataFile.ReadCodeFixes(GetPath(@"CodeFixes\CodeFixes.xml")).ToImmutableArray();
 
                 return _codeFixes;
             }
@@ -60,20 +93,32 @@ namespace Roslynator.CodeGeneration
             get
             {
                 if (_compilerDiagnostics.IsDefault)
-                    _compilerDiagnostics = MetadataFile.ReadAllCompilerDiagnostics(GetPath(@"CodeFixes\Diagnostics.xml"));
+                    _compilerDiagnostics = MetadataFile.ReadCompilerDiagnostics(GetPath(@"CodeFixes\Diagnostics.xml")).ToImmutableArray();
 
                 return _compilerDiagnostics;
             }
         }
 
+        public ImmutableArray<ConfigOptionMetadata> ConfigOptions
+        {
+            get
+            {
+                if (_configOptions.IsDefault)
+                    _configOptions = MetadataFile.ReadOptions(GetPath(@"Common\ConfigOptions.xml")).ToImmutableArray();
+
+                return _configOptions;
+            }
+        }
+
         private static ImmutableArray<AnalyzerMetadata> LoadAnalyzers(string directoryPath)
         {
-            IEnumerable<AnalyzerMetadata> analyzers = Directory
-                .EnumerateFiles(directoryPath, "Analyzers.*.xml", SearchOption.TopDirectoryOnly)
-                .Where(filePath => Path.GetFileName(filePath) != "Analyzers.Template.xml")
-                .SelectMany(filePath => MetadataFile.ReadAllAnalyzers(filePath));
+            IEnumerable<string> filePaths = Directory.EnumerateFiles(directoryPath, "*.xml", SearchOption.TopDirectoryOnly)
+                .Where(f => _analyzersFileNameRegex.IsMatch(Path.GetFileNameWithoutExtension(f)));
 
-            return MetadataFile.ReadAllAnalyzers(Path.Combine(directoryPath, "Analyzers.xml")).AddRange(analyzers);
+            foreach (string filePath in filePaths)
+                MetadataFile.CleanAnalyzers(filePath);
+
+            return filePaths.SelectMany(f => MetadataFile.ReadAnalyzers(f)).ToImmutableArray();
         }
 
         private static ImmutableArray<RefactoringMetadata> LoadRefactorings(string directoryPath)
@@ -81,9 +126,12 @@ namespace Roslynator.CodeGeneration
             IEnumerable<RefactoringMetadata> refactorings = Directory
                 .EnumerateFiles(directoryPath, "Refactorings.*.xml", SearchOption.TopDirectoryOnly)
                 .Where(filePath => Path.GetFileName(filePath) != "Refactorings.Template.xml")
-                .SelectMany(filePath => MetadataFile.ReadAllRefactorings(filePath));
+                .SelectMany(filePath => MetadataFile.ReadRefactorings(filePath));
 
-            return MetadataFile.ReadAllRefactorings(Path.Combine(directoryPath, "Refactorings.xml")).AddRange(refactorings);
+            return MetadataFile
+                .ReadRefactorings(Path.Combine(directoryPath, "Refactorings.xml"))
+                .Concat(refactorings)
+                .ToImmutableArray();
         }
 
         private string GetPath(string path)
