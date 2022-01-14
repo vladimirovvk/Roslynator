@@ -72,6 +72,7 @@ namespace Roslynator.CodeGeneration.EditorConfig
                     .OrderBy(f => f.Id))
                 {
                     w.WriteLine($"# {analyzer.Title.TrimEnd('.')}");
+                    w.WriteCommentChar();
                     w.WriteAnalyzer(
                         analyzer.Id,
                         (analyzer.IsEnabledByDefault)
@@ -95,6 +96,7 @@ namespace Roslynator.CodeGeneration.EditorConfig
                     .Where(f => !f.IsObsolete)
                     .OrderBy(f => f.OptionKey))
                 {
+                    w.WriteCommentChar();
                     w.WriteRefactoring(refactoring.OptionKey, refactoring.IsEnabledByDefault);
                 }
 
@@ -105,6 +107,7 @@ namespace Roslynator.CodeGeneration.EditorConfig
                 foreach (CompilerDiagnosticMetadata compilerDiagnostic in metadata.CompilerDiagnostics
                     .OrderBy(f => f.Id))
                 {
+                    w.WriteCommentChar();
                     w.WriteCompilerDiagnosticFix(compilerDiagnostic.Id, true);
                 }
 
