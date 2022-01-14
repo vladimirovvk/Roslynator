@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Josef Pihrt and Contributors. Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Globalization;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Roslynator.Configuration;
 using Roslynator.CSharp.CodeStyle;
@@ -10,15 +9,38 @@ namespace Roslynator.CSharp
 {
     internal static class CodeStyleExtensions
     {
+        public static bool GetPrefixFieldIdentifierWithUnderscore(this AnalyzerConfigOptions configOptions)
+        {
+            if (configOptions.TryGetValueAsBool(ConfigOptions.PrefixFieldIdentifierWithUnderscore, out bool value))
+                return value;
+
+            if (CodeAnalysisConfig.Instance.PrefixFieldIdentifierWithUnderscore != null)
+                return CodeAnalysisConfig.Instance.PrefixFieldIdentifierWithUnderscore.Value;
+
+            if (configOptions.TryGetValueAsBool(LegacyConfigOptions.PrefixFieldIdentifierWithUnderscore, out value))
+                return value;
+
+            return ConfigOptionDefaultValues.PrefixFieldIdentifierWithUnderscore;
+        }
+
         public static int GetMaxLineLength(this AnalyzerConfigOptions configOptions)
         {
-            if (configOptions.TryGetValue(ConfigOptions.MaxLineLength.Key, out string rawValue)
-                && int.TryParse(rawValue, NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.CurrentCulture, out int intValue))
+            if (configOptions.TryGetValue(ConfigOptionKeys.MaxLineLength, out string rawValue)
+                && int.TryParse(rawValue, out int value))
             {
-                return intValue;
+                return value;
             }
 
-            return CodeAnalysisConfig.Instance.MaxLineLength;
+            if (CodeAnalysisConfig.Instance.MaxLineLength != null)
+                return CodeAnalysisConfig.Instance.MaxLineLength.Value;
+
+            if (configOptions.TryGetValue(LegacyConfigOptions.MaxLineLength.Key, out rawValue)
+                && int.TryParse(rawValue, out value))
+            {
+                return value;
+            }
+
+            return ConfigOptionDefaultValues.MaxLineLength;
         }
 
         public static bool? UseVarInsteadOfImplicitObjectCreation(this SyntaxNodeAnalysisContext context)
@@ -93,17 +115,71 @@ namespace Roslynator.CSharp
             return NewLinePosition.None;
         }
 
-        public static BlankLineStyle GetBlankLineBetweenUsingDirectiveGroups(this SyntaxNodeAnalysisContext context)
+        public static NewLinePosition GetNullConditionalOperatorNewLinePosition(this AnalyzerConfigOptions configOptions, NewLinePosition defaultValue = NewLinePosition.None)
+        {
+            return (TryGetNewLinePosition(configOptions, ConfigOptions.NullConditionalOperatorNewLine, out NewLinePosition newLinePosition))
+                ? newLinePosition
+                : defaultValue;
+        }
+
+        public static UsingDirectiveBlankLineStyle GetBlankLineBetweenUsingDirectives(this SyntaxNodeAnalysisContext context)
         {
             AnalyzerConfigOptions configOptions = context.GetConfigOptions();
 
-            if (ConfigOptions.TryGetValueAsBool(configOptions, ConfigOptions.BlankLineBetweenUsingDirectiveGroups, out bool addLine))
-                return (addLine) ? BlankLineStyle.Add : BlankLineStyle.Remove;
+            if (ConfigOptions.TryGetValue(configOptions, ConfigOptions.BlankLineBetweenUsingDirectives, out string rawValue))
+            {
+                if (string.Equals(rawValue, ConfigOptionValues.BlankLineBetweenUsingDirectiveGroups_Never, StringComparison.OrdinalIgnoreCase))
+                {
+                    return UsingDirectiveBlankLineStyle.Never;
+                }
+                else if (string.Equals(rawValue, ConfigOptionValues.BlankLineBetweenUsingDirectiveGroups_SeparateGroups, StringComparison.OrdinalIgnoreCase))
+                {
+                    return UsingDirectiveBlankLineStyle.SeparateGroups;
+                }
+            }
 
             if (ConfigOptions.TryGetValueAsBool(configOptions, LegacyConfigOptions.RemoveEmptyLineBetweenUsingDirectivesWithDifferentRootNamespace, out bool removeLine))
-                return (removeLine) ? BlankLineStyle.Remove : BlankLineStyle.Add;
+                return (removeLine) ? UsingDirectiveBlankLineStyle.Never : UsingDirectiveBlankLineStyle.SeparateGroups;
 
-            return BlankLineStyle.None;
+            return UsingDirectiveBlankLineStyle.None;
+        }
+
+        public static AccessorBracesStyle GetAccessorBracesStyle(this SyntaxNodeAnalysisContext context)
+        {
+            AnalyzerConfigOptions configOptions = context.GetConfigOptions();
+
+            if (ConfigOptions.TryGetValue(configOptions, ConfigOptions.AccessorBracesStyle, out string rawValue))
+            {
+                if (string.Equals(rawValue, ConfigOptionValues.AccessorBracesStyle_MultiLine, StringComparison.OrdinalIgnoreCase))
+                {
+                    return AccessorBracesStyle.MultiLine;
+                }
+                else if (string.Equals(rawValue, ConfigOptionValues.AccessorBracesStyle_SingleLineWhenExpressionIsOnSingleLine, StringComparison.OrdinalIgnoreCase))
+                {
+                    return AccessorBracesStyle.SingleLineWhenExpressionIsOnSingleLine;
+                }
+            }
+
+            return AccessorBracesStyle.None;
+        }
+
+        public static BlockBracesStyle GetBlockBracesStyle(this SyntaxNodeAnalysisContext context)
+        {
+            AnalyzerConfigOptions configOptions = context.GetConfigOptions();
+
+            if (ConfigOptions.TryGetValue(configOptions, ConfigOptions.BlockBracesStyle, out string rawValue))
+            {
+                if (string.Equals(rawValue, ConfigOptionValues.BlockBracesStyle_MultiLine, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BlockBracesStyle.MultiLine;
+                }
+                else if (string.Equals(rawValue, ConfigOptionValues.BlockBracesStyle_SingleLineWhenEmpty, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BlockBracesStyle.SingleLineWhenEmpty;
+                }
+            }
+
+            return BlockBracesStyle.None;
         }
 
         public static BlankLineStyle GetBlankLineBetweenSingleLineAccessors(this SyntaxNodeAnalysisContext context)
@@ -123,7 +199,7 @@ namespace Roslynator.CSharp
         {
             AnalyzerConfigOptions configOptions = context.GetConfigOptions();
 
-            if (ConfigOptions.TryGetValue(configOptions, ConfigOptions.AnonymousFunctionOrMethodGroup, out string rawValue))
+            if (ConfigOptions.TryGetValue(configOptions, ConfigOptions.UseAnonymousFunctionOrMethodGroup, out string rawValue))
             {
                 if (string.Equals(rawValue, ConfigOptionValues.AnonymousFunctionOrMethodGroup_AnonymousFunction, StringComparison.OrdinalIgnoreCase))
                 {
@@ -220,7 +296,7 @@ namespace Roslynator.CSharp
         {
             AnalyzerConfigOptions configOptions = context.GetConfigOptions();
 
-            if (ConfigOptions.TryGetValue(configOptions, ConfigOptions.ConditionInConditionalOperatorParenthesesStyle, out string rawValue))
+            if (ConfigOptions.TryGetValue(configOptions, ConfigOptions.ConditionalOperatorConditionParenthesesStyle, out string rawValue))
             {
                 if (string.Equals(rawValue, ConfigOptionValues.ConditionInConditionalExpressionParenthesesStyle_Include, StringComparison.OrdinalIgnoreCase))
                 {
@@ -387,6 +463,11 @@ namespace Roslynator.CSharp
         public static NewLinePosition GetBinaryExpressionNewLinePosition(this SyntaxNodeAnalysisContext context)
         {
             return context.GetConfigOptions().GetBinaryOperatorNewLinePosition();
+        }
+
+        public static NewLinePosition GetNullConditionalOperatorNewLinePosition(this SyntaxNodeAnalysisContext context, NewLinePosition defaultValue = NewLinePosition.None)
+        {
+            return context.GetConfigOptions().GetNullConditionalOperatorNewLinePosition(defaultValue);
         }
 
         private static bool TryGetNewLinePosition(

@@ -57,15 +57,12 @@ namespace Roslynator.CodeGeneration.CSharp
 
                                                     Debug.Assert(mismatch.Key == null, mismatch.Key);
 
-                                                    string[] optionIdentifiers = f.keys
-                                                        .Select(f => options.Single(o => o.Key == f.Key))
-                                                        .Select(f => $"ConfigOptionKeys.{f.Id}")
-                                                        .ToArray();
-
-                                                    Debug.Assert(optionIdentifiers.Length == 1, string.Join(", ", optionIdentifiers));
+                                                    IEnumerable<string> optionKeys = f.keys
+                                                        .Join(options, f => f.Key, f => f.Key, (_, g) => g)
+                                                        .Select(f => $"ConfigOptionKeys.{f.Id}");
 
                                                     return YieldReturnStatement(
-                                                        ParseExpression($"new KeyValuePair<string, string>(\"{f.id}\", {optionIdentifiers[0]})"));
+                                                        ParseExpression($"new KeyValuePair<string, string>(\"{f.id}\", JoinOptionKeys({string.Join(", ", optionKeys)}))"));
                                                 })))
                                 })
                             .ToSyntaxList())));
@@ -99,7 +96,7 @@ namespace Roslynator.CodeGeneration.CSharp
                                     ImplicitObjectCreationExpression(
                                         ArgumentList(
                                             Argument(NameColon("key"), StringLiteralExpression($"roslynator.{f.ParentId}.{f.OptionKey}")),
-                                            Argument(NameColon("defaultValue"), StringLiteralExpression("false")),
+                                            Argument(NameColon("defaultValue"), NullLiteralExpression()),
                                             Argument(NameColon("defaultValuePlaceholder"), StringLiteralExpression("true|false")),
                                             Argument(NameColon("description"), StringLiteralExpression(""))),
                                         default(InitializerExpressionSyntax)));

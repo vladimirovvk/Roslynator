@@ -191,6 +191,10 @@ namespace Roslynator.CodeGeneration.Markdown
 
         public static string CreateAnalyzerMarkdown(AnalyzerMetadata analyzer, ImmutableArray<ConfigOptionMetadata> options, IEnumerable<(string title, string url)> appliesTo = null)
         {
+            IEnumerable<MInlineCode> requiredOptions = analyzer.ConfigOptions
+                .Where(f => f.IsRequired)
+                .Select(f => InlineCode(f.Key));
+
             var format = new MarkdownFormat(tableOptions: MarkdownFormat.Default.TableOptions | TableOptions.FormatContent);
 
             MDocument document = Document(
@@ -200,7 +204,9 @@ namespace Roslynator.CodeGeneration.Markdown
                     TableRow("Id", analyzer.Id),
                     TableRow("Category", analyzer.Category),
                     TableRow("Severity", (analyzer.IsEnabledByDefault) ? analyzer.DefaultSeverity : "None"),
-                    (!string.IsNullOrEmpty(analyzer.MinLanguageVersion)) ? TableRow("Minimal Language Version", analyzer.MinLanguageVersion) : null),
+                    (!string.IsNullOrEmpty(analyzer.MinLanguageVersion)) ? TableRow("Minimum language version", analyzer.MinLanguageVersion) : null,
+                    (requiredOptions.Any()) ? TableRow("Required option", Join(" or ", requiredOptions)) : null
+                ),
                 CreateSummary(analyzer.Summary),
                 GetAnalyzerSamples(analyzer),
                 CreateOptions(analyzer, options),
@@ -417,7 +423,7 @@ namespace Roslynator.CodeGeneration.Markdown
                     {
                         string optionKey = en.Current.Key;
                         string title = en.Current.Description;
-                        string summary = null;
+                        const string summary = null;
                         string defaultValue = en.Current.DefaultValuePlaceholder;
 
                         yield return Heading3(title?.TrimEnd('.'));
