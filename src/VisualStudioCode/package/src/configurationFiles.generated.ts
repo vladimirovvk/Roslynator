@@ -1,18 +1,11 @@
 export const configurationFileContent = {
-	roslynatorconfig: `is_global = true
-# Roslynator Config File
+	roslynatorconfig: `# Roslynator Config File
 
 is_global = true
 
-# Options in this file can be used
-#  1) In a standard.editorconfig file
-#  2) In a Roslynator default configuration file
-#     Location of the file depends on the operation system:
-#       Windows: C:/Users/<USERNAME>/AppData/Local/.roslynatorconfig
-#       Linux: /home/<<USERNAME>>/.local/share/.roslynatorconfig
-#       OSX: /Users/<<USERNAME>>/.local/share/.roslynatorconfig
-#     The file must contain "is_global = true" directive
-#     Default configuration is loaded once when IDE starts. Therefore, it may be necessary to restart IDE for changes to take effect.
+# Options in this file can be used to change default configuration of analyzers, refactorings and compiler diagnostic fixes.
+# Default configuration is loaded once when IDE starts. Therefore, it may be necessary to restart IDE for changes to take effect.
+# Full list of available options: https://github.com/josefpihrt/roslynator/docs/options.editorconfig
 
 ## Set severity for all analyzers
 #dotnet_analyzer_diagnostic.category-roslynator.severity = default|none|silent|suggestion|warning|error
@@ -21,16 +14,16 @@ is_global = true
 #dotnet_diagnostic.<ANALYZER_ID>.severity = default|none|silent|suggestion|warning|error
 
 ## Enable/disable all refactorings
-#roslynator.refactorings.enabled = true|false
+#roslynator_refactorings.enabled = true|false
 
 ## Enable/disable specific refactoring
-#roslynator.refactoring.<REFACTORING_NAME>.enabled = true|false
+#roslynator_refactoring.<REFACTORING_NAME>.enabled = true|false
 
-## Enable/disable all fixes for compiler diagnostics
-#roslynator.compiler_diagnostic_fixes.enabled = true|false
+## Enable/disable all compiler diagnostic fixes
+#roslynator_compiler_diagnostic_fixes.enabled = true|false
 
-## Enable/disable fix for a specific compiler diagnostic
-#roslynator.compiler_diagnostic_fix.<COMPILER_DIAGNOSTIC_ID>.enabled = true|false
+## Enable/disable specific compiler diagnostic fix
+#roslynator_compiler_diagnostic_fix.<COMPILER_DIAGNOSTIC_ID>.enabled = true|false
 
 # Options
 
@@ -155,7 +148,7 @@ is_global = true
 
 # Add/remove blank line between single-line accessors
 #dotnet_diagnostic.RCS0011.severity = none
-#roslynator_blank_line_between_single_line_accessors = true|false
+# Options: roslynator_blank_line_between_single_line_accessors
 
 # Add blank line between single-line declarations
 #dotnet_diagnostic.RCS0012.severity = none
@@ -165,22 +158,22 @@ is_global = true
 
 # Add blank line between switch sections
 #dotnet_diagnostic.RCS0014.severity = none
-#roslynator_blank_line_between_closing_brace_and_switch_section = true|false
+# Options: roslynator_blank_line_between_closing_brace_and_switch_section
 
 # Add/remove blank line between using directives
 #dotnet_diagnostic.RCS0015.severity = none
-#roslynator_blank_line_between_using_directives = never|separate_groups
+# Options: roslynator_blank_line_between_using_directives
 
 # Put attribute list on its own line
 #dotnet_diagnostic.RCS0016.severity = none
 
 # Format accessor's braces on a single line or multiple lines
 #dotnet_diagnostic.RCS0020.severity = none
-#roslynator_accessor_braces_style = multi_line|single_line_when_expression_is_on_single_line
+# Options: roslynator_accessor_braces_style
 
 # Format block's braces on a single line or multiple lines
 #dotnet_diagnostic.RCS0021.severity = none
-#roslynator_block_braces_style = multi_line|single_line_when_empty
+# Options: roslynator_block_braces_style
 
 # Add new line after opening brace of empty block
 #dotnet_diagnostic.RCS0022.severity = none
@@ -196,11 +189,11 @@ is_global = true
 
 # Place new line after/before binary operator
 #dotnet_diagnostic.RCS0027.severity = none
-#roslynator_binary_operator_new_line = after|before
+# Options: roslynator_binary_operator_new_line
 
 # Place new line after/before '?:' operator
 #dotnet_diagnostic.RCS0028.severity = none
-#roslynator_conditional_operator_new_line = after|before
+# Options: roslynator_conditional_operator_new_line
 
 # Put constructor initializer on its own line
 #dotnet_diagnostic.RCS0029.severity = none
@@ -213,7 +206,7 @@ is_global = true
 
 # Place new line after/before arrow token
 #dotnet_diagnostic.RCS0032.severity = none
-#roslynator_arrow_token_new_line = after|before
+# Options: roslynator_arrow_token_new_line
 
 # Add new line before statement
 #dotnet_diagnostic.RCS0033.severity = none
@@ -262,11 +255,11 @@ is_global = true
 
 # Add/remove new line before 'while' in 'do' statement
 #dotnet_diagnostic.RCS0051.severity = none
-#roslynator_new_line_before_while_in_do_statement = true|false
+# Options: roslynator_new_line_before_while_in_do_statement
 
 # Place new line after/before equals token
 #dotnet_diagnostic.RCS0052.severity = none
-#roslynator_equals_token_new_line = after|before
+# Options: roslynator_equals_token_new_line
 
 # Fix formatting of a list
 #dotnet_diagnostic.RCS0053.severity = none
@@ -279,18 +272,18 @@ is_global = true
 
 # A line is too long
 #dotnet_diagnostic.RCS0056.severity = none
-#roslynator_max_line_length = <NUM>
+# Options: roslynator_max_line_length
 
 # Normalize whitespace at the beginning of a file
 #dotnet_diagnostic.RCS0057.severity = none
 
 # Normalize whitespace at the end of a file
 #dotnet_diagnostic.RCS0058.severity = none
-#roslynator_new_line_at_end_of_file = true|false
+# Options: roslynator_new_line_at_end_of_file
 
 # Place new line after/before null-conditional operator
 #dotnet_diagnostic.RCS0059.severity = none
-#roslynator_null_conditional_operator_new_line = after|before
+# Options: roslynator_null_conditional_operator_new_line
 
 # Add braces (when expression spans over multiple lines)
 #dotnet_diagnostic.RCS1001.severity = suggestion
@@ -330,20 +323,18 @@ is_global = true
 
 # Use explicitly/implicitly typed array
 #dotnet_diagnostic.RCS1014.severity = none
-#roslynator_array_creation_type_style = explicit|implicit|implicit_when_type_is_obvious
+# Options: roslynator_array_creation_type_style
 
 # Use nameof operator
 #dotnet_diagnostic.RCS1015.severity = suggestion
 
 # Use block body or expression body
 #dotnet_diagnostic.RCS1016.severity = none
-#roslynator_body_style = block|expression
-#roslynator_use_block_body_when_declaration_spans_over_multiple_lines = true|false
-#roslynator_use_block_body_when_expression_spans_over_multiple_lines = true|false
+# Options: roslynator_body_style, roslynator_use_block_body_when_declaration_spans_over_multiple_lines, roslynator_use_block_body_when_expression_spans_over_multiple_lines
 
 # Add/remove accessibility modifiers
 #dotnet_diagnostic.RCS1018.severity = suggestion
-#roslynator_accessibility_modifiers = explicit|implicit
+# Options: roslynator_accessibility_modifiers
 
 # Order modifiers
 #dotnet_diagnostic.RCS1019.severity = none
@@ -371,7 +362,7 @@ is_global = true
 
 # Remove unnecessary blank line
 #dotnet_diagnostic.RCS1036.severity = suggestion
-#roslynator_blank_line_between_closing_brace_and_switch_section = true|false
+# Options: roslynator_blank_line_between_closing_brace_and_switch_section
 
 # Remove trailing white-space
 #dotnet_diagnostic.RCS1037.severity = suggestion
@@ -411,11 +402,11 @@ is_global = true
 
 # Include/omit parentheses when creating new object
 #dotnet_diagnostic.RCS1050.severity = none
-#roslynator_object_creation_parentheses_style = include|omit
+# Options: roslynator_object_creation_parentheses_style
 
 # Add/remove parentheses from condition in conditional operator
 #dotnet_diagnostic.RCS1051.severity = none
-#roslynator_conditional_operator_condition_parentheses_style = include|omit|omit_when_condition_is_single_token
+# Options: roslynator_conditional_operator_condition_parentheses_style
 
 # Declare each attribute separately
 #dotnet_diagnostic.RCS1052.severity = none
@@ -479,7 +470,7 @@ is_global = true
 
 # Use "" or 'string.Empty'
 #dotnet_diagnostic.RCS1078.severity = none
-#roslynator_empty_string_style = field|literal
+# Options: roslynator_empty_string_style
 
 # Throwing of new NotImplementedException
 #dotnet_diagnostic.RCS1079.severity = none
@@ -501,7 +492,7 @@ is_global = true
 
 # Add/remove 'ConfigureAwait(false)' call
 #dotnet_diagnostic.RCS1090.severity = none
-#roslynator_configure_await = true|false
+# Options: roslynator_configure_await
 
 # Remove empty region
 #dotnet_diagnostic.RCS1091.severity = silent
@@ -514,7 +505,7 @@ is_global = true
 
 # Use 'HasFlag' method or bitwise operator
 #dotnet_diagnostic.RCS1096.severity = suggestion
-#roslynator_enum_has_flag_style = method|operator
+# Options: roslynator_enum_has_flag_style
 
 # Remove redundant 'ToString' call
 #dotnet_diagnostic.RCS1097.severity = suggestion
@@ -776,7 +767,7 @@ is_global = true
 
 # Use anonymous function or method group
 #dotnet_diagnostic.RCS1207.severity = none
-#roslynator_use_anonymous_function_or_method_group = anonymous_function|method_group
+# Options: roslynator_use_anonymous_function_or_method_group
 
 # Reduce 'if' nesting
 #dotnet_diagnostic.RCS1208.severity = none
@@ -795,7 +786,7 @@ is_global = true
 
 # Remove unused member declaration
 #dotnet_diagnostic.RCS1213.severity = suggestion
-#roslynator_suppress_unity_script_methods = true|false
+# Options: roslynator_suppress_unity_script_methods
 
 # Unnecessary interpolated string
 #dotnet_diagnostic.RCS1214.severity = suggestion
@@ -895,15 +886,14 @@ is_global = true
 
 # Normalize null check
 #dotnet_diagnostic.RCS1248.severity = none
-#roslynator_null_check_style = equality_operator|pattern_matching
+# Options: roslynator_null_check_style
 
 # Unnecessary null-forgiving operator
 #dotnet_diagnostic.RCS1249.severity = suggestion
 
 # Use implicit/explicit object creation
 #dotnet_diagnostic.RCS1250.severity = suggestion
-#roslynator_object_creation_type_style = explicit|implicit|implicit_when_type_is_obvious
-#roslynator_use_var_instead_of_implicit_object_creation = true|false
+# Options: roslynator_object_creation_type_style, roslynator_use_var_instead_of_implicit_object_creation
 
 # Use pattern matching
 #dotnet_diagnostic.RCS9001.severity = silent

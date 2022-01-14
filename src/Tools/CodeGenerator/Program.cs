@@ -10,6 +10,7 @@ using Roslynator.CodeGeneration.CSharp;
 using Roslynator.Metadata;
 using Microsoft.CodeAnalysis;
 using Roslynator.CodeGeneration.EditorConfig;
+using Roslynator.Configuration;
 
 namespace Roslynator.CodeGeneration
 {
@@ -109,18 +110,50 @@ namespace Roslynator.CodeGeneration
             string configFileContent = EditorConfigGenerator.GenerateEditorConfig(metadata);
 
             File.WriteAllText(
-                Path.Combine(rootPath, "../docs/options.editorconfig"),
-                configFileContent);
-
-            File.WriteAllText(
                 Path.Combine(rootPath, @"VisualStudioCode\package\src\configurationFiles.generated.ts"),
                 @"export const configurationFileContent = {
-	roslynatorconfig: `is_global = true
-"
+	roslynatorconfig: `"
+                    + EditorConfigCodeAnalysisConfig.FileDefaultContent
                     + configFileContent
                     + @"`
 };",
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+            configFileContent = @"# Roslynator Config File
+
+# Options in this file can be used in
+#  1) Standard EditorConfig file (https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files#editorconfig)
+#  2) Roslynator default config file
+#     Location of the file depends on the operation system:
+#       Windows: C:/Users/<USERNAME>/AppData/Local/.roslynatorconfig
+#       Linux: /home/<USERNAME>/.local/share/.roslynatorconfig
+#       OSX: /Users/<USERNAME>/.local/share/.roslynatorconfig
+#     Default config is loaded once when IDE starts. Therefore, it may be necessary to restart IDE for changes to take effect.
+#     Format of the file is same as global AnalyzerConfig file (https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files#global-analyzerconfig)
+#     The file must contain top-level entry ""is_global = true""
+
+## Set severity for all analyzers
+#dotnet_analyzer_diagnostic.category-roslynator.severity = default|none|silent|suggestion|warning|error
+
+## Set severity for a specific analyzer
+#dotnet_diagnostic.<ANALYZER_ID>.severity = default|none|silent|suggestion|warning|error
+
+## Enable/disable all refactorings
+#roslynator_refactorings.enabled = true|false
+
+## Enable/disable specific refactoring
+#roslynator_refactoring.<REFACTORING_NAME>.enabled = true|false
+
+## Enable/disable all fixes for compiler diagnostics
+#roslynator_compiler_diagnostic_fixes.enabled = true|false
+
+## Enable/disable fix for a specific compiler diagnostic
+#roslynator_compiler_diagnostic_fix.<COMPILER_DIAGNOSTIC_ID>.enabled = true|false
+" + configFileContent;
+
+            File.WriteAllText(
+                Path.Combine(rootPath, "../docs/options.editorconfig"),
+                configFileContent);
 
             Console.WriteLine($"number of analyzers: {analyzers.Count(f => !f.IsObsolete)}");
             Console.WriteLine($"number of code analysis analyzers: {codeAnalysisAnalyzers.Count(f => !f.IsObsolete)}");
