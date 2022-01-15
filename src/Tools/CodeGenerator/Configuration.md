@@ -26,7 +26,12 @@ roslynator.compiler_diagnostic_fix.<COMPILER_DIAGNOSTIC_ID>.enabled = true|false
 
 If you want to configure Roslynator on a user-wide basis you have to use Roslynator config file.
 
-## Location of Configuration File
+### Format of Default Configuration File
+
+Format of the file is same as format of [global AnalyzerConfig](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files#global-analyzerconfig) file
+  * The file must contain top-level entry `is_global = true`
+
+### Location of Default Configuration File
 
 Configuration file is located at `%LOCALAPPDATA%/JosefPihrt/Roslynator/.roslynatorconfig`.
 Location of `%LOCALAPPDATA%` depends on the operating system:
@@ -38,3 +43,4 @@ Location of `%LOCALAPPDATA%` depends on the operating system:
 | OSX | `/Users/<USERNAME>/.local/share/.roslynatorconfig` |
 
 Default configuration is loaded once when IDE starts. Therefore, it may be necessary to restart IDE for changes to take effect.
+
