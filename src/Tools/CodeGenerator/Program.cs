@@ -107,17 +107,7 @@ namespace Roslynator.CodeGeneration
                 @"CSharp\CSharp\SyntaxWalkers\CSharpSyntaxNodeWalker.cs",
                 CSharpSyntaxNodeWalkerGenerator.Generate());
 
-            string configFileContent = EditorConfigGenerator.GenerateEditorConfig(metadata);
-
-            File.WriteAllText(
-                Path.Combine(rootPath, @"VisualStudioCode\package\src\configurationFiles.generated.ts"),
-                @"export const configurationFileContent = {
-	roslynatorconfig: `"
-                    + EditorConfigCodeAnalysisConfig.FileDefaultContent
-                    + configFileContent
-                    + @"`
-};",
-                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            string configFileContent = EditorConfigGenerator.GenerateEditorConfig(metadata, commentOut: false);
 
             configFileContent = @"# Roslynator Config File
 
@@ -154,6 +144,16 @@ namespace Roslynator.CodeGeneration
             File.WriteAllText(
                 Path.Combine(rootPath, "../docs/options.editorconfig"),
                 configFileContent);
+
+            File.WriteAllText(
+                Path.Combine(rootPath, @"VisualStudioCode\package\src\configurationFiles.generated.ts"),
+                @"export const configurationFileContent = {
+	roslynatorconfig: `"
+                    + EditorConfigCodeAnalysisConfig.FileDefaultContent
+                    + EditorConfigGenerator.GenerateEditorConfig(metadata, commentOut: true)
+                    + @"`
+};",
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
             Console.WriteLine($"number of analyzers: {analyzers.Count(f => !f.IsObsolete)}");
             Console.WriteLine($"number of code analysis analyzers: {codeAnalysisAnalyzers.Count(f => !f.IsObsolete)}");

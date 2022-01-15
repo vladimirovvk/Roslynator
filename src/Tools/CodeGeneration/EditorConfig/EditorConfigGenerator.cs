@@ -12,7 +12,7 @@ namespace Roslynator.CodeGeneration.EditorConfig
 {
     public static class EditorConfigGenerator
     {
-        public static string GenerateEditorConfig(RoslynatorMetadata metadata)
+        public static string GenerateEditorConfig(RoslynatorMetadata metadata, bool commentOut)
         {
             var optionMap = new Dictionary<string, HashSet<AnalyzerMetadata>>();
 
@@ -44,7 +44,8 @@ namespace Roslynator.CodeGeneration.EditorConfig
                         w.WriteLine();
                     }
 
-                    w.WriteEntry($"#{option.Key}", option.DefaultValuePlaceholder);
+                    w.WriteCommentCharIf(commentOut);
+                    w.WriteEntry($"{option.Key}", option.DefaultValuePlaceholder);
 
                     string defaultValue = option.DefaultValue;
 
@@ -72,7 +73,7 @@ namespace Roslynator.CodeGeneration.EditorConfig
                     .OrderBy(f => f.Id))
                 {
                     w.WriteLine($"# {analyzer.Title.TrimEnd('.')}");
-                    w.WriteCommentChar();
+                    w.WriteCommentCharIf(commentOut);
                     w.WriteAnalyzer(
                         analyzer.Id,
                         (analyzer.IsEnabledByDefault)
@@ -100,7 +101,7 @@ namespace Roslynator.CodeGeneration.EditorConfig
                     .Where(f => !f.IsObsolete)
                     .OrderBy(f => f.OptionKey))
                 {
-                    w.WriteCommentChar();
+                    w.WriteCommentCharIf(commentOut);
                     w.WriteRefactoring(refactoring.OptionKey, refactoring.IsEnabledByDefault);
                 }
 
@@ -111,7 +112,7 @@ namespace Roslynator.CodeGeneration.EditorConfig
                 foreach (CompilerDiagnosticMetadata compilerDiagnostic in metadata.CompilerDiagnostics
                     .OrderBy(f => f.Id))
                 {
-                    w.WriteCommentChar();
+                    w.WriteCommentCharIf(commentOut);
                     w.WriteCompilerDiagnosticFix(compilerDiagnostic.Id, true);
                 }
 
