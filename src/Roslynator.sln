@@ -29,7 +29,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 		..\docs\HowToFixAllDiagnostics.md = ..\docs\HowToFixAllDiagnostics.md
 		..\docs\HowToGenerateDocumentation.md = ..\docs\HowToGenerateDocumentation.md
 		..\docs\HowToUpdateDocumentation.md = ..\docs\HowToUpdateDocumentation.md
-		..\docs\options.editorconfig = ..\docs\options.editorconfig
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CLI", "CLI", "{A16068FE-9E6C-45D2-8114-CC189600AFA2}"

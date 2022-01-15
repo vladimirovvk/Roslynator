@@ -21,7 +21,7 @@ is_global = true
 
 # Options in this file can be used to change default configuration of analyzers, refactorings and compiler diagnostic fixes.
 # Default configuration is loaded once when IDE starts. Therefore, it may be necessary to restart IDE for changes to take effect.
-# Full list of available options: https://github.com/josefpihrt/roslynator/docs/options.editorconfig
+# Full list of available options: https://github.com/josefpihrt/roslynator/docs/configuration.md
 
 ## Set severity for all analyzers
 #dotnet_analyzer_diagnostic.category-roslynator.severity = default|none|silent|suggestion|warning|error

@@ -10,16 +10,16 @@ dotnet_analyzer_diagnostic.category-roslynator.severity = default|none|silent|su
 dotnet_diagnostic.<ANALYZER_ID>.severity = default|none|silent|suggestion|warning|error
 
 # Enable/disable all refactorings
-roslynator.refactorings.enabled = true|false
+roslynator_refactorings.enabled = true|false
 
 # Enable/disable specific refactoring
-roslynator.refactoring.<REFACTORING_NAME>.enabled = true|false
+roslynator_refactoring.<REFACTORING_NAME>.enabled = true|false
 
-# Enable/disable all fixes for compiler diagnostics
-roslynator.compiler_diagnostic_fixes.enabled = true|false
+# Enable/disable all compiler diagnostic fixes
+roslynator_compiler_diagnostic_fixes.enabled = true|false
 
-# Enable/disable fix for a specific compiler diagnostics
-roslynator.compiler_diagnostic_fix.<COMPILER_DIAGNOSTIC_ID>.enabled = true|false
+# Enable/disable specific compiler diagnostic fix
+roslynator_compiler_diagnostic_fix.<COMPILER_DIAGNOSTIC_ID>.enabled = true|false
 ```
 
 ## Default Configuration
@@ -28,8 +28,8 @@ If you want to configure Roslynator on a user-wide basis you have to use Roslyna
 
 ### Format of Default Configuration File
 
-Format of the file is same as format of [global AnalyzerConfig](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files#global-analyzerconfig) file
-  * The file must contain top-level entry `is_global = true`
+Format of the file is same as format of [global AnalyzerConfig](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files#global-analyzerconfig).
+It essentially means that file must contain top-level entry `is_global = true`
 
 ### Location of Default Configuration File
 
