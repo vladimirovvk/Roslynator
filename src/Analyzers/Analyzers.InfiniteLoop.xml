@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Analyzers>
+  <Analyzer Identifier="NormalizeUsageOfInfiniteLoop">
+    <Id>RCS1252</Id>
+    <Title>Normalize usage of infinite loop.</Title>
+    <MessageFormat>Use '{0}' statement as an infinite loop.</MessageFormat>
+    <Category>Roslynator</Category>
+    <DefaultSeverity>Info</DefaultSeverity>
+    <IsEnabledByDefault>false</IsEnabledByDefault>
+    <ConfigOptions>
+      <Option Key="infinite_loop_style" IsRequired="true" />
+    </ConfigOptions>
+  </Analyzer>
+</Analyzers>

@@ -2449,5 +2449,17 @@ namespace Roslynator.CSharp
             helpLinkUri:        DiagnosticIdentifiers.UseImplicitOrExplicitObjectCreation, 
             customTags:         Array.Empty<string>());
 
+        /// <summary>RCS1252</summary>
+        public static readonly DiagnosticDescriptor NormalizeUsageOfInfiniteLoop = DiagnosticDescriptorFactory.Create(
+            id:                 DiagnosticIdentifiers.NormalizeUsageOfInfiniteLoop, 
+            title:              "Normalize usage of infinite loop.", 
+            messageFormat:      "Use '{0}' statement as an infinite loop.", 
+            category:           DiagnosticCategories.Roslynator, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        DiagnosticIdentifiers.NormalizeUsageOfInfiniteLoop, 
+            customTags:         Array.Empty<string>());
+
     }
 }

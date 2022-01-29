@@ -26,6 +26,8 @@ namespace Roslynator
         public const string EmptyStringStyle_Literal = "literal";
         public const string EnumHasFlagStyle_Method = "method";
         public const string EnumHasFlagStyle_Operator = "operator";
+        public const string InfiniteLoopStyle_For = "for";
+        public const string InfiniteLoopStyle_While = "while";
         public const string NullCheckStyle_EqualityOperator = "equality_operator";
         public const string NullCheckStyle_PatternMatching = "pattern_matching";
         public const string ObjectCreationParenthesesStyle_Include = "include";

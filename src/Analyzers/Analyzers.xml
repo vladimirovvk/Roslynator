@@ -1487,8 +1487,8 @@ public class Bar
   </Analyzer>
   <Analyzer Identifier="AvoidUsageOfDoStatementToCreateInfiniteLoop">
     <Id>RCS1063</Id>
-    <Title>Avoid usage of do statement to create an infinite loop.</Title>
-    <MessageFormat>Use while statement to create an infinite loop.</MessageFormat>
+    <Title>([deprecated] use RCS1252 instead) Avoid usage of do statement to create an infinite loop.</Title>
+    <MessageFormat>([deprecated] use RCS1252 instead) Use while statement to create an infinite loop.</MessageFormat>
     <Category>Style</Category>
     <DefaultSeverity>Info</DefaultSeverity>
     <IsEnabledByDefault>true</IsEnabledByDefault>
@@ -1508,8 +1508,8 @@ while (true);]]></Before>
   </Analyzer>
   <Analyzer Identifier="AvoidUsageOfForStatementToCreateInfiniteLoop">
     <Id>RCS1064</Id>
-    <Title>Avoid usage of for statement to create an infinite loop.</Title>
-    <MessageFormat>Use while statement to create an infinite loop.</MessageFormat>
+    <Title>([deprecated] use RCS1252 instead) Avoid usage of for statement to create an infinite loop.</Title>
+    <MessageFormat>([deprecated] use RCS1252 instead) Use while statement to create an infinite loop.</MessageFormat>
     <Category>Style</Category>
     <DefaultSeverity>Info</DefaultSeverity>
     <IsEnabledByDefault>false</IsEnabledByDefault>
@@ -1526,8 +1526,8 @@ while (true);]]></Before>
   </Analyzer>
   <Analyzer Identifier="AvoidUsageOfWhileStatementToCreateInfiniteLoop">
     <Id>RCS1065</Id>
-    <Title>Avoid usage of while statement to create an infinite loop.</Title>
-    <MessageFormat>Use for statement to create an infinite loop.</MessageFormat>
+    <Title>([deprecated] use RCS1252 instead) Avoid usage of while statement to create an infinite loop.</Title>
+    <MessageFormat>([deprecated] use RCS1252 instead) Use for statement to create an infinite loop.</MessageFormat>
     <Category>Style</Category>
     <DefaultSeverity>Info</DefaultSeverity>
     <IsEnabledByDefault>false</IsEnabledByDefault>

@@ -119,6 +119,10 @@
 	<ValuePlaceholder>true|false</ValuePlaceholder>
 	<Description>Use 'var' instead of implicit object creation</Description>
   </Option>
+  <Option Id="InfiniteLoopStyle">
+	<ValuePlaceholder>for|while</ValuePlaceholder>
+	<Description>Use 'for'/'while' statement as an infinite loop</Description>
+  </Option>
   <!--
   <Option Id="">
     <Key></Key>

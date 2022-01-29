@@ -109,6 +109,9 @@ roslynator_enum_has_flag_style = method|operator
 roslynator_equals_token_new_line = after|before
 # Applicable to: rcs0052
 
+roslynator_infinite_loop_style = for|while
+# Applicable to: rcs1252
+
 roslynator_max_line_length = <NUM>
 # Default: 140
 # Applicable to: rcs0056
@@ -926,6 +929,10 @@ dotnet_diagnostic.rcs1249.severity = suggestion
 # Use implicit/explicit object creation
 dotnet_diagnostic.rcs1250.severity = none
 # Options: roslynator_object_creation_type_style, roslynator_use_var_instead_of_implicit_object_creation
+
+# Normalize usage of infinite loop
+dotnet_diagnostic.rcs1252.severity = none
+# Options: roslynator_infinite_loop_style
 
 # Use pattern matching
 dotnet_diagnostic.rcs9001.severity = silent
