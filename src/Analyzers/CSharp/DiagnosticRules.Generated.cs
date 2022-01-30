@@ -2449,5 +2449,17 @@ namespace Roslynator.CSharp
             helpLinkUri:        DiagnosticIdentifiers.UseImplicitOrExplicitObjectCreation, 
             customTags:         Array.Empty<string>());
 
+        /// <summary>RCS1253</summary>
+        public static readonly DiagnosticDescriptor FormatDocumentationCommentSummary = DiagnosticDescriptorFactory.Create(
+            id:                 DiagnosticIdentifiers.FormatDocumentationCommentSummary, 
+            title:              "Format documentation comment summary.", 
+            messageFormat:      "Format documentation comment summary.", 
+            category:           DiagnosticCategories.Roslynator, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: false, 
+            description:        null, 
+            helpLinkUri:        DiagnosticIdentifiers.FormatDocumentationCommentSummary, 
+            customTags:         Array.Empty<string>());
+
     }
 }

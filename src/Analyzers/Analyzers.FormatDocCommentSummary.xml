@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Analyzers>
+  <Analyzer Identifier="FormatDocumentationCommentSummary" IsDevelopment="true">
+    <Id>RCS1253</Id>
+    <Title>Format documentation comment summary.</Title>
+    <Category>Roslynator</Category>
+    <DefaultSeverity>Info</DefaultSeverity>
+    <IsEnabledByDefault>false</IsEnabledByDefault>
+	<Summary>This analyzer replaces RCS1100 and RCS1101.</Summary>
+	<ConfigOptions>
+      <Option Key="doc_comment_summary_style" IsRequired="true" />
+    </ConfigOptions>
+  </Analyzer>
+</Analyzers>

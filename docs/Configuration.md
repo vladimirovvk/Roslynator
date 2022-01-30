@@ -100,6 +100,9 @@ roslynator_conditional_operator_new_line = after|before
 roslynator_configure_await = true|false
 # Applicable to: rcs1090
 
+roslynator_doc_comment_summary_style = multi_line|single_line
+# Applicable to: rcs1253
+
 roslynator_empty_string_style = field|literal
 # Applicable to: rcs1078
 
@@ -926,6 +929,10 @@ dotnet_diagnostic.rcs1249.severity = suggestion
 # Use implicit/explicit object creation
 dotnet_diagnostic.rcs1250.severity = none
 # Options: roslynator_object_creation_type_style, roslynator_use_var_instead_of_implicit_object_creation
+
+# Format documentation comment summary
+dotnet_diagnostic.rcs1253.severity = none
+# Options: roslynator_doc_comment_summary_style
 
 # Use pattern matching
 dotnet_diagnostic.rcs9001.severity = silent

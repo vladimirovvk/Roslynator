@@ -2287,7 +2287,8 @@ namespace Foo
   </Analyzer>
   <Analyzer Identifier="FormatDocumentationSummaryOnSingleLine">
     <Id>RCS1100</Id>
-    <Title>Format documentation summary on a single line.</Title>
+	<Title>([deprecated] use RCS1253 instead) Format documentation summary on a single line.</Title>
+	<MessageFormat>([deprecated] use RCS1253 instead) Format documentation summary on a single line.</MessageFormat>
     <Category>Formatting</Category>
     <DefaultSeverity>Info</DefaultSeverity>
     <IsEnabledByDefault>false</IsEnabledByDefault>
@@ -2308,7 +2309,8 @@ public void Foo()
   </Analyzer>
   <Analyzer Identifier="FormatDocumentationSummaryOnMultipleLines">
     <Id>RCS1101</Id>
-    <Title>Format documentation summary on multiple lines.</Title>
+	<Title>([deprecated] use RCS1253 instead) Format documentation summary on multiple lines.</Title>
+	<MessageFormat>([deprecated] use RCS1253 instead) Format documentation summary on multiple lines.</MessageFormat>
     <Category>Formatting</Category>
     <DefaultSeverity>Info</DefaultSeverity>
     <IsEnabledByDefault>false</IsEnabledByDefault>
