@@ -2449,5 +2449,17 @@ namespace Roslynator.CSharp
             helpLinkUri:        DiagnosticIdentifiers.UseImplicitOrExplicitObjectCreation, 
             customTags:         Array.Empty<string>());
 
+        /// <summary>RCS1254</summary>
+        public static readonly DiagnosticDescriptor NormalizeFormatOfEnumFlagValue = DiagnosticDescriptorFactory.Create(
+            id:                 DiagnosticIdentifiers.NormalizeFormatOfEnumFlagValue, 
+            title:              "Normalize format of enum flag value.", 
+            messageFormat:      "{0}", 
+            category:           DiagnosticCategories.Roslynator, 
+            defaultSeverity:    DiagnosticSeverity.Info, 
+            isEnabledByDefault: true, 
+            description:        null, 
+            helpLinkUri:        DiagnosticIdentifiers.NormalizeFormatOfEnumFlagValue, 
+            customTags:         Array.Empty<string>());
+
     }
 }

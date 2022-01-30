@@ -103,6 +103,9 @@ roslynator_configure_await = true|false
 roslynator_empty_string_style = field|literal
 # Applicable to: rcs1078
 
+roslynator_enum_flag_value_style = decimal_number|shift_operator
+# Applicable to: rcs1254
+
 roslynator_enum_has_flag_style = method|operator
 # Applicable to: rcs1096
 
@@ -926,6 +929,10 @@ dotnet_diagnostic.rcs1249.severity = suggestion
 # Use implicit/explicit object creation
 dotnet_diagnostic.rcs1250.severity = none
 # Options: roslynator_object_creation_type_style, roslynator_use_var_instead_of_implicit_object_creation
+
+# Normalize format of enum flag value
+dotnet_diagnostic.rcs1254.severity = suggestion
+# Options: roslynator_enum_flag_value_style
 
 # Use pattern matching
 dotnet_diagnostic.rcs9001.severity = silent

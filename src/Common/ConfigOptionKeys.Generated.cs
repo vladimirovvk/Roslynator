@@ -20,6 +20,7 @@ namespace Roslynator
         public const string ConditionalOperatorNewLine                        = "roslynator_conditional_operator_new_line";
         public const string ConfigureAwait                                    = "roslynator_configure_await";
         public const string EmptyStringStyle                                  = "roslynator_empty_string_style";
+        public const string EnumFlagValueStyle                                = "roslynator_enum_flag_value_style";
         public const string EnumHasFlagStyle                                  = "roslynator_enum_has_flag_style";
         public const string EqualsTokenNewLine                                = "roslynator_equals_token_new_line";
         public const string MaxLineLength                                     = "roslynator_max_line_length";

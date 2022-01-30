@@ -207,5 +207,6 @@ namespace Roslynator.CSharp
         public const string NormalizeNullCheck = "RCS1248";
         public const string UnnecessaryNullForgivingOperator = "RCS1249";
         public const string UseImplicitOrExplicitObjectCreation = "RCS1250";
+        public const string NormalizeFormatOfEnumFlagValue = "RCS1254";
     }
 }
