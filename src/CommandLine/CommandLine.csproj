@@ -1,18 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup Condition="'$(RoslynatorDotNetCli)' != true AND '$(RoslynatorCommandLine)' != true">
-    <TargetFramework>net48</TargetFramework>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(RoslynatorDotNetCli)' == true OR '$(RoslynatorCoreCli)' == true ">
-    <TargetFramework>net5.0</TargetFramework>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(RoslynatorCommandLine)' == true">
-    <TargetFramework>net48</TargetFramework>
-  </PropertyGroup>
-
   <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
     <Version>$(RoslynatorCliVersion)</Version>
     <OutputType>Exe</OutputType>
     <AssemblyName>Roslynator</AssemblyName>
@@ -49,7 +38,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="4.0.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.0.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
   <ItemGroup>
